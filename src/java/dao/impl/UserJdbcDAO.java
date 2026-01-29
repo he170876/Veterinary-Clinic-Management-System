@@ -6,7 +6,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -14,13 +13,16 @@ import model.Role;
 import model.User;
 
 /**
- * JDBC implementation of {@link UserDAO}.
- *
- * This implementation assumes the database schema defined in the VCMS RDS
- * (Users + Roles tables) and may need minor adjustments once the actual schema
- * is created.
+ * JDBC implementation of {@link UserDAO} for SQL Server.
  */
 public class UserJdbcDAO extends BaseDAO implements UserDAO {
+
+    /** Last SQL error message when createCustomerUser fails (for UI). */
+    private static volatile String lastInsertError;
+
+    public static String getLastInsertError() {
+        return lastInsertError;
+    }
 
     @Override
     public Optional<User> findByEmail(String email) {
@@ -46,15 +48,78 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     }
 
     @Override
+    public Optional<User> findById(int userId) {
+        String sql = "SELECT u.user_id, u.email, u.password, u.status, u.created_at, u.updated_at, "
+                + "u.full_name, u.phone, u.address, r.role_id, r.role_name "
+                + "FROM Users u "
+                + "JOIN Roles r ON u.role_id = r.role_id "
+                + "WHERE u.user_id = ?";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRowToUser(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        String sql = "SELECT 1 FROM Users WHERE email = ?";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public Optional<Role> findRoleByName(String roleName) {
+        String sql = "SELECT role_id, role_name FROM Roles WHERE LTRIM(RTRIM(role_name)) COLLATE SQL_Latin1_General_CP1_CI_AS = LTRIM(RTRIM(?))";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, roleName == null ? "" : roleName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Role role = new Role();
+                    role.setRoleId(rs.getInt("role_id"));
+                    role.setRoleName(rs.getString("role_name"));
+                    return Optional.of(role);
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public User createCustomerUser(User user) {
         String sql = "INSERT INTO Users (email, password, role_id, status, created_at, updated_at, "
                 + "full_name, phone, address) "
+                + "OUTPUT INSERTED.user_id "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         LocalDateTime now = LocalDateTime.now();
 
         try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, user.getEmail());
             ps.setString(2, user.getPasswordHash());
@@ -66,20 +131,41 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
             ps.setString(8, user.getPhone());
             ps.setString(9, user.getAddress());
 
-            int affected = ps.executeUpdate();
-            if (affected == 0) {
-                throw new SQLException("Creating user failed, no rows affected.");
-            }
-
-            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    user.setUserId(generatedKeys.getInt(1));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    user.setUserId(rs.getInt(1));
                 }
             }
+            user.setCreatedAt(now);
+            user.setUpdatedAt(now);
+            lastInsertError = null;
+            return user;
+        } catch (SQLException ex) {
+            lastInsertError = ex.getMessage();
+            System.err.println("[UserJdbcDAO] INSERT failed: " + lastInsertError);
+            ex.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
+    public boolean updateUser(User user) {
+        String sql = "UPDATE Users SET full_name = ?, phone = ?, address = ?, updated_at = ? WHERE user_id = ?";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, user.getFullName());
+            ps.setString(2, user.getPhone());
+            ps.setString(3, user.getAddress());
+            ps.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setInt(5, user.getUserId());
+
+            return ps.executeUpdate() > 0;
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return user;
+        return false;
     }
 
     private User mapRowToUser(ResultSet rs) throws SQLException {
@@ -110,4 +196,3 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         return user;
     }
 }
-

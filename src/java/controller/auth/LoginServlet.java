@@ -13,7 +13,7 @@ import service.AuthService;
 import service.impl.AuthServiceImpl;
 
 /**
- * Servlet handling the Login use case (AL-01 in the RDS).
+ * Servlet handling the Login use case.
  * After successful authentication, redirects to a role-specific dashboard.
  */
 @WebServlet(name = "LoginServlet", urlPatterns = {"/login"})
@@ -29,6 +29,13 @@ public class LoginServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // If already logged in, redirect to dashboard
+        HttpSession session = request.getSession(false);
+        if (session != null && session.getAttribute("currentUser") != null) {
+            User user = (User) session.getAttribute("currentUser");
+            redirectToDashboard(request, response, user);
+            return;
+        }
         request.getRequestDispatcher("login.jsp").forward(request, response);
     }
 
@@ -37,6 +44,13 @@ public class LoginServlet extends HttpServlet {
             throws ServletException, IOException {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
+
+        // Basic validation
+        if (email == null || email.trim().isEmpty() || password == null || password.isEmpty()) {
+            request.setAttribute("error", "Please enter both email and password.");
+            request.getRequestDispatcher("login.jsp").forward(request, response);
+            return;
+        }
 
         Optional<User> userOpt = authService.login(email, password);
 
@@ -47,21 +61,41 @@ public class LoginServlet extends HttpServlet {
         }
 
         User user = userOpt.get();
+        
+        // Create session and store user
         HttpSession session = request.getSession(true);
         session.setAttribute("currentUser", user);
+        session.setMaxInactiveInterval(30 * 60); // 30 minutes
 
-        // Very simple role-based redirection; adjust view names as you build the dashboards.
+        // Redirect based on role
+        redirectToDashboard(request, response, user);
+    }
+
+    private void redirectToDashboard(HttpServletRequest request, HttpServletResponse response, User user)
+            throws IOException {
         String roleName = user.getRole() != null ? user.getRole().getRoleName() : "";
-        if ("ClinicOwner".equalsIgnoreCase(roleName) || "Owner".equalsIgnoreCase(roleName)) {
-            response.sendRedirect(request.getContextPath() + "/owner/dashboard");
-        } else if ("Veterinarian".equalsIgnoreCase(roleName)) {
-            response.sendRedirect(request.getContextPath() + "/vet/dashboard");
-        } else if ("Receptionist".equalsIgnoreCase(roleName) || "Staff".equalsIgnoreCase(roleName)) {
-            response.sendRedirect(request.getContextPath() + "/staff/dashboard");
-        } else {
-            // Default to customer dashboard
-            response.sendRedirect(request.getContextPath() + "/customer/dashboard");
+        String contextPath = request.getContextPath();
+
+        switch (roleName.toLowerCase()) {
+            case "clinicowner":
+            case "owner":
+            case "admin":
+                response.sendRedirect(contextPath + "/owner/dashboard");
+                break;
+            case "veterinarian":
+                response.sendRedirect(contextPath + "/vet/dashboard");
+                break;
+            case "receptionist":
+            case "staff":
+                response.sendRedirect(contextPath + "/staff/dashboard");
+                break;
+            case "labstaff":
+                response.sendRedirect(contextPath + "/lab/dashboard");
+                break;
+            default:
+                // Customer or unknown
+                response.sendRedirect(contextPath + "/customer/dashboard");
+                break;
         }
     }
 }
-
