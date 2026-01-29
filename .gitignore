@@ -1,2 +1,56 @@
-/build/
-/nbproject/private/
+# NetBeans
+# Ignore only private and build metadata; keep project metadata tracked
+nbproject/private/
+nbbuild/
+nbdist/
+build/
+dist/
+
+# Compiled class files
+*.class
+**/classes/
+
+# Generated sources / build outputs
+generated-sources/
+ap-source-output/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs / temp
+*.log
+*.tmp
+*.swp
+*~
+
+# Java packaging (uncomment nếu dùng Maven/Gradle)
+# *.jar
+# *.war
+# *.ear
+# target/        # nếu dùng Maven
+
+# Node (nếu có)
+node_modules/
+npm-debug.log
+
+# Secrets / keystores
+*.env
+*.keystore
+*.jks
+
+# Project-specific: ignore DB context if it contains credentials
+# (Nếu bạn muốn giữ file trong repo, hãy xóa dòng này)
+src/java/utils/DBContext.java
+
+# If you store third-party jars in `lib/` and want them tracked, remove this line
+lib/
