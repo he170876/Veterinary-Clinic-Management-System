@@ -7,7 +7,10 @@
 
     <!-- Basic deployment descriptor for Veterinary Clinic Management System -->
     <display-name>Veterinary Clinic Management System</display-name>
-
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
     <!-- Authentication servlets (duplicate of annotations for clarity) -->
     <servlet>
         <servlet-name>LoginServlet</servlet-name>
