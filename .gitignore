@@ -1,6 +1,6 @@
 # NetBeans
 # Ignore only private and build metadata; keep project metadata tracked
-nbproject/private/
+nbproject/
 nbbuild/
 nbdist/
 build/
