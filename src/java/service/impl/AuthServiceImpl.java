@@ -92,8 +92,7 @@ public class AuthServiceImpl implements AuthService {
             return false;
         }
 
-        // Update with new password hash
-        user.setPasswordHash(PasswordUtil.hashPassword(newPassword));
-        return userDAO.updateUser(user);
+        // Update password in database
+        return userDAO.updatePassword(userId, PasswordUtil.hashPassword(newPassword));
     }
 }

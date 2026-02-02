@@ -77,6 +77,15 @@
         <url-pattern>/logout</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>GoogleLoginServlet</servlet-name>
+        <servlet-class>controller.auth.GoogleLoginServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>GoogleLoginServlet</servlet-name>
+        <url-pattern>/google-login</url-pattern>
+    </servlet-mapping>
+
     <!-- ======================= -->
     <!-- Customer Servlets       -->
     <!-- ======================= -->
@@ -88,6 +97,33 @@
     <servlet-mapping>
         <servlet-name>CustomerDashboardServlet</servlet-name>
         <url-pattern>/customer/dashboard</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>CustomerProfileServlet</servlet-name>
+        <servlet-class>controller.customer.CustomerProfileServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CustomerProfileServlet</servlet-name>
+        <url-pattern>/customer/profile</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ChangePasswordServlet</servlet-name>
+        <servlet-class>controller.customer.ChangePasswordServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ChangePasswordServlet</servlet-name>
+        <url-pattern>/customer/change-password</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>CustomerEditProfileServlet</servlet-name>
+        <servlet-class>controller.customer.CustomerEditProfileServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CustomerEditProfileServlet</servlet-name>
+        <url-pattern>/customer/edit-profile</url-pattern>
     </servlet-mapping>
 
     <!-- Booking (guest appointment request from landing) -->

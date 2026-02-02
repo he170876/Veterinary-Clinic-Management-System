@@ -44,12 +44,12 @@
     <nav class="bg-white shadow-sm border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex items-center gap-3">
+                <a href="<%= request.getContextPath() %>/index.jsp" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
                     <div class="size-10 bg-primary text-white rounded-lg flex items-center justify-center">
                         <span class="material-symbols-outlined">pets</span>
                     </div>
                     <span class="text-xl font-black text-gray-900 tracking-tight">Anipats</span>
-                </div>
+                </a>
                 <div class="flex items-center gap-4">
                     <span class="text-sm text-gray-600">Welcome, <strong><%= user.getFullName() %></strong></span>
                     <a href="<%= request.getContextPath() %>/logout" 
@@ -128,7 +128,7 @@
                 </div>
                 <span class="font-semibold text-gray-700">View History</span>
             </a>
-            <a href="#" class="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all">
+            <a href="<%= request.getContextPath() %>/customer/profile" class="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all">
                 <div class="size-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">person</span>
                 </div>

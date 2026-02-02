@@ -20,4 +20,10 @@ public interface UserDAO {
     User createCustomerUser(User user);
     
     boolean updateUser(User user);
+
+    /**
+     * Update only the password hash for a user.
+     * @return true if one row was updated.
+     */
+    boolean updatePassword(int userId, String newPasswordHash);
 }

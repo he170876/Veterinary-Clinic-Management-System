@@ -1,369 +1,464 @@
 <%--
     Document   : index.jsp
-    Anipat landing page - VCMS
+    Anipats landing page - VCMS (Tailwind design)
 --%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%
+    String ctx = request.getContextPath();
+    Object currentUser = (session == null) ? null : session.getAttribute("currentUser");
+    boolean loggedIn = (currentUser != null);
+    String userDisplayName = null;
+    if (currentUser != null && currentUser instanceof model.User) {
+        String fn = ((model.User) currentUser).getFullName();
+        if (fn != null && !fn.isEmpty()) userDisplayName = fn; else userDisplayName = ((model.User) currentUser).getEmail();
+    }
+    String booked = request.getParameter("booked");
+    String bookErr = request.getParameter("bookError");
+    String bookMsg = request.getParameter("bookMessage");
+    String forbidden = request.getParameter("forbidden");
+%>
 <!DOCTYPE html>
-<html class="no-js" lang="zxx">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="x-ua-compatible" content="ie=edge">
-        <title>Anipats - We Care Your Pets</title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="shortcut icon" type="image/x-icon" href="anipat-master/img/logo.png">
-        <link rel="stylesheet" href="anipat-master/css/bootstrap.min.css">
-        <link rel="stylesheet" href="anipat-master/css/owl.carousel.min.css">
-        <link rel="stylesheet" href="anipat-master/css/magnific-popup.css">
-        <link rel="stylesheet" href="anipat-master/css/font-awesome.min.css">
-        <link rel="stylesheet" href="anipat-master/css/themify-icons.css">
-        <link rel="stylesheet" href="anipat-master/css/nice-select.css">
-        <link rel="stylesheet" href="anipat-master/css/flaticon.css">
-        <link rel="stylesheet" href="anipat-master/css/gijgo.css">
-        <link rel="stylesheet" href="anipat-master/css/animate.css">
-        <link rel="stylesheet" href="anipat-master/css/slicknav.css">
-        <link rel="stylesheet" href="anipat-master/css/style.css">
-        <style>
-            .modal { z-index: 2000 !important; pointer-events: auto !important; }
-            .modal .modal-dialog { pointer-events: auto !important; }
-            .modal-backdrop { z-index: 1500 !important; }
-            .modal-backdrop.show { opacity: 0.6 !important; }
-            .nav-btn { background: #f14437; color: #fff !important; padding: 10px 18px !important; border-radius: 6px; font-weight: 600; transition: transform .12s ease, box-shadow .12s ease; }
-            .nav-btn:hover { transform: translateY(-2px); background: #d6362b !important; color:#fff !important; }
-            .nav-login { color: #fff !important; padding: 10px 18px !important; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: #1a1614; font-weight: 600; }
-            .nav-login:hover { background: rgba(255,255,255,0.06); color:#fff !important; }
-            #navigation li a.nav-btn, #navigation li a.nav-login { display: inline-block; }
-            .hero-accent { color: #f14437; }
-            .hero-subtitle { font-size: 0.85rem; letter-spacing: 0.2em; color: #f14437; font-weight: 700; margin-bottom: 0.5rem; }
-            .stats-row { background: #f8f7f5; padding: 2.5rem 0; }
-            .stats-item { text-align: center; }
-            .stats-item .number { font-size: 2.25rem; font-weight: 800; color: #f14437; line-height: 1.2; }
-            .stats-item .label { font-size: 0.9rem; color: #5c4a3a; font-weight: 600; margin-top: 0.25rem; }
-        </style>
-    </head>
-    <body>
-        <%
-            String ctx = request.getContextPath();
-            Object currentUser = (session == null) ? null : session.getAttribute("currentUser");
-            boolean loggedIn = (currentUser != null);
-            String userDisplayName = null;
-            if (currentUser != null && currentUser instanceof model.User) {
-                String fn = ((model.User) currentUser).getFullName();
-                if (fn != null && !fn.isEmpty()) userDisplayName = fn; else userDisplayName = ((model.User) currentUser).getEmail();
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Anipats - Professional Veterinary Medical Center</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f14437",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#181111",
+                        "dark-accent": "#120a0b",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        @layer base {
+            body {
+                @apply font-display;
             }
-            String booked = request.getParameter("booked");
-            String bookErr = request.getParameter("bookError");
-            String bookMsg = request.getParameter("bookMessage");
-            String forbidden = request.getParameter("forbidden");
-        %>
-        <% if ("1".equals(forbidden)) { %>
-        <div class="alert alert-warning alert-dismissible fade show m-3" role="alert" style="position: fixed; top: 80px; right: 20px; z-index: 9999;">
-            <strong>Access denied.</strong> You do not have permission to view that page.
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <% } %>
-        <% if ("1".equals(booked)) { %>
-        <div class="alert alert-success alert-dismissible fade show m-3" role="alert" style="position: fixed; top: 80px; right: 20px; z-index: 9999;">
-            <strong>Thank you!</strong> Your appointment request has been received. We will contact you shortly.
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <% } %>
-        <% if ("1".equals(bookErr)) { %>
-        <div class="alert alert-danger alert-dismissible fade show m-3" role="alert" style="position: fixed; top: 80px; right: 20px; z-index: 9999;">
-            <strong>Booking failed.</strong> <%= (bookMsg != null && !bookMsg.isEmpty()) ? java.net.URLDecoder.decode(bookMsg, "UTF-8") : "Please try again or contact us." %>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <% } %>
-        <header>
-            <div class="header-area ">
-                <div class="header-top_area">
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-lg-6 col-md-8">
-                                <div class="short_contact_list">
-                                    <ul>
-                                        <li><a href="tel:+15550001234">+1 (555) 000-1234</a></li>
-                                        <li><a href="mailto:contact@anipats.com">contact@anipats.com</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-lg-6 col-md-4 ">
-                                <div class="social_media_links d-flex align-items-center justify-content-end">
-                                    <span class="mr-2" style="font-size: 0.9rem; color: rgba(255,255,255,0.9);">Follow us</span>
-                                    <a href="#"><i class="fa fa-facebook"></i></a>
-                                    <a href="#"><i class="fa fa-pinterest-p"></i></a>
-                                    <a href="#"><i class="fa fa-google-plus"></i></a>
-                                    <a href="#"><i class="fa fa-linkedin"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="sticky-header" class="main-header-area">
-                    <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-xl-3 col-lg-3">
-                                <div class="logo">
-                                    <a href="<%= ctx %>/index.jsp">
-                                        <img src="anipat-master/img/logo.png" alt="Anipats">
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="col-xl-9 col-lg-9">
-                                <div class="main-menu  d-none d-lg-block">
-                                    <nav>
-                                        <ul id="navigation">
-                                            <li><a href="<%= ctx %>/index.jsp">Home</a></li>
-                                            <li><a href="anipat-master/about.html">About</a></li>
-                                            <li><a href="anipat-master/service.html">Services</a></li>
-                                            <li><a href="#">Adoption</a></li>
-                                            <li><a href="anipat-master/contact.html">Contact</a></li>
-                                            <li><a href="#" class="nav-btn" data-toggle="modal" data-target="#bookAppointmentModal">Book Appointment</a></li>
-                                            <% if (loggedIn) { %>
-                                            <li><span class="nav-login" style="cursor:default;"><%= userDisplayName != null ? userDisplayName : "Account" %></span></li>
-                                            <li><a href="<%= ctx %>/customer/dashboard" class="nav-login">Dashboard</a></li>
-                                            <li><a href="<%= ctx %>/logout" class="nav-login">Logout</a></li>
-                                            <% } else { %>
-                                            <li><a href="<%= ctx %>/login" class="nav-login">Login / Register</a></li>
-                                            <% } %>
-                                        </ul>
-                                    </nav>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="mobile_menu d-block d-lg-none"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#181111] dark:text-white transition-colors duration-300">
+    <% if ("1".equals(forbidden)) { %>
+    <div class="fixed top-20 right-6 z-[9999] max-w-sm bg-amber-500 text-[#181111] px-4 py-3 rounded-xl shadow-xl flex items-center justify-between gap-4" role="alert">
+        <span class="font-semibold">Access denied.</span> You do not have permission to view that page.
+        <button type="button" onclick="this.parentElement.remove()" class="shrink-0 p-1 hover:bg-black/10 rounded" aria-label="Close">&times;</button>
+    </div>
+    <% } %>
+    <% if ("1".equals(booked)) { %>
+    <div class="fixed top-20 right-6 z-[9999] max-w-sm bg-green-500 text-white px-4 py-3 rounded-xl shadow-xl flex items-center justify-between gap-4" role="alert">
+        <span class="font-semibold">Thank you!</span> Your appointment request has been received.
+        <button type="button" onclick="this.parentElement.remove()" class="shrink-0 p-1 hover:bg-white/20 rounded" aria-label="Close">&times;</button>
+    </div>
+    <% } %>
+    <% if ("1".equals(bookErr)) { %>
+    <div class="fixed top-20 right-6 z-[9999] max-w-sm bg-red-500 text-white px-4 py-3 rounded-xl shadow-xl flex items-center justify-between gap-4" role="alert">
+        <span class="font-semibold">Booking failed.</span> <%= (bookMsg != null && !bookMsg.isEmpty()) ? java.net.URLDecoder.decode(bookMsg, "UTF-8").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;") : "Please try again or contact us." %>
+        <button type="button" onclick="this.parentElement.remove()" class="shrink-0 p-1 hover:bg-white/20 rounded" aria-label="Close">&times;</button>
+    </div>
+    <% } %>
 
-        <!-- Hero -->
-        <div class="slider_area">
-            <div class="single_slider slider_bg_1 d-flex align-items-center">
-                <div class="container">
-                    <div class="row align-items-center">
-                        <div class="col-lg-6 col-md-7">
-                            <div class="slider_text">
-                                <p class="hero-subtitle">PROFESSIONAL VET CARE</p>
-                                <h3 class="mb-3">We Care <span class="hero-accent">Your Pets</span></h3>
-                                <p class="mb-4" style="max-width: 480px; line-height: 1.6;">Professional veterinary medical center providing specialized care for your beloved animal companions. Expert medical standards meets compassionate care.</p>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <a href="#" class="boxed-btn4 nav-btn" data-toggle="modal" data-target="#bookAppointmentModal">Get Started</a>
-                                    <a href="anipat-master/service.html" class="boxed-btn3" style="border: 2px solid #1a1614; color: #1a1614; padding: 10px 24px; border-radius: 6px; font-weight: 600;">Our Services</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-6 col-md-5 d-none d-md-block text-center">
-                            <img src="anipat-master/img/banner/dog.png" alt="Happy pet" class="img-fluid" style="max-height: 420px;">
-                        </div>
-                    </div>
+    <div class="hidden lg:block bg-dark-accent text-white py-2.5 border-b border-white/5">
+        <div class="max-w-[1400px] mx-auto px-10 flex justify-between items-center text-[13px] font-medium tracking-tight">
+            <div class="flex gap-8 items-center">
+                <a class="flex items-center gap-2 hover:text-primary transition-colors group" href="tel:+15550001234">
+                    <span class="material-symbols-outlined text-[18px] text-primary group-hover:scale-110 transition-transform">call</span>
+                    +1 (555) 000-1234
+                </a>
+                <a class="flex items-center gap-2 hover:text-primary transition-colors group" href="mailto:contact@anipats.com">
+                    <span class="material-symbols-outlined text-[18px] text-primary group-hover:scale-110 transition-transform">mail</span>
+                    contact@anipats.com
+                </a>
+            </div>
+            <div class="flex gap-6 items-center">
+                <span class="text-white/60">Follow us:</span>
+                <div class="flex gap-4">
+                    <a class="hover:text-primary transition-colors flex items-center" href="#"><span class="material-symbols-outlined text-[18px]">public</span></a>
+                    <a class="hover:text-primary transition-colors flex items-center" href="#"><span class="material-symbols-outlined text-[18px]">share</span></a>
+                    <a class="hover:text-primary transition-colors flex items-center" href="#"><span class="material-symbols-outlined text-[18px]">chat</span></a>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Stats -->
-        <div class="stats-row">
-            <div class="container">
-                <div class="row">
-                    <div class="col-6 col-md-3">
-                        <div class="stats-item">
-                            <div class="number">15k+</div>
-                            <div class="label">HAPPY CLIENTS</div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="stats-item">
-                            <div class="number">452+</div>
-                            <div class="label">PETS AVAILABLE</div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="stats-item">
-                            <div class="number">20+</div>
-                            <div class="label">EXPERT VETS</div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="stats-item">
-                            <div class="number">100%</div>
-                            <div class="label">CARE GUARANTEE</div>
-                        </div>
-                    </div>
+    <header class="sticky top-0 z-50 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-100 dark:border-white/5 px-6 lg:px-10 py-4">
+        <div class="max-w-[1400px] mx-auto flex items-center justify-between">
+            <a href="<%= ctx %>/index.jsp" class="flex items-center gap-3 group cursor-pointer">
+                <div class="text-primary flex items-center">
+                    <svg class="size-9 group-hover:rotate-12 transition-transform duration-300" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+                    </svg>
                 </div>
+                <h2 class="text-2xl font-extrabold leading-tight tracking-tight text-[#181111] dark:text-white">Anipats</h2>
+            </a>
+            <nav class="hidden xl:flex items-center gap-10">
+                <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="<%= ctx %>/index.jsp">Home</a>
+                <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">About</a>
+                <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">Services</a>
+                <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">Adoption</a>
+                <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">Contact</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <% if (loggedIn) { %>
+                <a href="<%= ctx %>/customer/dashboard" class="hidden lg:flex px-5 py-2.5 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-[#181111] dark:text-white text-sm font-bold rounded-lg border border-gray-200 dark:border-white/10 transition-all hover:shadow-sm no-underline">
+                    Dashboard
+                </a>
+                <% } %>
+                <button type="button" data-toggle="modal" data-target="#bookAppointmentModal" class="hidden sm:flex px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-lg shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all active:scale-95">
+                    Book Appointment
+                </button>
+                <div class="h-8 w-[1px] bg-gray-200 dark:bg-white/10 mx-2 hidden lg:block"></div>
+                <% if (loggedIn) { %>
+                <span class="hidden lg:inline text-sm font-semibold text-[#181111] dark:text-white/90"><%= userDisplayName != null ? userDisplayName : "Account" %></span>
+                <a href="<%= ctx %>/logout" class="px-5 py-2.5 bg-dark-accent dark:bg-white dark:text-dark-accent text-white text-sm font-bold rounded-lg hover:opacity-90 transition-all active:scale-95 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                    Logout
+                </a>
+                <% } else { %>
+                <a href="<%= ctx %>/login" class="px-5 py-2.5 bg-dark-accent dark:bg-white dark:text-dark-accent text-white text-sm font-bold rounded-lg hover:opacity-90 transition-all active:scale-95 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">account_circle</span>
+                    Login / Register
+                </a>
+                <% } %>
             </div>
         </div>
+    </header>
 
-        <div class="service_area">
-            <div class="container">
-                <div class="row justify-content-center ">
-                    <div class="col-lg-7 col-md-10">
-                        <div class="section_title text-center mb-95">
-                            <h3>Services for every dog</h3>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.</p>
-                        </div>
+    <section class="bg-[#fdf8f1] dark:bg-background-dark/50 py-12 lg:py-20">
+        <div class="max-w-[1200px] mx-auto px-6">
+            <div class="flex flex-col lg:flex-row items-center gap-12 @container">
+                <div class="flex flex-col gap-8 flex-1">
+                    <div class="flex flex-col gap-4">
+                        <span class="text-primary font-bold uppercase tracking-widest text-sm">Professional Vet Care</span>
+                        <h1 class="text-[#181111] dark:text-white text-5xl lg:text-7xl font-black leading-[1.1] tracking-[-0.033em]">
+                            We Care <span class="text-primary">Your Pets</span>
+                        </h1>
+                        <p class="text-[#181111]/70 dark:text-white/70 text-lg leading-relaxed max-w-[500px]">
+                            Professional veterinary medical center providing specialized care for your beloved animal companions. Expert medical standards meets compassionate care.
+                        </p>
                     </div>
-                </div>
-                <div class="row justify-content-center">
-                    <div class="col-lg-4 col-md-6">
-                        <div class="single_service">
-                            <div class="service_thumb service_icon_bg_1 d-flex align-items-center justify-content-center">
-                                <div class="service_icon">
-                                    <img src="anipat-master/img/service/service_icon_1.png" alt="">
-                                </div>
-                            </div>
-                            <div class="service_content text-center">
-                                <h3>Pet Boarding</h3>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-6">
-                        <div class="single_service active">
-                            <div class="service_thumb service_icon_bg_1 d-flex align-items-center justify-content-center">
-                                <div class="service_icon">
-                                    <img src="anipat-master/img/service/service_icon_2.png" alt="">
-                                </div>
-                            </div>
-                            <div class="service_content text-center">
-                                <h3>Healthy Meals</h3>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-6">
-                        <div class="single_service">
-                            <div class="service_thumb service_icon_bg_1 d-flex align-items-center justify-content-center">
-                                <div class="service_icon">
-                                    <img src="anipat-master/img/service/service_icon_3.png" alt="">
-                                </div>
-                            </div>
-                            <div class="service_content text-center">
-                                <h3>Pet Spa</h3>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="pet_care_area">
-            <div class="container">
-                <div class="row align-items-center">
-                    <div class="col-lg-5 col-md-6">
-                        <div class="pet_thumb">
-                            <img src="anipat-master/img/about/pet_care.png" alt="">
-                        </div>
-                    </div>
-                    <div class="col-lg-6 offset-lg-1 col-md-6">
-                        <div class="pet_info">
-                            <div class="section_title">
-                                <h3><span>We care your pet </span> <br> As you care</h3>
-                                <p>Lorem ipsum dolor sit , consectetur adipiscing elit, sed do iusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                <a href="anipat-master/about.html" class="boxed-btn3">About Us</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="contact_anipat anipat_bg_1">
-            <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-lg-8">
-                        <div class="contact_text text-center">
-                            <div class="section_title text-center">
-                                <h3>Why go with Anipat?</h3>
-                                <p>Because we know that even the best technology is only as good as the people behind it. 24/7 tech support.</p>
-                            </div>
-                            <div class="contact_btn d-flex align-items-center justify-content-center">
-                                <a href="anipat-master/contact.html" class="boxed-btn4">Contact Us</a>
-                                <p>Or  <a href="#"> +880 4664 216</a></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <footer class="footer">
-            <div class="footer_top">
-                <div class="container">
-                    <div class="row">
-                        <div class="col-xl-3 col-md-6 col-lg-3">
-                            <div class="footer_widget">
-                                <h3 class="footer_title">Contact Us</h3>
-                                <ul class="address_line">
-                                    <li>+555 0000 565</li>
-                                    <li><a href="#">Demomail@gmail.Com</a></li>
-                                    <li>700, Green Lane, New York, USA</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-md-6 col-lg-3">
-                            <div class="footer_widget">
-                                <h3 class="footer_title">Quick Link</h3>
-                                <ul class="links">
-                                    <li><a href="anipat-master/about.html">About Us</a></li>
-                                    <% if (loggedIn) { %>
-                                    <li><a href="<%= ctx %>/customer/dashboard">Dashboard</a></li>
-                                    <li><a href="<%= ctx %>/logout">Logout</a></li>
-                                    <% } else { %>
-                                    <li><a href="<%= ctx %>/login">Login</a></li>
-                                    <li><a href="<%= ctx %>/register">Register</a></li>
-                                    <% } %>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-md-6 col-lg-3 ">
-                            <div class="footer_widget">
-                                <div class="footer_logo">
-                                    <a href="<%= ctx %>/index.jsp"><img src="anipat-master/img/logo.png" alt=""></a>
-                                </div>
-                                <p class="address_text">239 E 5th St, New York NY 10003, USA</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="copy-right_text">
-                <div class="container">
-                    <div class="bordered_1px"></div>
-                    <div class="row">
-                        <div class="col-xl-12">
-                            <p class="copy_right text-center">
-                                Copyright &copy;<script>document.write(new Date().getFullYear());</script> Anipats VCMS
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </footer>
-
-        <div class="modal fade" id="bookAppointmentModal" tabindex="-1" role="dialog" aria-labelledby="bookAppointmentLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="bookAppointmentLabel">Book Appointment</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
+                    <div class="flex flex-wrap gap-4">
+                        <button type="button" data-toggle="modal" data-target="#bookAppointmentModal" class="flex min-w-[160px] cursor-pointer items-center justify-center rounded-xl h-14 px-6 bg-primary text-white text-base font-bold shadow-lg shadow-primary/20 transition-all hover:bg-primary/90">
+                            Get Started
                         </button>
+                        <a href="#" class="flex min-w-[160px] cursor-pointer items-center justify-center rounded-xl h-14 px-6 bg-white dark:bg-white/10 border border-black/5 dark:border-white/10 text-[#181111] dark:text-white text-base font-bold transition-all hover:bg-black/5">
+                            Our Services
+                        </a>
                     </div>
-                    <div class="modal-body">
-                        <jsp:include page="bookForm.jsp" flush="true"/>
+                </div>
+                <div class="w-full lg:w-1/2">
+                    <div class="relative w-full aspect-[4/3] bg-center bg-no-repeat bg-cover rounded-3xl shadow-2xl overflow-hidden group" data-alt="Golden retriever dog smiling at camera" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA0peKeNrR7ZPcWqE4RM4tNr4ABNGOvAqF-Me1QnxmebyVR_wy7ZV06sPHOoVbqSd-QGM9zIld1Oq6WwbFNBb59Oi9XPAAOxqIbU3QsyhOwc6Qg7X6Jcxzp0Xda9dbPL30jevM5UEGl0HbHEDjqGXxUBxaCVg0HgpSbUUQOE0b04Bs1TcQOAe4vitRgvPbLEs9Gh0Vgjq0C6oQcxkzuCF349FWDqRHGCFQQGkZn7MtNIDpe-Jqbf78_I-ENZl6mthNlK-R0Fwono');">
+                        <div class="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent"></div>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <script src="anipat-master/js/vendor/jquery-1.12.4.min.js"></script>
-        <script src="anipat-master/js/popper.min.js"></script>
-        <script src="anipat-master/js/bootstrap.min.js"></script>
-        <script src="anipat-master/js/owl.carousel.min.js"></script>
-        <script src="anipat-master/js/jquery.slicknav.min.js"></script>
-        <script src="anipat-master/js/main.js"></script>
-    </body>
+    <div class="max-w-[1000px] mx-auto px-6 -mt-10 relative z-10">
+        <div class="bg-white dark:bg-[#2d1a1b] rounded-2xl shadow-xl p-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div class="text-center">
+                <div class="text-3xl font-black text-primary">15k+</div>
+                <div class="text-xs uppercase font-bold text-[#896163]">Happy Clients</div>
+            </div>
+            <div class="text-center border-l border-[#f4f0f0] dark:border-white/10">
+                <div class="text-3xl font-black text-primary">452+</div>
+                <div class="text-xs uppercase font-bold text-[#896163]">Pets Available</div>
+            </div>
+            <div class="text-center border-l border-[#f4f0f0] dark:border-white/10">
+                <div class="text-3xl font-black text-primary">20+</div>
+                <div class="text-xs uppercase font-bold text-[#896163]">Expert Vets</div>
+            </div>
+            <div class="text-center border-l border-[#f4f0f0] dark:border-white/10">
+                <div class="text-3xl font-black text-primary">100%</div>
+                <div class="text-xs uppercase font-bold text-[#896163]">Care Guarantee</div>
+            </div>
+        </div>
+    </div>
+
+    <section class="py-20 px-6 max-w-[1200px] mx-auto">
+        <div class="flex flex-col items-center text-center mb-16">
+            <h2 class="text-primary font-bold uppercase tracking-widest text-sm mb-2">What we do</h2>
+            <h3 class="text-[#181111] dark:text-white text-4xl font-black">Our Specialized Services</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="flex flex-col gap-6 rounded-2xl border border-[#e6dbdc] dark:border-white/10 bg-white dark:bg-[#2d1a1b] p-8 hover:shadow-xl transition-all hover:-translate-y-1">
+                <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined text-3xl">home</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <h4 class="text-xl font-bold leading-tight">Pet Boarding</h4>
+                    <p class="text-[#896163] dark:text-white/60 text-sm leading-relaxed">Safe and comfortable home away from home. 24/7 supervision and climate-controlled luxury suites for your pets.</p>
+                </div>
+                <a class="text-primary text-sm font-bold flex items-center gap-2 mt-auto" href="#">Learn More <span class="material-symbols-outlined text-[16px]">arrow_forward</span></a>
+            </div>
+            <div class="flex flex-col gap-6 rounded-2xl border border-[#e6dbdc] dark:border-white/10 bg-white dark:bg-[#2d1a1b] p-8 hover:shadow-xl transition-all hover:-translate-y-1">
+                <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined text-3xl">restaurant</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <h4 class="text-xl font-bold leading-tight">Healthy Meals</h4>
+                    <p class="text-[#896163] dark:text-white/60 text-sm leading-relaxed">Nutritious plans tailored for your pet's needs. Customized diet plans designed by our in-house nutritionists.</p>
+                </div>
+                <a class="text-primary text-sm font-bold flex items-center gap-2 mt-auto" href="#">Learn More <span class="material-symbols-outlined text-[16px]">arrow_forward</span></a>
+            </div>
+            <div class="flex flex-col gap-6 rounded-2xl border border-[#e6dbdc] dark:border-white/10 bg-white dark:bg-[#2d1a1b] p-8 hover:shadow-xl transition-all hover:-translate-y-1">
+                <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined text-3xl">spa</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <h4 class="text-xl font-bold leading-tight">Pet Spa</h4>
+                    <p class="text-[#896163] dark:text-white/60 text-sm leading-relaxed">Professional grooming and relaxation services. Aromatherapy, massage, and therapeutic baths for ultimate comfort.</p>
+                </div>
+                <a class="text-primary text-sm font-bold flex items-center gap-2 mt-auto" href="#">Learn More <span class="material-symbols-outlined text-[16px]">arrow_forward</span></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white dark:bg-background-dark py-20">
+        <div class="max-w-[1200px] mx-auto px-6 flex flex-col lg:flex-row items-center gap-16">
+            <div class="w-full lg:w-1/2 grid grid-cols-2 gap-4">
+                <div class="h-64 rounded-2xl bg-center bg-cover" data-alt="Vet examining a cat" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDRHpM5upZqAjs8hXOnwYkwn5ci2i4FHDPOZOfR56qHFy2Zs09Cyp4LjPzpZQsPjmkFoRLiz8Pxi20BidHyMZf1t632noJBopC5ApWhGXGTninYcd-TmgCwyhiuXYKaFYkb_SlWaBzIgQhnwTs4J3Qnf3xLRgCkV4hGTEXorSTl-RZ5SZ1DZhn9HOjKbltXfE7UK-qvkaQIZw-uAncIeXmcZPX5wQwTjDkcUa_48maJ6vlN5V3S05rx013byYo3JFMce36Nonup_xQ');"></div>
+                <div class="h-80 rounded-2xl bg-center bg-cover mt-8" data-alt="Small dog at veterinary clinic" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA8yN5DmXiib5xKtGpwJGQ4HbVO4EgR7kwTctb2tDny6VVTP4FBtoPj1xbY_vBsK76Nwx4oHC_VM9t1kWPEZqkNVOA5q7o2i8QC1Gj8M80IdMfSKFzM4MiVGeQMXHj6As_FvziJ5hhN_VszD5BDwAmUnQbMqiei-tNx-EZYzpFm_utRXju8_328DPG4xPtmTrv-PCXC4u3N6q5egoTMU-VmAH0YqLCUZPX9OUFPuBcgmM_GHC8l33qxeV6YoQq6-Ft0s1pOziC-BuI');"></div>
+            </div>
+            <div class="w-full lg:w-1/2 flex flex-col gap-8">
+                <div class="flex flex-col gap-6">
+                    <h2 class="text-primary font-bold uppercase tracking-widest text-sm">About Anipats</h2>
+                    <h1 class="text-[#181111] dark:text-white text-4xl lg:text-5xl font-black leading-tight">
+                        Exceptional Pet Care Standards
+                    </h1>
+                    <p class="text-[#181111]/70 dark:text-white/70 text-lg leading-relaxed">
+                        Our team of expert veterinarians ensures your pets receive the highest quality medical attention with modern equipment and heartfelt care. We treat every animal like our own family.
+                    </p>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary font-bold">check_circle</span>
+                            <span class="font-bold">Modern Medical Technology</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary font-bold">check_circle</span>
+                            <span class="font-bold">24/7 Emergency Support</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary font-bold">check_circle</span>
+                            <span class="font-bold">Certified Pet Nutritionists</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="flex min-w-[180px] w-fit cursor-pointer items-center justify-center rounded-xl h-14 px-6 bg-primary text-white text-base font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                    Learn More About Us
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-[#fdf8f1] dark:bg-background-dark/50 py-24 px-6">
+        <div class="max-w-[1200px] mx-auto">
+            <div class="bg-primary rounded-[2.5rem] p-12 lg:p-20 relative overflow-hidden flex flex-col lg:flex-row items-center gap-12">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+                <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+                <div class="flex-1 text-white z-10">
+                    <h2 class="text-white/80 font-bold uppercase tracking-widest text-sm mb-4">Adoption Program</h2>
+                    <h2 class="text-4xl lg:text-6xl font-black mb-6">Find Your New Best Friend</h2>
+                    <p class="text-white/80 text-lg mb-10 max-w-[600px]">
+                        Over 450+ pets are currently looking for a forever home. From playful puppies to gentle senior cats, we help you find the perfect match.
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <button type="button" class="px-8 py-4 bg-white text-primary rounded-xl font-bold text-lg hover:bg-white/90 transition-all">Browse Pets</button>
+                        <button type="button" class="px-8 py-4 bg-transparent border-2 border-white/40 text-white rounded-xl font-bold text-lg hover:bg-white/10 transition-all">Adoption Process</button>
+                    </div>
+                </div>
+                <div class="w-full lg:w-1/3 z-10 flex flex-col gap-4">
+                    <div class="bg-white/20 backdrop-blur-md p-6 rounded-2xl border border-white/20 text-white">
+                        <div class="text-5xl font-black mb-1">452+</div>
+                        <div class="text-sm font-bold uppercase tracking-wider">Available Pets</div>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-md p-6 rounded-2xl border border-white/20 text-white">
+                        <div class="text-5xl font-black mb-1">12k+</div>
+                        <div class="text-sm font-bold uppercase tracking-wider">Happy Adoptions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 max-w-[1200px] mx-auto">
+        <div class="flex flex-col items-center text-center mb-16">
+            <h2 class="text-primary font-bold uppercase tracking-widest text-sm mb-2">Our Experts</h2>
+            <h3 class="text-[#181111] dark:text-white text-4xl font-black">Meet Our Professional Team</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="group">
+                <div class="relative aspect-square rounded-3xl overflow-hidden mb-6 shadow-lg bg-gray-200" data-alt="Portrait of Dr. Rala Emaia" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB0dX2X70dsH40i49rbE_3FhstfM5knEj4h-mG3s1iz68_bhSh8Rg0KKQRpRh1PFXz6OVaP4Cl-2AJPX2uwAGKgQS0lLVGKH_c8EKxV9SgmjwU6JM9mgcvRpz-GOG_-wp40jJcT4Axa7CqtLO8eFbwJD6S0ihz6x2ebdfZ7rbf_uhor1V23Vh6-iDQJTt81r7sCFdpO4A29815X-APi6IPKWRsoiNoxj-AL8SlvHl9AQ1i7RutLadDAEVfjAL5G1rQ2h3ZdCo2xyyE'); background-position: center; background-size: cover;">
+                    <div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-all duration-300"></div>
+                </div>
+                <h4 class="text-xl font-black mb-1 group-hover:text-primary transition-colors">Dr. Rala Emaia</h4>
+                <p class="text-[#896163] dark:text-white/60 font-medium">Senior Veterinarian</p>
+            </div>
+            <div class="group">
+                <div class="relative aspect-square rounded-3xl overflow-hidden mb-6 shadow-lg bg-gray-200" data-alt="Portrait of Jhon Smith" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCUycOPpX_PzJq3gMT0lduz2VLCduQot7GaEVqOYqHTsOVqpJaqwXxkqvfmPygPdxBqp3cVAC1kadECu66K-TE0JTm8czw_MiAJH69tzLFP3z_-7v8gy2Itw3hfV84Yf050RXnGda09uDmAuRvuXvr8uZ_6YxgDddCCsF8KeYIQqG_I1slwP90qymjlPFIjAkrsyrBEssm3XBP56PNInu8gf9U3rFkyPYwSHUBeWBr3DnAWdnRgEbUBl4h1BRllbR00CrjyKE_9LQ4'); background-position: center; background-size: cover;">
+                    <div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-all duration-300"></div>
+                </div>
+                <h4 class="text-xl font-black mb-1 group-hover:text-primary transition-colors">Jhon Smith</h4>
+                <p class="text-[#896163] dark:text-white/60 font-medium">Pet Care Specialist</p>
+            </div>
+            <div class="group">
+                <div class="relative aspect-square rounded-3xl overflow-hidden mb-6 shadow-lg bg-gray-200" data-alt="Portrait of Sarah Jenkins" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCd6bslS0AaEfo9A2lcRKf7vn9tSBVWUuj0btvIQUH_cfY5xU8yfymrcv6b8OSSyFlqc55UJ5f4L9HYlmYkoge7VWamztzA90jWAv0qgRIWLyrSFFq1G0gK7yACTlF9cI9tDDy01OMGf6te1ul8jmO4wJv_nQVrCKB3AVcp1fHgLiyCaY91bYoABccT-v_NYRnKMMImS_XdtrG68uTtbZkW_YPWktIWC0BhNLaHHeD65y1n_i_NfKe2uFHN6BysEHphsCL26m-y4Mo'); background-position: center; background-size: cover;">
+                    <div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-all duration-300"></div>
+                </div>
+                <h4 class="text-xl font-black mb-1 group-hover:text-primary transition-colors">Sarah Jenkins</h4>
+                <p class="text-[#896163] dark:text-white/60 font-medium">Grooming Expert</p>
+            </div>
+            <div class="group">
+                <div class="relative aspect-square rounded-3xl overflow-hidden mb-6 shadow-lg bg-gray-200" data-alt="Portrait of Michael Chen" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCHkuWNdbWTXs-OIxQsLCHqnSdZcWVcvEoZ6sINU9hrAxkq-SODWWvFyyxSo-rHmxJCWPVM0Q6f6datF8uC08Vn2MjSG1dCeAYtUyYfMi0rmlpNTRDC_suS_OFE9APHqFlhtk4KLijA5jWk-nqZ3KiWQ2kaDFjJF_fs_UJWlDTlHyzhEi3etv11teIVA6rzBBoYrc2l-11ml0zSLXdV_hIFtevHKwPKX6a_21YwmEzdBpJDkCZ0WJFSkzCZLfm1je_1JCBv2FwlRq4'); background-position: center; background-size: cover;">
+                    <div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-all duration-300"></div>
+                </div>
+                <h4 class="text-xl font-black mb-1 group-hover:text-primary transition-colors">Michael Chen</h4>
+                <p class="text-[#896163] dark:text-white/60 font-medium">Behavior Specialist</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark-accent text-white py-16 px-6">
+        <div class="max-w-[1200px] mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16 border-b border-white/10 pb-16">
+                <div class="flex flex-col gap-6">
+                    <div class="flex items-center gap-2 text-white">
+                        <div class="text-primary">
+                            <svg class="size-10" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-black">Anipats</h2>
+                    </div>
+                    <p class="text-white/60 leading-relaxed">
+                        Setting the gold standard in pet healthcare. Modern medical expertise with heart and compassion since 2010.
+                    </p>
+                    <div class="flex gap-4">
+                        <div class="size-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-primary transition-colors cursor-pointer"><span class="material-symbols-outlined text-[20px]">public</span></div>
+                        <div class="size-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-primary transition-colors cursor-pointer"><span class="material-symbols-outlined text-[20px]">share</span></div>
+                        <div class="size-10 rounded-lg bg-white/5 flex items-center justify-center hover:bg-primary transition-colors cursor-pointer"><span class="material-symbols-outlined text-[20px]">chat</span></div>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-6">
+                    <h4 class="text-lg font-bold border-l-4 border-primary pl-4">Quick Links</h4>
+                    <ul class="flex flex-col gap-3 text-white/60">
+                        <li><a class="hover:text-primary transition-colors" href="<%= ctx %>/index.jsp">Home Page</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">About Us</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">Medical Services</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">Pet Adoption</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">Our Professionals</a></li>
+                        <% if (loggedIn) { %>
+                        <li><a class="hover:text-primary transition-colors" href="<%= ctx %>/customer/dashboard">Dashboard</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="<%= ctx %>/logout">Logout</a></li>
+                        <% } else { %>
+                        <li><a class="hover:text-primary transition-colors" href="<%= ctx %>/login">Login</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="<%= ctx %>/register">Register</a></li>
+                        <% } %>
+                    </ul>
+                </div>
+                <div class="flex flex-col gap-6">
+                    <h4 class="text-lg font-bold border-l-4 border-primary pl-4">Get In Touch</h4>
+                    <div class="flex flex-col gap-4 text-white/60">
+                        <div class="flex gap-3">
+                            <span class="material-symbols-outlined text-primary">location_on</span>
+                            <span>123 Medical Plaza, Downtown, NY 10001</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <span class="material-symbols-outlined text-primary">call</span>
+                            <span>+1 (555) 000-1234</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <span class="material-symbols-outlined text-primary">mail</span>
+                            <span>emergency@anipats.com</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-6">
+                    <h4 class="text-lg font-bold border-l-4 border-primary pl-4">Newsletter</h4>
+                    <p class="text-white/60 text-sm">Get healthy pet tips and news delivered to your inbox weekly.</p>
+                    <div class="flex flex-col gap-2">
+                        <input class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary transition-colors text-white placeholder-white/40" placeholder="Your Email Address" type="email"/>
+                        <button type="button" class="bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">Subscribe Now</button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6 text-white/40 text-sm">
+                <p>© <%= java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) %> Anipats Veterinary Medical Center. All rights reserved.</p>
+                <div class="flex gap-8">
+                    <a class="hover:text-white transition-colors" href="#">Privacy Policy</a>
+                    <a class="hover:text-white transition-colors" href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Book Appointment Modal (no Bootstrap) -->
+    <div id="bookAppointmentModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4" aria-modal="true" aria-labelledby="bookAppointmentLabel">
+        <div id="bookModalBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="document.getElementById('bookAppointmentModal').classList.add('hidden'); document.getElementById('bookAppointmentModal').classList.remove('flex');"></div>
+        <div class="relative bg-white dark:bg-[#2d1a1b] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white dark:bg-[#2d1a1b] px-6 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between z-10">
+                <h2 id="bookAppointmentLabel" class="text-xl font-bold text-[#181111] dark:text-white">Book Appointment</h2>
+                <button type="button" class="modal-close p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors" onclick="document.getElementById('bookAppointmentModal').classList.add('hidden'); document.getElementById('bookAppointmentModal').classList.remove('flex');" aria-label="Close">
+                    <span class="material-symbols-outlined text-2xl">close</span>
+                </button>
+            </div>
+            <div class="p-6">
+                <jsp:include page="bookForm.jsp" flush="true"/>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            function showModal(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+            function hideModal(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                    document.body.style.overflow = '';
+                }
+            }
+            document.querySelectorAll('[data-toggle="modal"][data-target="#bookAppointmentModal"]').forEach(function(btn) {
+                btn.addEventListener('click', function() { showModal('bookAppointmentModal'); });
+            });
+            document.querySelectorAll('.modal-close').forEach(function(btn) {
+                btn.addEventListener('click', function() { hideModal('bookAppointmentModal'); });
+            });
+            document.getElementById('bookModalBackdrop').addEventListener('click', function() { hideModal('bookAppointmentModal'); });
+        })();
+    </script>
+</body>
 </html>

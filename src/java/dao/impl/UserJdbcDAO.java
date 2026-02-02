@@ -168,6 +168,21 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         return false;
     }
 
+    @Override
+    public boolean updatePassword(int userId, String newPasswordHash) {
+        String sql = "UPDATE Users SET password = ?, updated_at = ? WHERE user_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newPasswordHash);
+            ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setInt(3, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return false;
+    }
+
     private User mapRowToUser(ResultSet rs) throws SQLException {
         User user = new User();
         user.setUserId(rs.getInt("user_id"));
