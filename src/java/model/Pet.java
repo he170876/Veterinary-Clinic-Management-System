@@ -16,6 +16,7 @@ public class Pet {
     private String gender;
     private LocalDate birthDate;
     private Double weight;
+    private String photoUrl;
     private LocalDateTime createdAt;
 
     public Pet() {
@@ -83,6 +84,14 @@ public class Pet {
 
     public void setWeight(Double weight) {
         this.weight = weight;
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
     }
 
     public LocalDateTime getCreatedAt() {
