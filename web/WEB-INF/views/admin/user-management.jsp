@@ -1,0 +1,367 @@
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>User Management</title>
+
+        <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet"/>
+
+        <style>
+            body {
+                font-family: 'Manrope', sans-serif;
+            }
+
+            .status-select {
+                font-weight: 700;
+                border-radius: 9999px;
+                padding: 6px 14px;
+                font-size: 0.85rem;
+                border: 2px solid;
+                background-image: none;
+            }
+
+            .status-active {
+                background-color: #dcfce7;
+                color: #166534;
+                border-color: #22c55e;
+            }
+
+            .status-inactive {
+                background-color: #fef9c3;
+                color: #854d0e;
+                border-color: #eab308;
+            }
+
+            .status-blocked {
+                background-color: #fee2e2;
+                color: #991b1b;
+                border-color: #ef4444;
+            }
+
+            /* dropdown options không bị dính màu */
+            .status-select option {
+                background-color: white;
+                color: #111827;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+
+    <body class="bg-[#fdf8f1] text-[#181111]">
+
+        <!-- NAVBAR -->
+        <header class="bg-white shadow">
+            <div class="max-w-[1200px] mx-auto px-6 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-black">Anipats</h1>
+                <nav class="space-x-6 font-semibold">
+                    <a href="index.jsp">Home</a>
+                    <a href="user-management" class="text-orange-500">User Management</a>
+                    <a href="logout">Logout</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- TITLE -->
+        <section class="py-8 bg-[#fff7ed]">
+            <div class="max-w-[1200px] mx-auto px-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-4xl font-black">User Management</h2>
+                    <p class="mt-2 text-[#896163]">Search and filter system users</p>
+                </div>
+                <a href="add-user.jsp"
+                   class="px-6 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600">
+                    + Add User
+                </a>
+            </div>
+        </section>
+
+        <main class="py-10">
+            <div class="max-w-[1200px] mx-auto px-6">
+
+                <!-- FILTER -->
+                <form action="user-management" method="get"
+                      class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+
+                    <input type="hidden" name="page" value="${currentPage}" />
+
+                    <input name="keyword" value="${param.keyword}"
+                           placeholder="Search name or email"
+                           class="rounded-xl border px-4 py-3"/>
+
+                    <select name="roleId" class="rounded-xl border px-4 py-3">
+                        <option value="">All roles</option>
+                        <option value="1" ${param.roleId=='1'?'selected':''}>Customer</option>
+                        <option value="2" ${param.roleId=='2'?'selected':''}>Veterinarian</option>
+                        <option value="3" ${param.roleId=='3'?'selected':''}>Receptionist</option>
+                        <option value="4" ${param.roleId=='4'?'selected':''}>Lab Staff</option>
+                        <option value="5" ${param.roleId=='5'?'selected':''}>Admin</option>
+                        <option value="6" ${param.roleId=='6'?'selected':''}>Clinic Owner</option>
+                    </select>
+
+                    <select name="status" class="rounded-xl border px-4 py-3">
+                        <option value="">All status</option>
+                        <option value="Active" ${param.status=='Active'?'selected':''}>Active</option>
+                        <option value="Inactive" ${param.status=='Inactive'?'selected':''}>Inactive</option>
+                        <option value="Blocked" ${param.status=='Blocked'?'selected':''}>Blocked</option>
+                    </select>
+
+                    <button class="bg-orange-500 text-white font-bold rounded-xl">Filter</button>
+
+                    <a href="user-management"
+                       class="bg-gray-200 rounded-xl font-bold flex items-center justify-center">
+                        Clear
+                    </a>
+                </form>
+
+                <!-- TABLE -->
+                <div class="bg-white rounded-2xl shadow overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-4">
+                                    <form method="get" action="user-management" class="inline-flex items-center gap-1">
+
+                                        <!-- giữ filter -->
+                                        <input type="hidden" name="keyword" value="${param.keyword}" />
+                                        <input type="hidden" name="roleId" value="${param.roleId}" />
+                                        <input type="hidden" name="status" value="${param.status}" />
+                                        <input type="hidden" name="page" value="1" />
+
+                                        <!-- sort -->
+                                        <input type="hidden" name="sort"
+                                               value="${sort == 'id_asc' ? 'id_desc' : 'id_asc'}" />
+
+                                        ID
+                                        <button type="submit"
+                                                class="ml-1 font-bold text-orange-600 hover:scale-110 transition">
+
+                                            <c:choose>
+                                                <c:when test="${sort eq 'id_asc'}">↑</c:when>
+                                                <c:when test="${sort eq 'id_desc'}">↓</c:when>
+                                                <c:otherwise>↕</c:otherwise>
+                                            </c:choose>
+
+                                        </button>
+                                    </form>
+                                </th>
+                                <th class="px-6 py-4">Name</th>
+                                <th class="px-6 py-4">Email</th>
+                                <th class="px-6 py-4">Role</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y">
+                            <c:forEach items="${users}" var="u">
+                                <tr>
+                                    <td class="px-6 py-4">${u.userId}</td>
+                                    <td class="px-6 py-4 font-semibold">${u.fullName}</td>
+                                    <td class="px-6 py-4">${u.email}</td>
+                                    <td class="px-6 py-4">${u.role.roleName}</td>
+
+                                    <!-- STATUS DROPDOWN -->
+                                    <td class="px-6 py-4">
+                                        <form action="change-user-status" method="post"
+                                              onsubmit="return confirm('Change status for this user?')">
+
+                                            <input type="hidden" name="id" value="${u.userId}" />
+
+                                            <!-- giữ filter -->
+                                            <input type="hidden" name="keyword" value="${param.keyword}" />
+                                            <input type="hidden" name="roleId" value="${param.roleId}" />
+                                            <input type="hidden" name="status" value="${param.status}" />
+                                            <input type="hidden" name="page" value="1" />
+
+                                            <!-- sort -->
+                                            <input type="hidden" name="sort"
+                                                   value="${sort == 'id_asc' ? 'id_desc' : 'id_asc'}" />
+
+                                            <select name="status"
+                                                    onchange="updateStatusStyle(this); this.form.submit();"
+                                                    class="status-select
+                                                    ${u.status == 'Active' ? 'status-active' :
+                                                      u.status == 'Inactive' ? 'status-inactive' :
+                                                      'status-blocked'}">
+
+                                                <option value="Active" ${u.status=='Active'?'selected':''}>Active</option>
+                                                <option value="Inactive" ${u.status=='Inactive'?'selected':''}>Inactive</option>
+                                                <option value="Blocked" ${u.status=='Blocked'?'selected':''}>Blocked</option>
+                                            </select>
+                                        </form>
+                                    </td>
+
+                                    <!-- ACTION -->
+                                    <td class="px-6 py-4 text-center">
+
+                                        <button type="button"
+                                                onclick="openUserModal(
+                                                                '${u.userId}',
+                                                                '${u.fullName}',
+                                                                '${u.email}',
+                                                                '${u.role.roleName}',
+                                                                '${u.status}',
+                                                                '${u.phone}',
+                                                                '${u.address}',
+                                                                '${u.createdAt}',
+                                                                '${u.updatedAt}'
+                                                                )"
+                                                class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">
+                                            View
+                                        </button>
+
+                                        <a href="editUser?id=${u.userId}"
+                                           class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold">
+                                            Edit
+                                        </a>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+
+                            <c:if test="${empty users}">
+                                <tr>
+                                    <td colspan="6" class="text-center py-10 text-gray-500">
+                                        No users found
+                                    </td>
+                                </tr>
+                            </c:if>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PAGINATION -->
+                <c:if test="${totalPages > 1}">
+                    <div class="flex justify-center items-center gap-2 mt-8">
+
+                        <!-- PREV -->
+                        <c:if test="${currentPage > 1}">
+                            <a href="user-management?page=${currentPage-1}&keyword=${param.keyword}&roleId=${param.roleId}&status=${param.status}&sort=${sort}"
+                               class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
+                                Prev
+                            </a>
+                        </c:if>
+
+                        <!-- PAGE NUMBERS -->
+                        <c:forEach begin="1" end="${totalPages}" var="i">
+                            <a href="user-management?page=${i}&keyword=${param.keyword}&roleId=${param.roleId}&status=${param.status}&sort=${sort}"
+                               class="px-4 py-2 rounded-lg font-bold
+                               ${i == currentPage ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}">
+                                ${i}
+                            </a>
+                        </c:forEach>
+
+                        <!-- NEXT -->
+                        <c:if test="${currentPage < totalPages}">
+                            <a href="user-management?page=${currentPage+1}&keyword=${param.keyword}&roleId=${param.roleId}&status=${param.status}&sort=${sort}"
+                               class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
+                                Next
+                            </a>
+                        </c:if>
+
+                    </div>
+                </c:if>
+
+            </div>
+        </main>
+
+        <footer class="bg-[#181111] text-white py-10 mt-20 text-center opacity-70">
+            © 2025 Anipats
+        </footer>
+
+        <!-- USER VIEW MODAL -->
+        <div id="userModal"
+             class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+            <div class="bg-white w-full max-w-xl rounded-2xl shadow-lg p-6 relative">
+
+                <h3 class="text-2xl font-black mb-4">User Details</h3>
+
+                <div class="grid grid-cols-2 gap-4 text-sm">
+
+                    <div><strong>ID:</strong> <span id="m-id"></span></div>
+                    <div>
+                        <strong>Status:</strong>
+                        <span id="m-status"
+                              class="inline-block px-3 py-1 rounded-full text-xs font-bold">
+                        </span>
+                    </div>
+
+                    <div class="col-span-2"><strong>Full Name:</strong> <span id="m-name"></span></div>
+                    <div class="col-span-2"><strong>Email:</strong> <span id="m-email"></span></div>
+
+                    <div><strong>Role:</strong> <span id="m-role"></span></div>
+                    <div><strong>Phone:</strong> <span id="m-phone"></span></div>
+
+                    <div class="col-span-2"><strong>Address:</strong> <span id="m-address"></span></div>
+
+                    <div><strong>Created At:</strong> <span id="m-created"></span></div>
+                    <div><strong>Updated At:</strong> <span id="m-updated"></span></div>
+                </div>
+
+                <div class="mt-6 text-right">
+                    <button onclick="closeUserModal()"
+                            class="px-5 py-2 bg-gray-200 rounded-lg font-bold hover:bg-gray-300">
+                        Close
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <script>
+            function openUserModal(id, name, email, role, status, phone, address, created, updated) {
+
+                document.getElementById('m-id').innerText = id;
+                document.getElementById('m-name').innerText = name;
+                document.getElementById('m-email').innerText = email;
+                document.getElementById('m-role').innerText = role;
+                document.getElementById('m-phone').innerText = phone || 'N/A';
+                document.getElementById('m-address').innerText = address || 'N/A';
+                document.getElementById('m-created').innerText = created;
+                document.getElementById('m-updated').innerText = updated;
+
+                const statusEl = document.getElementById('m-status');
+                statusEl.innerText = status;
+
+                // reset màu
+                statusEl.classList.remove('status-active', 'status-inactive', 'status-blocked');
+
+                // set màu đúng status
+                if (status === 'Active') {
+                    statusEl.classList.add('status-active');
+                } else if (status === 'Inactive') {
+                    statusEl.classList.add('status-inactive');
+                } else {
+                    statusEl.classList.add('status-blocked');
+                }
+
+                document.getElementById('userModal').classList.remove('hidden');
+                document.getElementById('userModal').classList.add('flex');
+            }
+
+            function closeUserModal() {
+                document.getElementById('userModal').classList.add('hidden');
+                document.getElementById('userModal').classList.remove('flex');
+            }
+        </script>
+
+
+
+        <script>
+            function updateStatusStyle(select) {
+                select.classList.remove('status-active', 'status-inactive', 'status-blocked');
+                if (select.value === 'Active')
+                    select.classList.add('status-active');
+                else if (select.value === 'Inactive')
+                    select.classList.add('status-inactive');
+                else
+                    select.classList.add('status-blocked');
+            }
+        </script>
+
+    </body>
+</html>

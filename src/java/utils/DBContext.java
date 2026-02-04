@@ -7,7 +7,7 @@ import java.sql.SQLException;
 public class DBContext {
 
     private static final String URL = "jdbc:sqlserver://localhost"
-            + ";instanceName=MSSQLSERVER12"
+//            + ";instanceName=MSSQLSERVER12"
             + ";databaseName=VetClinicManagement"
             + ";encrypt=true;trustServerCertificate=true"
             + ";loginTimeout=15";
