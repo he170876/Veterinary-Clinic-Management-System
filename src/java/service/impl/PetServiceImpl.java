@@ -138,6 +138,21 @@ public class PetServiceImpl implements PetService {
     }
 
     @Override
+    public boolean hardDeletePet(int petId) {
+        return petDAO.hardDelete(petId);
+    }
+
+    @Override
+    public boolean restorePet(int petId) {
+        return petDAO.restore(petId);
+    }
+
+    @Override
+    public List<Pet> getDeletedPets() {
+        return petDAO.findAllDeleted();
+    }
+
+    @Override
     public List<Pet> searchPetsByName(String name) {
         if (name == null || name.trim().isEmpty()) {
             return getAllPets();

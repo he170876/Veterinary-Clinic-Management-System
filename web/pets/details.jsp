@@ -46,6 +46,9 @@
     String birthDate = pet != null && pet.getBirthDate() != null ? pet.getBirthDate().toString() : "N/A";
     String weight = pet != null && pet.getWeight() != null ? String.format("%.1f kg", pet.getWeight()) : "N/A";
     int petId = pet != null ? pet.getPetId() : 0;
+    String photoUrl = pet != null && pet.getPhotoUrl() != null && !pet.getPhotoUrl().isEmpty()
+        ? request.getContextPath() + "/" + pet.getPhotoUrl()
+        : "https://via.placeholder.com/300/cccccc/666666?text=" + (species != null && !"N/A".equals(species) ? species.substring(0,1) : "P");
 %>
 <div class="flex h-screen overflow-hidden">
 <!-- Sidebar -->
@@ -109,7 +112,7 @@
 <div class="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
 <div class="flex items-center gap-5">
 <div class="size-20 bg-primary/20 rounded-2xl overflow-hidden border-2 border-primary/10">
-<div class="w-full h-full bg-center bg-cover bg-no-repeat" data-alt="Portrait of a friendly Golden Retriever dog" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAy2aO3rgLQCl4jvi76-hWCrqW33wikXtdnXploo7Yzaib3NkSgpsQTCucA6XRUIT7RbpSUdTqJA2wtGYzb3CUHTMdlUubo7b2WPnX2KWjgdxOIw3Mu6wQ7PdUO8K75tAz8IjLyuoUG7N-bWpA-bZO8g-mQ8z_5EvWJmLEe8fwaOrxojpfOUlOUhYI0XAl2n6frz4mbQ-MJmWGPTNAFzUkMnNeSpmnFpRYXGPviru9J1vY95VV8Y8x8PST_qJtSwk1G9LR_OTgq2Q");'></div>
+<div class="w-full h-full bg-center bg-cover bg-no-repeat" data-alt="Pet profile photo" style='background-image: url("<%= photoUrl %>");'></div>
 </div>
 <div>
 <h2 class="text-3xl font-extrabold tracking-tight"><%= petName %></h2>
@@ -131,7 +134,7 @@
 <!-- Left Column: Profile Card -->
 <div class="lg:col-span-4 flex flex-col gap-6">
 <div class="bg-white dark:bg-zinc-900 rounded-xl border border-[#e5e7eb] dark:border-zinc-800 overflow-hidden shadow-sm">
-<div class="aspect-square w-full bg-center bg-cover bg-no-repeat" data-alt="Full profile view of Max the dog" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCLmsrecLAyvj-5XWro1Zhzp-pj7_XJLC3bHc1U6CYl_ABrmp_UPI9rdew8-ZbZOjhfKDUuZWlM-lbYfVNYoCXRwW4PPOAACp0GezPCJ8s5L1GKQFQFPibX8a5Q6shUWPHig8_qWcHatK39-aY4IXPFxPp7c3GKKKfi3iWtdRWeaUaYdkDna3eX7TGn48q99UAPYPTL4PvoDtbxbB7FZlBuWBHnv1hokz2YuhcfGkd-jTsiCBhSsBNFCgTagRjQDXz9j-pOGPsj8g");'></div>
+<div class="aspect-square w-full bg-center bg-cover bg-no-repeat" data-alt="Pet full profile photo" style='background-image: url("<%= photoUrl %>");'></div>
 <div class="p-6 space-y-4">
 <h3 class="text-lg font-bold border-b border-[#f5f2f0] dark:border-zinc-800 pb-2">Profile Details</h3>
 <div class="grid grid-cols-1 gap-4">

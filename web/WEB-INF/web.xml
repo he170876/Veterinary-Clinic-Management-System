@@ -7,6 +7,16 @@
 
     <display-name>Veterinary Clinic Management System</display-name>
 
+    <!-- ======================= -->
+    <!-- Upload Configuration -->
+    <!-- ======================= -->
+    <context-param>
+        <param-name>uploadDir</param-name>
+        <param-value>uploads</param-value>
+        <!-- Relative path from project root -->
+        <!-- Ảnh sẽ lưu vào: project_root/uploads/pets -->
+    </context-param>
+
     <!-- Welcome File: starter page (homepage) only -->
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>

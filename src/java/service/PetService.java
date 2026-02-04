@@ -44,9 +44,24 @@ public interface PetService {
                               String gender, LocalDate birthDate, Double weight, String photoUrl);
 
     /**
-     * Delete a pet
+     * Delete a pet (soft delete)
      */
     boolean deletePet(int petId);
+
+    /**
+     * Permanently delete a pet (hard delete - remove from DB)
+     */
+    boolean hardDeletePet(int petId);
+
+    /**
+     * Restore a soft-deleted pet
+     */
+    boolean restorePet(int petId);
+
+    /**
+     * Get all soft-deleted pets
+     */
+    List<Pet> getDeletedPets();
 
     /**
      * Search pets by name

@@ -19,7 +19,8 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
     @Override
     public Optional<Pet> findById(int petId) {
         String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
-            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets WHERE pet_id = ?";
+            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
+            + "WHERE pet_id = ? AND (isDeleted = 0 OR isDeleted IS NULL)";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -40,7 +41,9 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
     public List<Pet> findByCustomerId(int customerId) {
         List<Pet> pets = new ArrayList<>();
         String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
-            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets WHERE customer_id = ? ORDER BY created_at DESC";
+            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
+            + "WHERE customer_id = ? AND (isDeleted = 0 OR isDeleted IS NULL) "
+            + "ORDER BY created_at DESC";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -61,7 +64,8 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
     public List<Pet> findAll() {
         List<Pet> pets = new ArrayList<>();
         String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
-            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets ORDER BY created_at DESC";
+            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
+            + "WHERE (isDeleted = 0 OR isDeleted IS NULL) ORDER BY created_at DESC";
 
         System.out.println("=== PetJdbcDAO.findAll() ===");
         System.out.println("SQL: " + sql);
@@ -87,7 +91,7 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
     @Override
     public Pet create(Pet pet) {
         String sql = "INSERT INTO dbo.Pets (customer_id, name, species, breed, gender, "
-                + "birth_date, weight, photoUrl, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "birth_date, weight, photoUrl, created_at, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -168,6 +172,25 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
 
     @Override
     public boolean delete(int petId) {
+        String sql = "UPDATE dbo.Pets SET isDeleted = 1, deleted_at = ? "
+            + "WHERE pet_id = ? AND (isDeleted = 0 OR isDeleted IS NULL)";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setInt(2, petId);
+            int affected = ps.executeUpdate();
+            return affected > 0;
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean hardDelete(int petId) {
         String sql = "DELETE FROM dbo.Pets WHERE pet_id = ?";
 
         try (Connection conn = getConnection();
@@ -184,11 +207,48 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
     }
 
     @Override
+    public boolean restore(int petId) {
+        String sql = "UPDATE dbo.Pets SET isDeleted = 0, deleted_at = NULL WHERE pet_id = ?";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, petId);
+            int affected = ps.executeUpdate();
+            return affected > 0;
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public List<Pet> findAllDeleted() {
+        List<Pet> pets = new ArrayList<>();
+        String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
+            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
+            + "WHERE isDeleted = 1 ORDER BY deleted_at DESC";
+
+        try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                pets.add(mapRowToPet(rs));
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return pets;
+    }
+
+    @Override
     public List<Pet> searchByName(String name) {
         List<Pet> pets = new ArrayList<>();
         String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
-            + "birth_date, weight, created_at FROM dbo.Pets "
-                + "WHERE name LIKE ? ORDER BY name";
+            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
+                + "WHERE name LIKE ? AND (isDeleted = 0 OR isDeleted IS NULL) ORDER BY name";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {

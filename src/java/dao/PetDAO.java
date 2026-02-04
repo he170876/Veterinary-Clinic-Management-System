@@ -35,9 +35,24 @@ public interface PetDAO {
     boolean update(Pet pet);
 
     /**
-     * Delete a pet by ID
+     * Delete a pet by ID (soft delete)
      */
     boolean delete(int petId);
+
+    /**
+     * Permanently delete a pet (hard delete - remove from DB)
+     */
+    boolean hardDelete(int petId);
+
+    /**
+     * Restore a soft-deleted pet
+     */
+    boolean restore(int petId);
+
+    /**
+     * Get all soft-deleted pets
+     */
+    List<Pet> findAllDeleted();
 
     /**
      * Search pets by name

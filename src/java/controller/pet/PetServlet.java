@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import model.Customer;
 import model.Pet;
 import model.User;
@@ -70,6 +71,12 @@ public class PetServlet extends HttpServlet {
                     break;
                 case "delete":
                     deletePet(request, response);
+                    break;
+                case "hardDelete":
+                    hardDeletePet(request, response);
+                    break;
+                case "restore":
+                    restorePet(request, response);
                     break;
                 case "details":
                     showDetails(request, response);
@@ -273,6 +280,13 @@ public class PetServlet extends HttpServlet {
             String species = request.getParameter("species");
             String breed = request.getParameter("breed");
             String gender = request.getParameter("gender");
+
+            if (name == null || name.trim().isEmpty()) {
+                throw new IllegalArgumentException("Pet name is required");
+            }
+            if (species == null || species.trim().isEmpty()) {
+                throw new IllegalArgumentException("Pet species is required");
+            }
             
             LocalDate birthDate = null;
             String birthDateStr = request.getParameter("birthDate");
@@ -366,6 +380,13 @@ public class PetServlet extends HttpServlet {
             String breed = request.getParameter("breed");
             String gender = request.getParameter("gender");
 
+            if (name == null || name.trim().isEmpty()) {
+                throw new IllegalArgumentException("Pet name is required");
+            }
+            if (species == null || species.trim().isEmpty()) {
+                throw new IllegalArgumentException("Pet species is required");
+            }
+
             LocalDate birthDate = null;
             String birthDateStr = request.getParameter("birthDate");
             if (birthDateStr != null && !birthDateStr.trim().isEmpty()) {
@@ -389,6 +410,7 @@ public class PetServlet extends HttpServlet {
             if (success && photoUrl != null) {
                 System.out.println("Updating pet " + petId + " with new photo: " + photoUrl);
                 petService.updatePetWithPhoto(petId, name, species, breed, gender, birthDate, weight, photoUrl);
+                deleteUploadedFileIfExists(request, existingPet.getPhotoUrl());
                 System.out.println("✅ Photo updated successfully");
             }
 
@@ -402,6 +424,11 @@ public class PetServlet extends HttpServlet {
             System.err.println("❌ Format error in updatePet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Invalid input format: " + e.getMessage());
+            request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ Validation error in updatePet: " + e.getMessage());
+            e.printStackTrace();
+            request.setAttribute("error", e.getMessage());
             request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
         } catch (Exception e) {
             System.err.println("❌ Unexpected error in updatePet: " + e.getMessage());
@@ -449,9 +476,85 @@ public class PetServlet extends HttpServlet {
             boolean success = petService.deletePet(petId);
 
             if (success) {
+                if (petOpt.isPresent()) {
+                    deleteUploadedFileIfExists(request, petOpt.get().getPhotoUrl());
+                }
                 response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet deleted successfully");
             } else {
                 response.sendRedirect("pets?customer_id=" + customerId + "&error=Failed to delete pet");
+            }
+        } catch (NumberFormatException e) {
+            response.sendRedirect("pets?error=Invalid pet ID");
+        }
+    }
+
+    private void hardDeletePet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        try {
+            int petId = Integer.parseInt(request.getParameter("id"));
+            
+            int customerId = 0;
+            HttpSession session = request.getSession(false);
+            Customer sessionCustomer = null;
+            if (session != null && session.getAttribute("customer") != null) {
+                sessionCustomer = (Customer) session.getAttribute("customer");
+                customerId = sessionCustomer.getCustomerId();
+            } else {
+                String customerIdParam = request.getParameter("customer_id");
+                if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
+                    customerId = Integer.parseInt(customerIdParam);
+                }
+            }
+            
+            Optional<Pet> petOpt = petService.getPetById(petId);
+            if (petOpt.isPresent()) {
+                Pet pet = petOpt.get();
+                int petOwnerId = pet.getOwner().getCustomerId();
+                
+                if (sessionCustomer != null && petOwnerId != sessionCustomer.getCustomerId()) {
+                    System.err.println("❌ Access denied: Customer " + sessionCustomer.getCustomerId() + 
+                                     " trying to hard delete pet of customer " + petOwnerId);
+                    response.sendRedirect("pets?customer_id=" + customerId + "&error=You can only delete your own pets");
+                    return;
+                }
+            }
+            
+            boolean success = petService.hardDeletePet(petId);
+
+            if (success) {
+                if (petOpt.isPresent()) {
+                    deleteUploadedFileIfExists(request, petOpt.get().getPhotoUrl());
+                }
+                System.out.println("✅ Pet " + petId + " permanently deleted from database");
+                response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet permanently deleted");
+            } else {
+                response.sendRedirect("pets?customer_id=" + customerId + "&error=Failed to delete pet");
+            }
+        } catch (NumberFormatException e) {
+            response.sendRedirect("pets?error=Invalid pet ID");
+        }
+    }
+
+    private void restorePet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        try {
+            int petId = Integer.parseInt(request.getParameter("id"));
+            
+            int customerId = 0;
+            String customerIdParam = request.getParameter("customer_id");
+            if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
+                customerId = Integer.parseInt(customerIdParam);
+            }
+            
+            boolean success = petService.restorePet(petId);
+
+            if (success) {
+                System.out.println("✅ Pet " + petId + " restored successfully");
+                response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet restored successfully");
+            } else {
+                response.sendRedirect("pets?customer_id=" + customerId + "&error=Failed to restore pet");
             }
         } catch (NumberFormatException e) {
             response.sendRedirect("pets?error=Invalid pet ID");
@@ -501,6 +604,10 @@ public class PetServlet extends HttpServlet {
             
             // Get filename
             String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
+
+            if (!isAllowedImage(filePart, fileName)) {
+                throw new IllegalArgumentException("Invalid image file. Only JPG, JPEG, PNG, GIF, WEBP are allowed.");
+            }
             
             // Generate unique filename to avoid conflicts
             String fileExtension = "";
@@ -508,29 +615,93 @@ public class PetServlet extends HttpServlet {
             if (dotIndex > 0) {
                 fileExtension = fileName.substring(dotIndex);
             }
-            String uniqueFileName = System.currentTimeMillis() + fileExtension;
+            String uniqueFileName = UUID.randomUUID().toString().replace("-", "") + fileExtension;
             
-            // Define upload directory (relative to web application)
-            String uploadPath = getServletContext().getRealPath("") + File.separator + "uploads";
+            // Define upload directory (external, persistent across builds)
+            String uploadPath = getUploadBaseDir() + File.separator + "pets";
+            
+            System.out.println("================================");
+            System.out.println("📁 Upload Directory Configuration:");
+            System.out.println("   Base Dir: " + getUploadBaseDir());
+            System.out.println("   Full Path: " + uploadPath);
+            System.out.println("================================");
             
             // Create directory if not exists
             File uploadDir = new File(uploadPath);
             if (!uploadDir.exists()) {
-                uploadDir.mkdir();
+                uploadDir.mkdirs();
             }
             
             // Save file
             String filePath = uploadPath + File.separator + uniqueFileName;
             filePart.write(filePath);
             
-            System.out.println("✅ File uploaded: " + uniqueFileName + " to " + uploadPath);
+            System.out.println("✅ File uploaded successfully!");
+            System.out.println("   Filename: " + uniqueFileName);
+            System.out.println("   Full Path: " + filePath);
+            System.out.println("   File Size: " + filePart.getSize() + " bytes");
             
             // Return relative path for database
-            return "uploads/" + uniqueFileName;
+            return "uploads/pets/" + uniqueFileName;
         } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                throw (IllegalArgumentException) e;
+            }
             System.err.println("❌ Error uploading file: " + e.getMessage());
             e.printStackTrace();
             return null; // Return null on error
         }
+    }
+
+    private boolean isAllowedImage(Part filePart, String fileName) {
+        String contentType = filePart.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
+            return false;
+        }
+
+        String lower = fileName.toLowerCase();
+        return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")
+            || lower.endsWith(".gif") || lower.endsWith(".webp");
+    }
+
+    private void deleteUploadedFileIfExists(HttpServletRequest request, String photoUrl) {
+        if (photoUrl == null || photoUrl.trim().isEmpty()) {
+            return;
+        }
+
+        if (!photoUrl.startsWith("uploads/")) {
+            return;
+        }
+
+        String absolutePath = getUploadBaseDir() + File.separator
+            + photoUrl.replace("uploads/", "").replace("/", File.separator);
+        File file = new File(absolutePath);
+        if (file.exists() && file.isFile()) {
+            boolean deleted = file.delete();
+            if (deleted) {
+                System.out.println("✅ Deleted old file: " + absolutePath);
+            } else {
+                System.out.println("⚠️ Failed to delete old file: " + absolutePath);
+            }
+        }
+    }
+
+    private String getUploadBaseDir() {
+        String configured = getServletContext().getInitParameter("uploadDir");
+        if (configured != null && !configured.trim().isEmpty()) {
+            String path = configured.trim();
+            if (!new File(path).isAbsolute()) {
+                File projectRoot = new File(System.getProperty("user.dir"));
+                path = new File(projectRoot, path).getAbsolutePath();
+            }
+            System.out.println("📌 Using configured uploadDir: " + path);
+            return path;
+        }
+
+        String userDir = System.getProperty("user.dir");
+        String defaultPath = userDir + File.separator + "uploads";
+        System.out.println("📌 Using default uploadDir: " + defaultPath);
+        System.out.println("   (user.dir = " + userDir + ")");
+        return defaultPath;
     }
 }
