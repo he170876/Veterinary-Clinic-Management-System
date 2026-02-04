@@ -24,7 +24,7 @@ public class UserManagementServlet extends HttpServlet {
             throws ServletException, IOException {
 
         String keyword = trim(request.getParameter("keyword"));
-        String roleIdRaw = request.getParameter("roleId");
+        String roleIdRaw = request.getParameter("filterRoleId");
         String status = trim(request.getParameter("status"));
 
         Integer roleId = null;
@@ -82,6 +82,7 @@ public class UserManagementServlet extends HttpServlet {
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("pageSize", PAGE_SIZE);
+        request.setAttribute("totalUsers", totalRecords);
         request.setAttribute("sort", sort);
 
         request.getRequestDispatcher(VIEW).forward(request, response);

@@ -92,14 +92,14 @@
                            placeholder="Search name or email"
                            class="rounded-xl border px-4 py-3"/>
 
-                    <select name="roleId" class="rounded-xl border px-4 py-3">
+                    <select name="filterRoleId" class="rounded-xl border px-4 py-3">
                         <option value="">All roles</option>
-                        <option value="1" ${param.roleId=='1'?'selected':''}>Customer</option>
-                        <option value="2" ${param.roleId=='2'?'selected':''}>Veterinarian</option>
-                        <option value="3" ${param.roleId=='3'?'selected':''}>Receptionist</option>
-                        <option value="4" ${param.roleId=='4'?'selected':''}>Lab Staff</option>
-                        <option value="5" ${param.roleId=='5'?'selected':''}>Admin</option>
-                        <option value="6" ${param.roleId=='6'?'selected':''}>Clinic Owner</option>
+                        <option value="1" ${param.filterRoleId=='1'?'selected':''}>Customer</option>
+                        <option value="2" ${param.filterRoleId=='2'?'selected':''}>Veterinarian</option>
+                        <option value="3" ${param.filterRoleId=='3'?'selected':''}>Receptionist</option>
+                        <option value="4" ${param.filterRoleId=='4'?'selected':''}>Lab Staff</option>
+                        <option value="5" ${param.filterRoleId=='5'?'selected':''}>Admin</option>
+                        <option value="6" ${param.filterRoleId=='6'?'selected':''}>Clinic Owner</option>
                     </select>
 
                     <select name="status" class="rounded-xl border px-4 py-3">
@@ -127,7 +127,7 @@
 
                                         <!-- giữ filter -->
                                         <input type="hidden" name="keyword" value="${param.keyword}" />
-                                        <input type="hidden" name="roleId" value="${param.roleId}" />
+                                        <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
                                         <input type="hidden" name="status" value="${param.status}" />
                                         <input type="hidden" name="page" value="1" />
 
@@ -166,23 +166,24 @@
 
                                     <!-- STATUS DROPDOWN -->
                                     <td class="px-6 py-4">
-                                        <form action="change-user-status" method="post"
-                                              onsubmit="return confirm('Change status for this user?')">
+                                        <form action="change-user-status" method="post">
 
                                             <input type="hidden" name="id" value="${u.userId}" />
 
                                             <!-- giữ filter -->
                                             <input type="hidden" name="keyword" value="${param.keyword}" />
-                                            <input type="hidden" name="roleId" value="${param.roleId}" />
-                                            <input type="hidden" name="status" value="${param.status}" />
-                                            <input type="hidden" name="page" value="1" />
+                                            <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
+                                            <input type="hidden" name="filterStatus" value="${param.status}" />
 
-                                            <!-- sort -->
-                                            <input type="hidden" name="sort"
-                                                   value="${sort == 'id_asc' ? 'id_desc' : 'id_asc'}" />
+                                            <!-- giữ phân trang + sort -->
+                                            <input type="hidden" name="page" value="${currentPage}" />
+                                            <input type="hidden" name="sort" value="${sort}" />
 
+                                            <!-- status của user -->
                                             <select name="status"
-                                                    onchange="updateStatusStyle(this); this.form.submit();"
+                                                    data-user-id="${u.userId}"
+                                                    data-old-status="${u.status}"
+                                                    onchange="openConfirmModal(this)"
                                                     class="status-select
                                                     ${u.status == 'Active' ? 'status-active' :
                                                       u.status == 'Inactive' ? 'status-inactive' :
@@ -193,6 +194,7 @@
                                                 <option value="Blocked" ${u.status=='Blocked'?'selected':''}>Blocked</option>
                                             </select>
                                         </form>
+
                                     </td>
 
                                     <!-- ACTION -->
@@ -214,10 +216,20 @@
                                             View
                                         </button>
 
-                                        <a href="editUser?id=${u.userId}"
-                                           class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold">
+                                        <button type="button"
+                                                onclick="openEditUserModal(
+                                                                '${u.userId}',
+                                                                '${u.fullName}',
+                                                                '${u.email}',
+                                                                '${u.phone}',
+                                                                '${u.address}',
+                                                                '${u.role.roleId}',
+                                                                '${u.status}'
+                                                                )"
+                                                class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600">
                                             Edit
-                                        </a>
+                                        </button>
+
                                     </td>
                                 </tr>
                             </c:forEach>
@@ -233,13 +245,34 @@
                     </table>
                 </div>
 
+                <div class="flex justify-between items-center mt-4 text-sm text-gray-600">
+
+                    <c:set var="from" value="${(currentPage - 1) * pageSize + 1}" />
+                    <c:set var="to" value="${currentPage * pageSize}" />
+
+                    <c:if test="${to > totalUsers}">
+                        <c:set var="to" value="${totalUsers}" />
+                    </c:if>
+
+                    <div>
+                        Showing
+                        <b>${from}</b>
+                        to
+                        <b>${to}</b>
+                        of
+                        <b>${totalUsers}</b>
+                        users
+                    </div>
+
+                </div>
+
                 <!-- PAGINATION -->
                 <c:if test="${totalPages > 1}">
                     <div class="flex justify-center items-center gap-2 mt-8">
 
                         <!-- PREV -->
                         <c:if test="${currentPage > 1}">
-                            <a href="user-management?page=${currentPage-1}&keyword=${param.keyword}&roleId=${param.roleId}&status=${param.status}&sort=${sort}"
+                            <a href="user-management?page=${currentPage-1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&status=${param.status}&sort=${sort}"
                                class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                 Prev
                             </a>
@@ -247,7 +280,7 @@
 
                         <!-- PAGE NUMBERS -->
                         <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="user-management?page=${i}&keyword=${param.keyword}&roleId=${param.roleId}&status=${param.status}&sort=${sort}"
+                            <a href="user-management?page=${i}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&status=${param.status}&sort=${sort}"
                                class="px-4 py-2 rounded-lg font-bold
                                ${i == currentPage ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}">
                                 ${i}
@@ -256,7 +289,7 @@
 
                         <!-- NEXT -->
                         <c:if test="${currentPage < totalPages}">
-                            <a href="user-management?page=${currentPage+1}&keyword=${param.keyword}&roleId=${param.roleId}&status=${param.status}&sort=${sort}"
+                            <a href="user-management?page=${currentPage+1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&status=${param.status}&sort=${sort}"
                                class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                 Next
                             </a>
@@ -271,6 +304,87 @@
         <footer class="bg-[#181111] text-white py-10 mt-20 text-center opacity-70">
             © 2025 Anipats
         </footer>
+
+        <!-- UPDATE USER STATUS -->
+        <script>
+            function updateStatusStyle(select) {
+                select.classList.remove('status-active', 'status-inactive', 'status-blocked');
+                if (select.value === 'Active')
+                    select.classList.add('status-active');
+                else if (select.value === 'Inactive')
+                    select.classList.add('status-inactive');
+                else
+                    select.classList.add('status-blocked');
+            }
+        </script>
+
+        <div id="confirmModal"
+             class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+            <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg">
+
+                <h3 class="text-xl font-black mb-4">Confirm status change</h3>
+
+                <p class="mb-2">
+                    Change status for user ID:
+                    <b><span id="c-user-id" class="text-orange-600"></span></b>
+                </p>
+
+                <p class="mb-4">
+                    From <b><span id="c-old"></span></b>
+                    → <b><span id="c-new"></span></b>
+                </p>
+
+                <div class="flex justify-end gap-3">
+                    <button onclick="cancelChange()"
+                            class="px-4 py-2 bg-gray-200 rounded-lg font-bold">
+                        Cancel
+                    </button>
+                    <button onclick="confirmChange()"
+                            class="px-4 py-2 bg-orange-500 text-white rounded-lg font-bold">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let pendingSelect = null;
+
+            function openConfirmModal(select) {
+                const oldStatus = select.dataset.oldStatus;
+                const newStatus = select.value;
+
+                if (oldStatus === newStatus)
+                    return;
+
+                pendingSelect = select;
+
+                document.getElementById('c-user-id').innerText = select.dataset.userId;
+                document.getElementById('c-old').innerText = oldStatus;
+                document.getElementById('c-new').innerText = newStatus;
+
+                document.getElementById('confirmModal').classList.remove('hidden');
+                document.getElementById('confirmModal').classList.add('flex');
+            }
+
+            function cancelChange() {
+                if (pendingSelect) {
+                    pendingSelect.value = pendingSelect.dataset.oldStatus;
+                }
+                closeConfirmModal();
+            }
+
+            function confirmChange() {
+                updateStatusStyle(pendingSelect);
+                pendingSelect.form.submit();
+            }
+
+            function closeConfirmModal() {
+                document.getElementById('confirmModal').classList.add('hidden');
+                document.getElementById('confirmModal').classList.remove('flex');
+            }
+        </script>
 
         <!-- USER VIEW MODAL -->
         <div id="userModal"
@@ -347,19 +461,112 @@
                 document.getElementById('userModal').classList.add('hidden');
                 document.getElementById('userModal').classList.remove('flex');
             }
-        </script>
+        </script> 
 
+        <!-- EDIT USER MODAL -->
+        <div id="editUserModal"
+             class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
 
+            <div class="bg-white w-full max-w-xl rounded-2xl shadow-lg p-6 relative">
+
+                <h3 class="text-2xl font-black mb-4">Edit User</h3>
+
+                <form action="edit-user" method="post" class="space-y-4">
+
+                    <input type="hidden" name="id" id="e-id"/>
+
+                    <!-- giữ filter + pagination -->
+                    <input type="hidden" name="keyword" value="${param.keyword}" />
+                    <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
+                    <input type="hidden" name="filterStatus" value="${param.status}" />
+                    <input type="hidden" name="page" value="${currentPage}" />
+                    <input type="hidden" name="sort" value="${sort}" />
+
+                    <div>
+                        <label class="font-semibold">Full Name</label>
+                        <input id="e-name" name="fullName"
+                               class="w-full rounded-lg border px-4 py-2"/>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Email</label>
+                        <input id="e-email" name="email"
+                               class="w-full rounded-lg border px-4 py-2"/>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Phone</label>
+                        <input id="e-phone" name="phone"
+                               class="w-full rounded-lg border px-4 py-2"/>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Address</label>
+                        <input id="e-address" name="address"
+                               class="w-full rounded-lg border px-4 py-2"/>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Role</label>
+                        <select id="e-role" name="roleId"
+                                class="w-full rounded-lg border px-4 py-2">
+                            <option value="1">Customer</option>
+                            <option value="2">Veterinarian</option>
+                            <option value="3">Receptionist</option>
+                            <option value="4">Lab Staff</option>
+                            <option value="5">Admin</option>
+                            <option value="6">Clinic Owner</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Status</label>
+                        <select id="e-status" name="status"
+                                class="w-full rounded-lg border px-4 py-2">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Blocked">Blocked</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4">
+                        <button type="button"
+                                onclick="closeEditUserModal()"
+                                class="px-5 py-2 bg-gray-200 rounded-lg font-bold">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                onclick="return confirm('Save changes for this user?')"
+                                class="px-5 py-2 bg-orange-500 text-white rounded-lg font-bold">
+                            Save
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
 
         <script>
-            function updateStatusStyle(select) {
-                select.classList.remove('status-active', 'status-inactive', 'status-blocked');
-                if (select.value === 'Active')
-                    select.classList.add('status-active');
-                else if (select.value === 'Inactive')
-                    select.classList.add('status-inactive');
-                else
-                    select.classList.add('status-blocked');
+            function openEditUserModal(id, name, email, phone, address, roleId, status) {
+
+                document.getElementById('e-id').value = id;
+                document.getElementById('e-name').value = name;
+                document.getElementById('e-email').value = email;
+                document.getElementById('e-phone').value = phone || '';
+                document.getElementById('e-address').value = address || '';
+                document.getElementById('e-role').value = roleId;
+                document.getElementById('e-status').value = status;
+
+                const modal = document.getElementById('editUserModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function closeEditUserModal() {
+                const modal = document.getElementById('editUserModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }
         </script>
 

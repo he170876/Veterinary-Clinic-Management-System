@@ -34,4 +34,8 @@ public interface UserDAO {
 
     int countUsers(String keyword, Integer roleId, String status);
 
+    void updateUserStatus(int userId, String status);
+
+    boolean updateUserByAdmin(int userId, String fullName, String email, String phone, String address, int roleId, String status);
+
 }

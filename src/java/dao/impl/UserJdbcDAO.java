@@ -305,6 +305,63 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         return 0;
     }
 
+    @Override
+    public void updateUserStatus(int userId, String status) {
+        String sql = "UPDATE Users SET status = ?, updated_at = GETDATE() WHERE user_id = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, status);
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean updateUserByAdmin(
+            int userId,
+            String fullName,
+            String email,
+            String phone,
+            String address,
+            int roleId,
+            String status
+    ) {
+        String sql = """
+        UPDATE Users
+        SET full_name = ?,
+            email = ?,
+            phone = ?,
+            address = ?,
+            role_id = ?,
+            status = ?,
+            updated_at = ?
+        WHERE user_id = ?
+    """;
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, fullName);
+            ps.setString(2, email);
+            ps.setString(3, phone);
+            ps.setString(4, address);
+            ps.setInt(5, roleId);
+            ps.setString(6, status);
+            ps.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setInt(8, userId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("[UserJdbcDAO] updateUserByAdmin failed");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private User mapRowToUser(ResultSet rs) throws SQLException {
         User user = new User();
         user.setUserId(rs.getInt("user_id"));
