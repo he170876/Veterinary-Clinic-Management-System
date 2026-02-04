@@ -108,6 +108,10 @@
        value="<%= searchQuery %>"/>
 </form>
 </div>
+<a href="<%= request.getContextPath() %>/pets?action=trash" class="ml-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium flex items-center gap-2 text-sm">
+    <span class="material-symbols-outlined text-lg">delete</span>
+    View Trash
+</a>
 </div>
 <div class="flex items-center gap-6">
 <button class="relative p-2 text-[#8d755e] hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] rounded-full transition-colors">
@@ -237,7 +241,7 @@
             <a class="p-2 text-[#8d755e] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title="Edit" href="<%= request.getContextPath() %>/pets?action=edit&id=<%= pet.getPetId() %><%= customerIdUrl %>">
                 <span class="material-symbols-outlined text-xl">edit</span>
             </a>
-            <a class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg" title="Delete" href="<%= request.getContextPath() %>/pets?action=delete&id=<%= pet.getPetId() %><%= customerIdUrl %>" onclick="return confirm('Are you sure you want to delete <%= petName %>? This action cannot be undone.');">
+            <a class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg delete-btn" title="Delete" href="javascript:void(0);" data-pet-id="<%= pet.getPetId() %>" data-pet-name="<%= petName.replace("\"", "&quot;") %>" data-customer-url="<%= customerIdUrl %>">
                 <span class="material-symbols-outlined text-xl">delete</span>
             </a>
         </div>
@@ -262,5 +266,69 @@
 </div>
 </main>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-[#2d2116] rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+        <div class="p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="size-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-red-600 text-2xl">warning</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold">Delete Pet</h3>
+                    <p class="text-sm text-[#8d755e]">This action will remove the pet</p>
+                </div>
+            </div>
+            <p class="text-gray-700 dark:text-gray-300 mb-6">
+                Are you sure you want to delete <strong id="deletePetName"></strong>?<br>
+                <span class="text-sm text-[#8d755e]">The pet will be moved to trash and can be restored later.</span>
+            </p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium">
+                    Cancel
+                </button>
+                <button onclick="executeDelet()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let deletePetId = null;
+let deleteCustomerIdUrl = '';
+
+// Event delegation for delete buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var petId = this.getAttribute('data-pet-id');
+            var petName = this.getAttribute('data-pet-name');
+            var customerUrl = this.getAttribute('data-customer-url');
+            confirmDelete(petId, petName, customerUrl);
+        });
+    });
+});
+
+function confirmDelete(petId, petName, customerIdUrl) {
+    deletePetId = petId;
+    deleteCustomerIdUrl = customerIdUrl;
+    document.getElementById('deletePetName').textContent = petName;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    deletePetId = null;
+}
+
+function executeDelet() {
+    if (deletePetId) {
+        window.location.href = '<%= request.getContextPath() %>/pets?action=delete&id=' + deletePetId + deleteCustomerIdUrl;
+    }
+}
+</script>
 
 </body></html>

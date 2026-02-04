@@ -63,6 +63,9 @@ public class PetServlet extends HttpServlet {
                 case "list":
                     listPets(request, response);
                     break;
+                case "trash":
+                    listDeletedPets(request, response);
+                    break;
                 case "create":
                     showCreateForm(request, response);
                     break;
@@ -202,6 +205,18 @@ public class PetServlet extends HttpServlet {
         }
         
         request.getRequestDispatcher("/pets/index.jsp").forward(request, response);
+    }
+
+    private void listDeletedPets(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        System.out.println("Loading deleted pets (trash)...");
+        
+        List<Pet> deletedPets = petService.getDeletedPets();
+        
+        System.out.println("Total deleted pets retrieved: " + (deletedPets != null ? deletedPets.size() : "null"));
+        
+        request.setAttribute("deletedPets", deletedPets);
+        request.getRequestDispatcher("/pets/trash.jsp").forward(request, response);
     }
 
     private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
