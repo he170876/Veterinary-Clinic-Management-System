@@ -1,4 +1,4 @@
-<%@ page import="java.util.List,java.time.LocalDate,java.time.Period,model.Pet,model.Customer,model.User" %>
+<%@ page import="java.util.List,java.time.LocalDate,java.time.Period,java.time.temporal.ChronoUnit,model.Pet,model.Customer,model.User" %>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
@@ -42,6 +42,8 @@
 <body class="bg-background-light dark:bg-background-dark font-display text-[#181410] dark:text-[#f8f7f5]">
 <%
     List<Pet> pets = (List<Pet>) request.getAttribute("pets");
+    String searchQuery = (String) request.getAttribute("searchQuery");
+    if (searchQuery == null) searchQuery = "";
 %>
 <%
     if (pets == null) {
@@ -94,18 +96,12 @@
 <div class="flex items-center gap-4 flex-1">
 <h2 class="text-xl font-bold tracking-tight">Dashboard Overview</h2>
 <div class="relative w-64 ml-4">
-<form action="<%= request.getContextPath() %>/pets" method="get">
-<input type="hidden" name="action" value="search"/>
+<form action="#" method="get">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8d755e] text-xl pointer-events-none">search</span>
-<%
-    String searchQuery = (String) request.getAttribute("searchQuery");
-    if (searchQuery == null) searchQuery = "";
-%>
 <input class="w-full pl-10 pr-4 py-2 bg-[#f5f2f0] dark:bg-[#3d2f23] border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm" 
-       placeholder="Search pets..." 
+       placeholder="Search..." 
        type="text" 
-       name="q"
-       value="<%= searchQuery %>"/>
+       disabled/>
 </form>
 </div>
 <a href="<%= request.getContextPath() %>/pets?action=trash" class="ml-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium flex items-center gap-2 text-sm">
@@ -179,6 +175,16 @@
 <span>Add Pet</span>
 </a>
 </div>
+<div class="mb-6">
+<form method="get" action="<%= request.getContextPath() %>/pets" class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#2d2116] border border-[#f5f2f0] dark:border-[#3d2f23] rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" 
+       placeholder="Search pets by name or species..." 
+       type="text" 
+       name="q"
+       value="<%= searchQuery %>"/>
+</form>
+</div>
 <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] overflow-hidden">
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
@@ -211,7 +217,18 @@
             String ageText = "N/A";
             if (pet.getBirthDate() != null) {
                 Period age = Period.between(pet.getBirthDate(), LocalDate.now());
-                ageText = age.getYears() + " years";
+                if (age.getYears() == 0) {
+                    // Under 1 year - show in months, but not 0 months
+                    long months = ChronoUnit.MONTHS.between(pet.getBirthDate(), LocalDate.now());
+                    if (months == 0) {
+                        ageText = "Less than 1 month old";
+                    } else {
+                        ageText = months + " months";
+                    }
+                } else {
+                    // 1 year or older - show in years
+                    ageText = age.getYears() + " years";
+                }
             }
 %>
 <tr class="hover:bg-[#fcfbf9] dark:hover:bg-[#34281d] transition-colors">

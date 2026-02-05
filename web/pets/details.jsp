@@ -1,4 +1,7 @@
 <%@ page import="model.Pet" %>
+<%@ page import="java.time.LocalDate" %>
+<%@ page import="java.time.YearMonth" %>
+<%@ page import="java.time.temporal.ChronoUnit" %>
 <!DOCTYPE html>
 
 <html class="light" lang="en"><head>
@@ -7,7 +10,6 @@
 <title>Anipat - Pet Profile Overview</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
         tailwind.config = {
@@ -44,6 +46,28 @@
     String breed = pet != null && pet.getBreed() != null ? pet.getBreed() : "N/A";
     String gender = pet != null && pet.getGender() != null ? pet.getGender() : "N/A";
     String birthDate = pet != null && pet.getBirthDate() != null ? pet.getBirthDate().toString() : "N/A";
+    
+    // Calculate age - if under 1 year, show in months
+    String ageDisplay = "N/A";
+    if (pet != null && pet.getBirthDate() != null) {
+        LocalDate birthDateObj = pet.getBirthDate();
+        LocalDate today = LocalDate.now();
+        long years = ChronoUnit.YEARS.between(birthDateObj, today);
+        
+        if (years == 0) {
+            // Under 1 year - show in months, but not 0 months
+            long months = ChronoUnit.MONTHS.between(birthDateObj, today);
+            if (months == 0) {
+                ageDisplay = "Less than 1 month old";
+            } else {
+                ageDisplay = months + " months";
+            }
+        } else {
+            // 1 year or older - show in years
+            ageDisplay = years + " years";
+        }
+    }
+    
     String weight = pet != null && pet.getWeight() != null ? String.format("%.1f kg", pet.getWeight()) : "N/A";
     int petId = pet != null ? pet.getPetId() : 0;
     String photoUrl = pet != null && pet.getPhotoUrl() != null && !pet.getPhotoUrl().isEmpty()
@@ -116,7 +140,7 @@
 </div>
 <div>
 <h2 class="text-3xl font-extrabold tracking-tight"><%= petName %></h2>
-<p class="text-[#8d755e] font-medium"><%= species %><%= "N/A".equals(breed) ? "" : " • " + breed %></p>
+<p class="text-[#8d755e] font-medium"><%= species %><%= "N/A".equals(breed) ? "" : " &bull; " + breed %></p>
 </div>
 </div>
 <div class="flex items-center gap-3">
@@ -170,8 +194,8 @@
 <span class="material-symbols-outlined text-xl">cake</span>
 </div>
 <div>
-<p class="text-[10px] uppercase font-bold text-[#8d755e] tracking-wider">Date of Birth</p>
-<p class="text-sm font-bold"><%= birthDate %></p>
+<p class="text-[10px] uppercase font-bold text-[#8d755e] tracking-wider">Tuổi</p>
+<p class="text-sm font-bold"><%= ageDisplay %></p>
 </div>
 </div>
 </div>

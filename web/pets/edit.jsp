@@ -209,7 +209,8 @@ function previewPhoto(event) {
 </div>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-bold text-gray-700 dark:text-gray-300">Weight (kg)</label>
-<input name="weight" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" step="0.1" type="number" value="<%= pet != null && pet.getWeight() != null ? pet.getWeight() : "" %>"/>
+<input name="weight" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" step="0.1" type="number" min="0" onchange="validateWeight(this)" value="<%= pet != null && pet.getWeight() != null ? pet.getWeight() : "" %>"/>
+<span id="weightError" class="text-primary text-xs mt-1" style="display:none;">Weight cannot be negative</span>
 </div>
 </div>
 <div class="mt-12 flex flex-col-reverse sm:flex-row items-center justify-end gap-4 border-t border-gray-100 dark:border-gray-800 pt-8">
@@ -237,12 +238,23 @@ document.addEventListener('DOMContentLoaded', function() {
             today.setHours(0, 0, 0, 0);
             
             if (selectedDate > today) {
-                alert('Birth date cannot be in the future');
+                alert('Ngày sinh không thể trong tương lai');
                 this.value = '';
             }
         });
     }
 });
+
+// Validate weight cannot be negative
+function validateWeight(input) {
+    const weightError = document.getElementById('weightError');
+    if (input.value !== '' && parseFloat(input.value) < 0) {
+        weightError.style.display = 'block';
+        input.value = '';
+    } else {
+        weightError.style.display = 'none';
+    }
+}
 </script>
 </div>
 <div class="mt-6 text-center">

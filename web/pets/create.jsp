@@ -238,10 +238,6 @@ function previewPhoto(event) {
 <input class="size-5 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 dark:bg-gray-800" name="gender" type="radio" value="Female"/>
 <span class="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-primary transition-colors">Female</span>
 </label>
-<label class="flex items-center gap-2 cursor-pointer group">
-<input class="size-5 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 dark:bg-gray-800" name="gender" type="radio" value="Unknown"/>
-<span class="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-primary transition-colors">Unknown</span>
-</label>
 </div>
 </div>
 <!-- Date of Birth -->
@@ -255,19 +251,10 @@ function previewPhoto(event) {
 <div class="flex flex-col gap-2">
 <label class="text-sm font-bold text-gray-700 dark:text-gray-300">Weight</label>
 <div class="relative">
-<input class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" name="weight" placeholder="0.0" step="0.1" type="number"/>
+<input class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" name="weight" placeholder="0.0" step="0.1" type="number" min="0" onchange="validateWeight(this)" oninput="validateWeight(this)"/>
 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">kg</span>
 </div>
-</div>
-<!-- Color/Markings -->
-<div class="flex flex-col gap-2 md:col-span-2">
-<label class="text-sm font-bold text-gray-700 dark:text-gray-300">Color/Markings</label>
-<textarea class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" placeholder="Describe your pet's color and any identifying marks" rows="2"></textarea>
-</div>
-<!-- Additional Notes -->
-<div class="flex flex-col gap-2 md:col-span-2">
-<label class="text-sm font-bold text-gray-700 dark:text-gray-300">Additional Notes</label>
-<textarea class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" placeholder="Dietary needs, personality traits, or medical history summary" rows="3"></textarea>
+<span id="weightError" class="text-primary text-xs mt-1" style="display:none;">Weight cannot be negative</span>
 </div>
 </div>
 <!-- Action Bar -->
@@ -296,12 +283,23 @@ document.addEventListener('DOMContentLoaded', function() {
             today.setHours(0, 0, 0, 0);
             
             if (selectedDate > today) {
-                alert('Birth date cannot be in the future');
+                alert('Ngày sinh không thể trong tương lai');
                 this.value = '';
             }
         });
     }
 });
+
+// Validate weight cannot be negative
+function validateWeight(input) {
+    const weightError = document.getElementById('weightError');
+    if (input.value !== '' && parseFloat(input.value) < 0) {
+        weightError.style.display = 'block';
+        input.value = '';
+    } else {
+        weightError.style.display = 'none';
+    }
+}
 </script>
 </div>
 <!-- Footer info -->
