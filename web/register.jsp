@@ -97,49 +97,61 @@
             <% } %>
 
             <form class="space-y-4" method="post" action="<%= request.getContextPath() %>/register">
-                <!-- Full Name -->
+                <!-- Full Name: 1-30 chars, letters and spaces only -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-sm font-semibold text-gray-700">Full Name <span class="text-red-500">*</span></label>
                     <input class="w-full h-12 rounded-lg border border-gray-200 bg-white px-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                           placeholder="John Doe"
+                           placeholder="1-30 characters, letters and spaces only"
                            type="text"
                            name="fullName"
                            value="<%= fullName %>"
+                           minlength="1" maxlength="30" pattern="[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s]{1,30}"
+                           title="Full name must be 1-30 characters, letters and spaces only (any language)."
                            required/>
+                    <p class="text-xs text-gray-500">1-30 characters, letters and spaces only (any language). No leading/trailing spaces.</p>
                 </div>
 
-                <!-- Email -->
+                <!-- Email: @gmail.com only -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-sm font-semibold text-gray-700">Email Address <span class="text-red-500">*</span></label>
                     <input class="w-full h-12 rounded-lg border border-gray-200 bg-white px-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                           placeholder="john@example.com"
+                           placeholder="yourname@gmail.com"
                            type="email"
                            name="email"
                            value="<%= email %>"
+                           maxlength="255"
+                           pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
+                           title="Email must be a Gmail address (@gmail.com)."
                            required/>
+                    <p class="text-xs text-gray-500">Only Gmail addresses (@gmail.com) are accepted. Each account must use a unique email.</p>
                 </div>
 
-                <!-- Phone -->
+                <!-- Phone: required, 10 digits starting with 0 -->
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-sm font-semibold text-gray-700">Phone Number</label>
+                    <label class="text-sm font-semibold text-gray-700">Phone Number <span class="text-red-500">*</span></label>
                     <input class="w-full h-12 rounded-lg border border-gray-200 bg-white px-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                           placeholder="+1 (555) 000-0000"
+                           placeholder="0123456789 (10 digits, start with 0)"
                            type="tel"
                            name="phone"
-                           value="<%= phone %>"/>
+                           value="<%= phone %>"
+                           pattern="0[0-9]{9}"
+                           title="Phone must be 10 digits starting with 0 (e.g. 0123456789)."
+                           required/>
+                    <p class="text-xs text-gray-500">10 digits, must start with 0. No spaces. Required.</p>
                 </div>
 
-                <!-- Password -->
+                <!-- Password: min 6, 1 uppercase, 1 number -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-sm font-semibold text-gray-700">Password <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <input class="w-full h-12 rounded-lg border border-gray-200 bg-white px-4 pr-12 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                               placeholder="Min. 6 characters"
+                               placeholder="Min. 6 chars, 1 uppercase, 1 number"
                                type="password"
                                name="password"
                                id="password"
                                required
-                               minlength="6"/>
+                               minlength="6"
+                               maxlength="128"/>
                         <button class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors" type="button" onclick="togglePassword('password', this)">
                             <span class="material-symbols-outlined">visibility</span>
                         </button>
@@ -156,7 +168,8 @@
                                name="confirmPassword"
                                id="confirmPassword"
                                required
-                               minlength="6"/>
+                               minlength="6"
+                               maxlength="128"/>
                         <button class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors" type="button" onclick="togglePassword('confirmPassword', this)">
                             <span class="material-symbols-outlined">visibility</span>
                         </button>
@@ -216,6 +229,16 @@
 </div>
 
 <script>
+    (function() {
+        var regForm = document.querySelector('form[action*="register"]');
+        if (regForm) regForm.addEventListener('submit', function(e) {
+            var pwd = document.getElementById('password');
+            if (pwd && pwd.value.length >= 6) {
+                if (!/[A-Z]/.test(pwd.value)) { e.preventDefault(); alert('Password must contain at least 1 uppercase letter.'); return false; }
+                if (!/[0-9]/.test(pwd.value)) { e.preventDefault(); alert('Password must contain at least 1 number.'); return false; }
+            }
+        });
+    })();
     function togglePassword(inputId, btn) {
         const input = document.getElementById(inputId);
         const icon = btn.querySelector('.material-symbols-outlined');

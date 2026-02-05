@@ -43,17 +43,17 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="ownerName">Owner Name *</label>
-                <input type="text" class="form-control" id="ownerName" name="ownerName" placeholder="Enter full name" required>
+                <input type="text" class="form-control" id="ownerName" name="ownerName" placeholder="Enter full name" maxlength="100" pattern="[a-zA-Z\s]+" title="Letters and spaces only, 1-100 characters." required>
             </div>
             <div class="form-group">
                 <label for="email">Email Address *</label>
-                <input type="email" class="form-control" id="email" name="email" placeholder="your@email.com" required>
+                <input type="email" class="form-control" id="email" name="email" placeholder="your@email.com" maxlength="255" required>
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label for="phone">Phone Number *</label>
-                <input type="tel" class="form-control" id="phone" name="phone" placeholder="+1 (555) 000-0000" required>
+                <input type="tel" class="form-control" id="phone" name="phone" placeholder="0123456789 (10 digits, start with 0)" pattern="0[0-9]{9}" title="10 digits starting with 0." maxlength="10" required>
             </div>
             <div class="form-group">
                 <label for="service">Select Service *</label>
@@ -73,7 +73,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="petName">Pet Name *</label>
-                <input type="text" class="form-control" id="petName" name="petName" placeholder="Your pet's name" required>
+                <input type="text" class="form-control" id="petName" name="petName" placeholder="Your pet's name" maxlength="100" pattern="[a-zA-Z\s]+" title="Letters and spaces only, 1-100 characters." required>
             </div>
             <div class="form-group">
                 <label for="petType">Pet Type *</label>
@@ -100,10 +100,19 @@
         <div class="form-row full">
             <div class="form-group">
                 <label for="notes">Additional Notes</label>
-                <textarea class="form-control" id="notes" name="notes" placeholder="How can we help your pet today?" rows="3" style="resize: vertical;"></textarea>
+                <textarea class="form-control" id="notes" name="notes" placeholder="How can we help your pet today?" rows="3" maxlength="1000" style="resize: vertical;"></textarea>
             </div>
         </div>
         <button type="submit" class="btn-submit">Confirm Booking</button>
         <p class="text-note">By clicking confirm, you agree to our terms of service and privacy policy. We'll send a confirmation email shortly.</p>
     </form>
 </div>
+<script>
+(function() {
+    var dateEl = document.getElementById('appointmentDate');
+    if (dateEl) {
+        var today = new Date().toISOString().split('T')[0];
+        dateEl.setAttribute('min', today);
+    }
+})();
+</script>

@@ -24,6 +24,11 @@
     String ctx = request.getContextPath();
     String displayName = (user.getFullName() != null && !user.getFullName().isEmpty()) ? user.getFullName() : user.getEmail();
     String err = request.getParameter("error");
+    String requiredParam = request.getParameter("required");
+    boolean requiredPhone = "phone".equals(requiredParam);
+    request.setAttribute("customerCurrentPage", "edit-profile");
+    String profilePicUrl = user.getProfilePictureUrl();
+    boolean hasProfilePic = (profilePicUrl != null && !profilePicUrl.isEmpty());
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -56,47 +61,8 @@
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-[#181111] dark:text-white font-display">
-<div class="flex h-screen overflow-hidden">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white dark:bg-[#1a0d0c] border-r border-[#e6dcdb] dark:border-[#3d2a29] flex flex-col justify-between p-4 shrink-0">
-        <div class="flex flex-col gap-8">
-            <a href="<%= ctx %>/index.jsp" class="flex items-center gap-3 px-2">
-                <div class="bg-primary rounded-xl p-2 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-white text-2xl">pets</span>
-                </div>
-                <div class="flex flex-col">
-                    <h1 class="text-[#181111] dark:text-white text-lg font-bold leading-tight">Anipats</h1>
-                    <p class="text-[#896461] text-xs font-medium">Veterinary Center</p>
-                </div>
-            </a>
-            <nav class="flex flex-col gap-2">
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-background-light dark:hover:bg-[#2d1a19] transition-colors text-[#181111] dark:text-white" href="<%= ctx %>/customer/dashboard">
-                    <span class="material-symbols-outlined">dashboard</span>
-                    <span class="text-sm font-semibold">Dashboard</span>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-background-light dark:hover:bg-[#2d1a19] transition-colors text-[#181111] dark:text-white" href="#">
-                    <span class="material-symbols-outlined">group</span>
-                    <span class="text-sm font-semibold">Patients</span>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-background-light dark:hover:bg-[#2d1a19] transition-colors text-[#181111] dark:text-white" href="#">
-                    <span class="material-symbols-outlined">calendar_today</span>
-                    <span class="text-sm font-semibold">Appointments</span>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-background-light dark:hover:bg-[#2d1a19] transition-colors text-[#181111] dark:text-white" href="#">
-                    <span class="material-symbols-outlined">description</span>
-                    <span class="text-sm font-semibold">Medical Records</span>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary/10 text-primary" href="<%= ctx %>/customer/edit-profile">
-                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
-                    <span class="text-sm font-semibold">Settings</span>
-                </a>
-            </nav>
-        </div>
-        <a href="<%= ctx %>/logout" class="flex items-center justify-center gap-2 w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all">
-            <span class="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-        </a>
-    </aside>
+<div class="flex min-h-screen overflow-hidden">
+    <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-y-auto">
         <header class="sticky top-0 z-10 flex items-center justify-between bg-white dark:bg-[#1a0d0c] border-b border-[#e6dcdb] dark:border-[#3d2a29] px-8 py-4">
@@ -122,6 +88,12 @@
                 <span class="material-symbols-outlined text-[#896461] text-base leading-none">chevron_right</span>
                 <span class="text-[#181111] dark:text-white text-sm font-bold">Edit Profile</span>
             </div>
+            <% if (requiredPhone) { %>
+            <div class="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm font-semibold flex items-center gap-2">
+                <span class="material-symbols-outlined">warning</span>
+                You must add your phone number to continue. Phone is required for all accounts.
+            </div>
+            <% } %>
             <% if (err != null && !err.isEmpty()) { %>
             <div class="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-sm">
                 <%= java.net.URLDecoder.decode(err, "UTF-8") %>
@@ -130,32 +102,48 @@
             <!-- Form Card -->
             <div class="bg-white dark:bg-[#1a0d0c] rounded-2xl border border-[#e6dcdb] dark:border-[#3d2a29] overflow-hidden shadow-sm">
                 <div class="p-8">
+                    <form method="post" action="<%= ctx %>/customer/edit-profile" enctype="multipart/form-data" class="space-y-6">
                     <div class="flex flex-col md:flex-row md:items-center gap-6 mb-10 pb-10 border-b border-[#f4f0f0] dark:border-[#2d1a19]">
                         <div class="relative group">
-                            <div class="w-32 h-32 rounded-full ring-4 ring-background-light dark:ring-[#2d1a19] flex items-center justify-center bg-primary/10 text-primary font-bold text-4xl">
-                                <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
+                            <div id="profilePhotoPreview" class="w-32 h-32 rounded-full ring-4 ring-background-light dark:ring-[#2d1a19] overflow-hidden flex items-center justify-center bg-primary/10 text-primary font-bold text-4xl shrink-0">
+                                <% if (hasProfilePic) { %>
+                                <img src="<%= ctx %><%= esc(profilePicUrl) %>" alt="Profile" class="w-full h-full object-cover" id="profilePhotoImg"/>
+                                <% } else { %>
+                                <span id="profilePhotoInitial"><%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %></span>
+                                <% } %>
                             </div>
+                            <label class="absolute bottom-0 right-0 flex items-center justify-center size-10 rounded-full bg-primary text-white cursor-pointer shadow-lg hover:bg-primary/90 transition-colors" title="Change photo">
+                                <span class="material-symbols-outlined text-xl">photo_camera</span>
+                                <input type="file" name="profilePicture" id="profilePictureInput" accept="image/jpeg,image/png,image/gif" class="hidden"/>
+                            </label>
                         </div>
-                        <div class="flex-1">
+                        <div class="flex-1 space-y-2">
                             <h3 class="text-xl font-bold text-[#181111] dark:text-white">Profile Photo</h3>
-                            <p class="text-[#896461] text-sm mb-4">Avatar is based on your name. Photo upload coming soon.</p>
+                            <p class="text-[#896461] text-sm">JPG, PNG or GIF. Max 2 MB.</p>
+                            <% if (hasProfilePic) { %>
+                            <label class="inline-flex items-center gap-2 text-sm text-[#896461] hover:text-red-600 cursor-pointer mt-2">
+                                <input type="checkbox" name="removePhoto" value="1" class="rounded border-[#e6dcdb] text-primary focus:ring-primary"/>
+                                <span>Remove current photo</span>
+                            </label>
+                            <% } %>
                         </div>
                     </div>
-                    <form method="post" action="<%= ctx %>/customer/edit-profile" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="flex flex-col gap-2">
-                                <label class="text-[#181111] dark:text-white text-sm font-bold">Full Name</label>
+                                <label class="text-[#181111] dark:text-white text-sm font-bold">Full Name <span class="text-red-500">*</span></label>
                                 <div class="relative">
                                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#896461] text-xl">person</span>
-                                    <input name="fullName" class="w-full h-12 pl-10 pr-4 bg-white dark:bg-[#1a0d0c] border border-[#e6dcdb] dark:border-[#3d2a29] rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-[#181111] dark:text-white" type="text" value="<%= esc(user.getFullName() != null ? user.getFullName() : "") %>"/>
+                                    <input name="fullName" class="w-full h-12 pl-10 pr-4 bg-white dark:bg-[#1a0d0c] border border-[#e6dcdb] dark:border-[#3d2a29] rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-[#181111] dark:text-white" type="text" value="<%= esc(user.getFullName() != null ? user.getFullName() : "") %>" minlength="1" maxlength="30" pattern="[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s]{1,30}" title="1-30 characters, letters and spaces only (any language)." required/>
                                 </div>
+                                <p class="text-xs text-[#896461]">1-30 characters, letters and spaces only (any language). No leading/trailing spaces.</p>
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label class="text-[#181111] dark:text-white text-sm font-bold">Phone Number</label>
+                                <label class="text-[#181111] dark:text-white text-sm font-bold">Phone Number <%= requiredPhone ? "<span class=\"text-red-500\">*</span>" : "" %></label>
                                 <div class="relative">
                                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#896461] text-xl">call</span>
-                                    <input name="phone" class="w-full h-12 pl-10 pr-4 bg-white dark:bg-[#1a0d0c] border border-[#e6dcdb] dark:border-[#3d2a29] rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-[#181111] dark:text-white" type="tel" value="<%= esc(user.getPhone() != null ? user.getPhone() : "") %>"/>
+                                    <input name="phone" class="w-full h-12 pl-10 pr-4 bg-white dark:bg-[#1a0d0c] border border-[#e6dcdb] dark:border-[#3d2a29] rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-[#181111] dark:text-white" type="tel" value="<%= esc(user.getPhone() != null ? user.getPhone() : "") %>" pattern="0[0-9]{9}" title="10 digits starting with 0 (e.g. 0123456789)." placeholder="0123456789" <%= requiredPhone ? "required" : "" %>/>
                                 </div>
+                                <p class="text-xs text-[#896461]">10 digits, must start with 0. No spaces.<%= requiredPhone ? " Required to continue." : "" %></p>
                             </div>
                             <div class="flex flex-col gap-2 md:col-span-2">
                                 <label class="text-[#181111] dark:text-white text-sm font-bold">Email Address</label>
@@ -167,7 +155,8 @@
                             </div>
                             <div class="flex flex-col gap-2 md:col-span-2">
                                 <label class="text-[#181111] dark:text-white text-sm font-bold">Address</label>
-                                <textarea name="address" class="w-full p-4 bg-white dark:bg-[#1a0d0c] border border-[#e6dcdb] dark:border-[#3d2a29] rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-[#181111] dark:text-white resize-none" placeholder="Street, city, postal code..." rows="3"><%= esc(user.getAddress() != null ? user.getAddress() : "") %></textarea>
+                                <textarea name="address" class="w-full p-4 bg-white dark:bg-[#1a0d0c] border border-[#e6dcdb] dark:border-[#3d2a29] rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-[#181111] dark:text-white resize-none" placeholder="Street, city, postal code..." rows="3" maxlength="500"><%= esc(user.getAddress() != null ? user.getAddress() : "") %></textarea>
+                                <p class="text-xs text-[#896461]">Optional. Max 500 characters.</p>
                             </div>
                         </div>
                         <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#f4f0f0] dark:border-[#2d1a19]">
@@ -181,11 +170,40 @@
                 <span class="material-symbols-outlined text-primary mt-1">info</span>
                 <div>
                     <h4 class="text-[#181111] dark:text-white font-bold text-sm">Need Help?</h4>
-                    <p class="text-[#896461] text-xs leading-relaxed mt-1">To change your password, go to Settings (Security) and use Change Password.</p>
+                    <p class="text-[#896461] text-xs leading-relaxed mt-1">To change your password, go to My Profile and use Change Password.</p>
                 </div>
             </div>
         </div>
     </main>
 </div>
+<script>
+(function() {
+    var input = document.getElementById('profilePictureInput');
+    var preview = document.getElementById('profilePhotoPreview');
+    if (!input || !preview) return;
+    input.addEventListener('change', function() {
+        var file = this.files && this.files[0];
+        if (!file || !file.type.match(/^image\/(jpeg|png|gif)$/)) return;
+        var img = preview.querySelector('#profilePhotoImg');
+        var initial = preview.querySelector('#profilePhotoInitial');
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            if (img) {
+                img.src = e.target.result;
+            } else {
+                img = document.createElement('img');
+                img.id = 'profilePhotoImg';
+                img.alt = 'Profile';
+                img.className = 'w-full h-full object-cover';
+                img.src = e.target.result;
+                if (initial) initial.remove();
+                preview.appendChild(img);
+            }
+            if (initial) initial.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    });
+})();
+</script>
 </body>
 </html>

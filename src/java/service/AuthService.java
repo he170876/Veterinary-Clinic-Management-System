@@ -30,4 +30,16 @@ public interface AuthService {
      * @return true if successful.
      */
     boolean changePassword(int userId, String oldPassword, String newPassword);
+
+    /**
+     * Create a password-reset token for the given email (non-Google user only).
+     * @return The token if user exists and is eligible, empty otherwise.
+     */
+    java.util.Optional<String> createPasswordResetToken(String email);
+
+    /**
+     * Reset password using a valid token. Invalidates the token on success.
+     * @return true if token was valid and password was updated.
+     */
+    boolean resetPasswordWithToken(String token, String newPasswordPlaintext);
 }

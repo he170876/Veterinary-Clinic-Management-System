@@ -13,6 +13,7 @@ import service.impl.AuthServiceImpl;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import utils.ValidationUtil;
 
 /**
  * Handles POST from profile Change Password form.
@@ -41,6 +42,10 @@ public class ChangePasswordServlet extends HttpServlet {
         }
 
         User user = (User) session.getAttribute("currentUser");
+        if (user != null && user.isGoogleUser()) {
+            response.sendRedirect(redirect + "?pwError=" + URLEncoder.encode("Google account cannot change password. Use Google to sign in.", StandardCharsets.UTF_8));
+            return;
+        }
         String currentPassword = trim(request.getParameter("currentPassword"));
         String newPassword = trim(request.getParameter("newPassword"));
         String confirmPassword = trim(request.getParameter("confirmPassword"));
@@ -53,8 +58,8 @@ public class ChangePasswordServlet extends HttpServlet {
             response.sendRedirect(redirect + "?pwError=" + URLEncoder.encode("Please enter a new password.", StandardCharsets.UTF_8));
             return;
         }
-        if (newPassword.length() < 6) {
-            response.sendRedirect(redirect + "?pwError=" + URLEncoder.encode("New password must be at least 6 characters.", StandardCharsets.UTF_8));
+        if (!ValidationUtil.isValidPassword(newPassword)) {
+            response.sendRedirect(redirect + "?pwError=" + URLEncoder.encode("New password must be 6-128 characters with 1 uppercase letter and 1 number.", StandardCharsets.UTF_8));
             return;
         }
         if (!newPassword.equals(confirmPassword)) {

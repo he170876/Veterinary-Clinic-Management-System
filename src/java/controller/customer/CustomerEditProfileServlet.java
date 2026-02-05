@@ -3,20 +3,29 @@ package controller.customer;
 import dao.UserDAO;
 import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import model.User;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Locale;
+import utils.ValidationUtil;
 
 /**
- * GET: show edit profile form. POST: save full name, phone, address.
+ * GET: show edit profile form. POST: save full name, phone, address, and optional profile picture.
  */
+@MultipartConfig(fileSizeThreshold = 0, maxFileSize = 2 * 1024 * 1024, maxRequestSize = 3 * 1024 * 1024)
 @WebServlet(name = "CustomerEditProfileServlet", urlPatterns = {"/customer/edit-profile"})
 public class CustomerEditProfileServlet extends HttpServlet {
 
@@ -53,12 +62,47 @@ public class CustomerEditProfileServlet extends HttpServlet {
         }
 
         User user = (User) session.getAttribute("currentUser");
-        String fullName = trim(request.getParameter("fullName"));
-        String phone = trim(request.getParameter("phone"));
-        String address = trim(request.getParameter("address"));
+
+        // Read multipart file FIRST (before getParameter) so container parses multipart correctly
+        Part profilePart = null;
+        try {
+            profilePart = request.getPart("profilePicture");
+        } catch (Exception ignored) { /* not multipart or no part */ }
+
+        String fullName = ValidationUtil.trim(request.getParameter("fullName"));
+        String phone = ValidationUtil.trim(request.getParameter("phone"));
+        String address = ValidationUtil.trim(request.getParameter("address"));
+
+        boolean pendingPhone = session.getAttribute("pendingPhoneRequired") != null;
+        String redirectSuffix = pendingPhone ? "?required=phone" : "";
+
+        if (ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("fullName"))
+                || (request.getParameter("phone") != null && ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("phone")))
+                || (request.getParameter("address") != null && ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("address")))) {
+            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Fields must not contain leading or trailing spaces.", StandardCharsets.UTF_8));
+            return;
+        }
 
         if (fullName == null || fullName.isEmpty()) {
-            response.sendRedirect(ctx + "/customer/edit-profile?error=" + URLEncoder.encode("Full name is required.", StandardCharsets.UTF_8));
+            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Full name is required.", StandardCharsets.UTF_8));
+            return;
+        }
+
+        if (!ValidationUtil.isValidFullName(fullName)) {
+            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Full name must be 1-30 characters, letters and spaces only (any language).", StandardCharsets.UTF_8));
+            return;
+        }
+
+        if (pendingPhone && (phone == null || phone.isEmpty())) {
+            response.sendRedirect(ctx + "/customer/edit-profile?required=phone&error=" + URLEncoder.encode("Phone number is required to continue.", StandardCharsets.UTF_8));
+            return;
+        }
+        if (phone != null && !phone.isEmpty() && !ValidationUtil.isValidPhone(phone)) {
+            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Phone must be 10 digits starting with 0 (e.g. 0123456789).", StandardCharsets.UTF_8));
+            return;
+        }
+        if (!ValidationUtil.isValidAddress(address)) {
+            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Address must be at most " + ValidationUtil.ADDRESS_MAX_LENGTH + " characters.", StandardCharsets.UTF_8));
             return;
         }
 
@@ -66,16 +110,58 @@ public class CustomerEditProfileServlet extends HttpServlet {
         user.setPhone(phone != null && phone.isEmpty() ? null : phone);
         user.setAddress(address != null && address.isEmpty() ? null : address);
 
+        // Remove profile picture if requested
+        if ("1".equals(ValidationUtil.trim(request.getParameter("removePhoto")))) {
+            deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
+            user.setProfilePictureUrl(null);
+        } else if (profilePart != null && profilePart.getSize() > 0) {
+            // Handle profile picture upload
+            String submittedFileName = profilePart.getSubmittedFileName();
+            if (submittedFileName != null && !submittedFileName.isEmpty()) {
+                String contentType = profilePart.getContentType();
+                if (contentType != null && (contentType.toLowerCase(Locale.ROOT).startsWith("image/jpeg")
+                        || contentType.toLowerCase(Locale.ROOT).startsWith("image/png")
+                        || contentType.toLowerCase(Locale.ROOT).startsWith("image/gif"))) {
+                    String ext = contentType.toLowerCase(Locale.ROOT).contains("png") ? "png" : contentType.toLowerCase(Locale.ROOT).contains("gif") ? "gif" : "jpg";
+                    String fileName = user.getUserId() + "." + ext;
+                    String relativePath = "/uploads/avatars/" + fileName;
+                    Path baseDir = Paths.get(request.getServletContext().getRealPath("/"));
+                    Path uploadDir = baseDir.resolve("uploads").resolve("avatars");
+                    try {
+                        Files.createDirectories(uploadDir);
+                        Path targetFile = uploadDir.resolve(fileName);
+                        try (InputStream in = profilePart.getInputStream()) {
+                            Files.copy(in, targetFile.toAbsolutePath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        }
+                        deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
+                        user.setProfilePictureUrl(relativePath);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
         boolean ok = userDAO.updateUser(user);
         if (ok) {
             session.setAttribute("currentUser", user);
-            response.sendRedirect(ctx + "/customer/profile?updated=1");
+            if (pendingPhone) {
+                session.removeAttribute("pendingPhoneRequired");
+                response.sendRedirect(ctx + "/customer/dashboard");
+            } else {
+                response.sendRedirect(ctx + "/customer/profile?updated=1");
+            }
         } else {
-            response.sendRedirect(ctx + "/customer/edit-profile?error=" + URLEncoder.encode("Could not save. Please try again.", StandardCharsets.UTF_8));
+            response.sendRedirect(ctx + "/customer/edit-profile" + (pendingPhone ? "?required=phone&" : "?") + "error=" + URLEncoder.encode("Could not save. Please try again.", StandardCharsets.UTF_8));
         }
     }
 
-    private static String trim(String s) {
-        return s == null ? null : s.trim();
+    private void deleteProfilePictureIfExists(HttpServletRequest request, String profilePictureUrl) {
+        if (profilePictureUrl == null || profilePictureUrl.isEmpty()) return;
+        try {
+            Path base = Paths.get(request.getServletContext().getRealPath("/"));
+            Path file = base.resolve(profilePictureUrl.replaceFirst("^/", "").replace("/", java.io.File.separator));
+            if (Files.exists(file)) Files.delete(file);
+        } catch (IOException ignored) { }
     }
 }

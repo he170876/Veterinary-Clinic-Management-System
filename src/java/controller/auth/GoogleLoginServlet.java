@@ -127,6 +127,10 @@ public class GoogleLoginServlet extends HttpServlet {
         User user = userDAO.findByEmail(email).orElse(null);
         if (user == null) {
             user = authService.registerCustomer(fullName, email, "", java.util.UUID.randomUUID().toString());
+            if (user != null) {
+                userDAO.setGoogleUser(user.getUserId());
+                user.setGoogleUser(true);
+            }
         }
         if (user == null) {
             response.sendRedirect(ctx + "/login?error=create_failed");
@@ -141,7 +145,13 @@ public class GoogleLoginServlet extends HttpServlet {
         session.setAttribute("currentUser", user);
         session.setMaxInactiveInterval(30 * 60);
 
-        // Redirect by role (same as LoginServlet)
+        // Force Google users without phone to add phone before accessing dashboard/profile
+        if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
+            session.setAttribute("pendingPhoneRequired", Boolean.TRUE);
+            response.sendRedirect(ctx + "/customer/edit-profile?required=phone");
+            return;
+        }
+
         redirectToDashboard(request, response, user);
     }
 

@@ -1,12 +1,17 @@
 package service.impl;
 
+import dao.PasswordResetTokenDAO;
 import dao.UserDAO;
+import dao.impl.PasswordResetTokenJdbcDAO;
 import dao.impl.UserJdbcDAO;
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 import model.Role;
 import model.User;
 import service.AuthService;
 import utils.PasswordUtil;
+import utils.ValidationUtil;
 
 /**
  * Default implementation of {@link AuthService}.
@@ -19,10 +24,14 @@ public class AuthServiceImpl implements AuthService {
         return lastRegistrationError;
     }
 
+    private static final int RESET_TOKEN_EXPIRE_HOURS = 1;
+
     private final UserDAO userDAO;
+    private final PasswordResetTokenDAO resetTokenDAO;
 
     public AuthServiceImpl() {
         this.userDAO = new UserJdbcDAO();
+        this.resetTokenDAO = new PasswordResetTokenJdbcDAO();
     }
 
     @Override
@@ -94,5 +103,38 @@ public class AuthServiceImpl implements AuthService {
 
         // Update password in database
         return userDAO.updatePassword(userId, PasswordUtil.hashPassword(newPassword));
+    }
+
+    @Override
+    public Optional<String> createPasswordResetToken(String email) {
+        if (email == null || email.isEmpty()) return Optional.empty();
+        String normalized = email.trim().toLowerCase();
+        Optional<User> userOpt = userDAO.findByEmail(normalized);
+        if (!userOpt.isPresent()) return Optional.empty();
+        User user = userOpt.get();
+        if (user.isGoogleUser()) return Optional.empty();
+        if (!"Active".equalsIgnoreCase(user.getStatus())) return Optional.empty();
+
+        String token = UUID.randomUUID().toString().replace("-", "");
+        LocalDateTime expiresAt = LocalDateTime.now().plusHours(RESET_TOKEN_EXPIRE_HOURS);
+        resetTokenDAO.create(token, normalized, expiresAt);
+        return Optional.of(token);
+    }
+
+    @Override
+    public boolean resetPasswordWithToken(String token, String newPasswordPlaintext) {
+        if (token == null || token.isEmpty() || newPasswordPlaintext == null) return false;
+        if (!ValidationUtil.isValidPassword(newPasswordPlaintext)) return false;
+
+        String email = resetTokenDAO.findEmailByToken(token);
+        if (email == null) return false;
+
+        Optional<User> userOpt = userDAO.findByEmail(email);
+        if (!userOpt.isPresent()) return false;
+
+        User user = userOpt.get();
+        boolean ok = userDAO.updatePassword(user.getUserId(), PasswordUtil.hashPassword(newPasswordPlaintext));
+        if (ok) resetTokenDAO.deleteByToken(token);
+        return ok;
     }
 }

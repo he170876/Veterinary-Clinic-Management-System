@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import utils.ValidationUtil;
 
 /**
  * Handles POST from the landing-page booking form (guest appointment requests).
@@ -48,6 +49,36 @@ public class BookAppointmentServlet extends HttpServlet {
                 || appointmentTime == null || appointmentTime.isEmpty()) {
             response.sendRedirect(redirect + "?bookError=1&bookMessage="
                     + URLEncoder.encode("Please fill in all required fields.", StandardCharsets.UTF_8));
+            return;
+        }
+        if (!ValidationUtil.isValidOwnerOrPetName(ownerName)) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    + URLEncoder.encode("Owner name must be 1-100 letters and spaces only.", StandardCharsets.UTF_8));
+            return;
+        }
+        if (!ValidationUtil.isValidEmailFormat(email)) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    + URLEncoder.encode("Please enter a valid email address.", StandardCharsets.UTF_8));
+            return;
+        }
+        if (!ValidationUtil.isValidPhone(phone)) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    + URLEncoder.encode("Phone must be 10 digits starting with 0 (e.g. 0123456789).", StandardCharsets.UTF_8));
+            return;
+        }
+        if (!ValidationUtil.isValidOwnerOrPetName(petName)) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    + URLEncoder.encode("Pet name must be 1-100 letters and spaces only.", StandardCharsets.UTF_8));
+            return;
+        }
+        if (!ValidationUtil.isDateNotInPast(appointmentDate)) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    + URLEncoder.encode("Preferred date cannot be in the past.", StandardCharsets.UTF_8));
+            return;
+        }
+        if (notes != null && notes.length() > ValidationUtil.NOTES_MAX_LENGTH) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    + URLEncoder.encode("Notes must be at most " + ValidationUtil.NOTES_MAX_LENGTH + " characters.", StandardCharsets.UTF_8));
             return;
         }
 
