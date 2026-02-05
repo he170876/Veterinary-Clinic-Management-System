@@ -7,8 +7,11 @@ public class Service {
 
     private int serviceId;
     private String name;
+    private String category;
+    private int duration; // in minutes
     private double price;
     private String description;
+    private boolean isDeleted;
 
     public Service() {
     }
@@ -29,6 +32,22 @@ public class Service {
         this.name = name;
     }
 
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
     public double getPrice() {
         return price;
     }
@@ -43,6 +62,14 @@ public class Service {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 }
 

@@ -6,13 +6,13 @@ import java.sql.SQLException;
 
 public class DBContext {
 
-    private static final String URL = "jdbc:sqlserver://localhost"
+    private static final String URL = "jdbc:sqlserver://localhost:1433"
             + ";instanceName=MSSQLSERVER12"
             + ";databaseName=VetClinicManagement"
             + ";encrypt=true;trustServerCertificate=true"
             + ";loginTimeout=15";
     private static final String USER = "sa";
-    private static final String PASS = "123";
+    private static final String PASS = "123456";
 
     static {
         try {
