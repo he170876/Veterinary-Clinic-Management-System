@@ -6,7 +6,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.ResultSetMetaData;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import model.Role;
@@ -27,7 +29,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     @Override
     public Optional<User> findByEmail(String email) {
         String sql = "SELECT u.user_id, u.email, u.password, u.status, u.created_at, u.updated_at, "
-                + "u.full_name, u.phone, u.address, r.role_id, r.role_name "
+                + "u.full_name, u.phone, u.address, u.profile_picture_url, r.role_id, r.role_name, u.is_google_user "
                 + "FROM Users u "
                 + "JOIN Roles r ON u.role_id = r.role_id "
                 + "WHERE u.email = ?";
@@ -50,7 +52,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     @Override
     public Optional<User> findById(int userId) {
         String sql = "SELECT u.user_id, u.email, u.password, u.status, u.created_at, u.updated_at, "
-                + "u.full_name, u.phone, u.address, r.role_id, r.role_name "
+                + "u.full_name, u.phone, u.address, u.profile_picture_url, r.role_id, r.role_name, u.is_google_user "
                 + "FROM Users u "
                 + "JOIN Roles r ON u.role_id = r.role_id "
                 + "WHERE u.user_id = ?";
@@ -150,7 +152,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
 
     @Override
     public boolean updateUser(User user) {
-        String sql = "UPDATE Users SET full_name = ?, phone = ?, address = ?, updated_at = ? WHERE user_id = ?";
+        String sql = "UPDATE Users SET full_name = ?, phone = ?, address = ?, profile_picture_url = ?, updated_at = ? WHERE user_id = ?";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -158,8 +160,13 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
             ps.setString(1, user.getFullName());
             ps.setString(2, user.getPhone());
             ps.setString(3, user.getAddress());
-            ps.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()));
-            ps.setInt(5, user.getUserId());
+            if (user.getProfilePictureUrl() != null) {
+                ps.setString(4, user.getProfilePictureUrl());
+            } else {
+                ps.setNull(4, Types.VARCHAR);
+            }
+            ps.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setInt(6, user.getUserId());
 
             return ps.executeUpdate() > 0;
         } catch (SQLException ex) {
@@ -176,6 +183,19 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
             ps.setString(1, newPasswordHash);
             ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
             ps.setInt(3, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean setGoogleUser(int userId) {
+        String sql = "UPDATE Users SET is_google_user = 1 WHERE user_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
             return ps.executeUpdate() > 0;
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -202,6 +222,16 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         user.setFullName(rs.getString("full_name"));
         user.setPhone(rs.getString("phone"));
         user.setAddress(rs.getString("address"));
+        try {
+            if (hasColumn(rs, "profile_picture_url")) {
+                user.setProfilePictureUrl(rs.getString("profile_picture_url"));
+            }
+        } catch (SQLException ignored) { }
+        try {
+            if (hasColumn(rs, "is_google_user")) {
+                user.setGoogleUser(rs.getBoolean("is_google_user"));
+            }
+        } catch (SQLException ignored) { }
 
         Role role = new Role();
         role.setRoleId(rs.getInt("role_id"));
@@ -209,5 +239,15 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         user.setRole(role);
 
         return user;
+    }
+
+    private static boolean hasColumn(ResultSet rs, String columnName) throws SQLException {
+        ResultSetMetaData meta = rs.getMetaData();
+        for (int i = 1; i <= meta.getColumnCount(); i++) {
+            if (columnName.equalsIgnoreCase(meta.getColumnName(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

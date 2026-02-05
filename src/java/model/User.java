@@ -18,6 +18,10 @@ public class User {
     private String fullName;
     private String phone;
     private String address;
+    /** Relative URL path e.g. /uploads/avatars/5.jpg */
+    private String profilePictureUrl;
+    /** True if user was created via Google login (no change password). */
+    private boolean googleUser;
 
     public User() {
     }
@@ -100,6 +104,22 @@ public class User {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+
+    public boolean isGoogleUser() {
+        return googleUser;
+    }
+
+    public void setGoogleUser(boolean googleUser) {
+        this.googleUser = googleUser;
     }
 }
 

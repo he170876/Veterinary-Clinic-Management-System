@@ -6,6 +6,8 @@
         response.sendRedirect(request.getContextPath() + "/login");
         return;
     }
+    request.setAttribute("customerCurrentPage", "dashboard");
+    String ctx = request.getContextPath();
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -24,8 +26,8 @@
                     colors: {
                         "primary": "#f14437",
                         "primary-dark": "#d6362b",
-                        "background-light": "#fcfcfc",
-                        "background-dark": "#1a1614",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221110",
                     },
                     fontFamily: {
                         "display": ["Manrope", "sans-serif"]
@@ -39,31 +41,12 @@
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
     </style>
 </head>
-<body class="bg-background-light min-h-screen">
-    <!-- Top Navigation -->
-    <nav class="bg-white shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <a href="<%= request.getContextPath() %>/index.jsp" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
-                    <div class="size-10 bg-primary text-white rounded-lg flex items-center justify-center">
-                        <span class="material-symbols-outlined">pets</span>
-                    </div>
-                    <span class="text-xl font-black text-gray-900 tracking-tight">Anipats</span>
-                </a>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm text-gray-600">Welcome, <strong><%= user.getFullName() %></strong></span>
-                    <a href="<%= request.getContextPath() %>/logout" 
-                       class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                        <span class="material-symbols-outlined text-lg">logout</span>
-                        Logout
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen">
+<div class="flex min-h-screen">
+    <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <!-- Welcome Banner -->
         <div class="bg-gradient-to-r from-primary to-red-400 rounded-2xl p-8 text-white mb-8">
             <h1 class="text-3xl font-bold mb-2">Welcome back, <%= user.getFullName() %>!</h1>
@@ -128,7 +111,7 @@
                 </div>
                 <span class="font-semibold text-gray-700">View History</span>
             </a>
-            <a href="<%= request.getContextPath() %>/customer/profile" class="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all">
+            <a href="<%= ctx %>/customer/profile" class="flex items-center gap-3 bg-white dark:bg-white/5 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-white/10 hover:border-primary hover:shadow-md transition-all">
                 <div class="size-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">person</span>
                 </div>
@@ -158,6 +141,8 @@
                 </div>
             </div>
         </div>
+    </div>
     </main>
+</div>
 </body>
 </html>

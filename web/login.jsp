@@ -100,32 +100,44 @@
                     else if ("no_email".equals(errParam)) errorMsg = "Could not get email from Google.";
                     else if ("create_failed".equals(errParam)) errorMsg = "Could not create account. Email may already exist.";
                     else if ("account_inactive".equals(errParam)) errorMsg = "Your account is inactive.";
-                    else errorMsg = "An error occurred. Please try again.";
+                    else if (errParam != null && !errParam.isEmpty()) { try { errorMsg = java.net.URLDecoder.decode(errParam, "UTF-8"); } catch (Exception e) { errorMsg = errParam; } }
+                    else if (errorMsg == null) errorMsg = "An error occurred. Please try again.";
                 }
                 if (errorMsg != null && !errorMsg.isEmpty()) {
             %>
-            <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div class="mb-4 rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
                 <%= errorMsg %>
+            </div>
+            <%
+                }
+                String successMsg = request.getParameter("reset");
+                if ("1".equals(successMsg)) {
+            %>
+            <div class="mb-4 rounded-lg border border-green-300 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+                Password reset. You can now sign in.
             </div>
             <%
                 }
             %>
 
             <form class="space-y-5" method="post" action="<%= request.getContextPath() %>/login">
-                <!-- Email Field -->
+                <!-- Email Field: @gmail.com only -->
                 <div class="flex flex-col gap-2">
                     <label class="text-[#181411] dark:text-gray-200 text-sm font-semibold">Email Address</label>
                     <input class="w-full h-12 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-[#2d241b] px-4 text-[#181411] dark:text-white placeholder:text-[#94a3b8] focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                           placeholder="vets@anipats.com"
+                           placeholder="yourname@gmail.com"
                            type="email"
                            name="email"
+                           pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
+                           title="Email must be a Gmail address (@gmail.com)."
                            required/>
+                    <p class="text-xs text-[#64748b] dark:text-gray-400">Only Gmail (@gmail.com) is accepted. No leading/trailing spaces.</p>
                 </div>
                 <!-- Password Field -->
                 <div class="flex flex-col gap-2">
                     <div class="flex justify-between items-center">
                         <label class="text-[#181411] dark:text-gray-200 text-sm font-semibold">Password</label>
-                        <a class="text-primary text-sm font-bold hover:text-primary-dark transition-colors" href="#">Forgot password?</a>
+                        <a class="text-primary text-sm font-bold hover:text-primary-dark transition-colors" href="<%= request.getContextPath() %>/forgot-password">Forgot password?</a>
                     </div>
                     <div class="relative">
                         <input class="w-full h-12 rounded-lg border border-[#e2e8f0] dark:border-gray-700 bg-white dark:bg-[#2d241b] px-4 pr-12 text-[#181411] dark:text-white placeholder:text-[#94a3b8] focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"

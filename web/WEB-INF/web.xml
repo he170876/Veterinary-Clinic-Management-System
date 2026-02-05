@@ -7,6 +7,36 @@
 
     <display-name>Veterinary Clinic Management System</display-name>
 
+    <!-- Optional: SMTP for forgot-password emails. Set mail.enabled=true and configure below. -->
+    <context-param>
+        <param-name>mail.enabled</param-name>
+        <param-value>false</param-value>
+    </context-param>
+    <context-param>
+        <param-name>mail.smtp.host</param-name>
+        <param-value>smtp.gmail.com</param-value>
+    </context-param>
+    <context-param>
+        <param-name>mail.smtp.port</param-name>
+        <param-value>587</param-value>
+    </context-param>
+    <context-param>
+        <param-name>mail.smtp.starttls</param-name>
+        <param-value>true</param-value>
+    </context-param>
+    <context-param>
+        <param-name>mail.smtp.user</param-name>
+        <param-value></param-value>
+    </context-param>
+    <context-param>
+        <param-name>mail.smtp.password</param-name>
+        <param-value></param-value>
+    </context-param>
+    <context-param>
+        <param-name>mail.from</param-name>
+        <param-value>noreply@anipats.com</param-value>
+    </context-param>
+
     <!-- Welcome File: starter page (homepage) only -->
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>
@@ -84,6 +114,24 @@
     <servlet-mapping>
         <servlet-name>GoogleLoginServlet</servlet-name>
         <url-pattern>/google-login</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ForgotPasswordServlet</servlet-name>
+        <servlet-class>controller.auth.ForgotPasswordServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ForgotPasswordServlet</servlet-name>
+        <url-pattern>/forgot-password</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ResetPasswordServlet</servlet-name>
+        <servlet-class>controller.auth.ResetPasswordServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ResetPasswordServlet</servlet-name>
+        <url-pattern>/reset-password</url-pattern>
     </servlet-mapping>
 
     <!-- ======================= -->

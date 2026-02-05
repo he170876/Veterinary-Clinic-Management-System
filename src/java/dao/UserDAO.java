@@ -26,4 +26,10 @@ public interface UserDAO {
      * @return true if one row was updated.
      */
     boolean updatePassword(int userId, String newPasswordHash);
+
+    /**
+     * Mark user as Google sign-in (no change password).
+     * @return true if one row was updated.
+     */
+    boolean setGoogleUser(int userId);
 }
