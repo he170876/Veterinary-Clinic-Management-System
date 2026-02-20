@@ -7,6 +7,9 @@
             <minimum-ant-version>1.6.5</minimum-ant-version>
             <web-module-libraries>
                 <library dirs="200">
+                    <file>${file.reference.mssql-jdbc-12.4.2.jre11.jar}</file>
+                </library>
+                <library dirs="200">
                     <file>${file.reference.Veterinary-Clinic-Management-System-lib}</file>
                     <path-in-war>WEB-INF/classes</path-in-war>
                 </library>
