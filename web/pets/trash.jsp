@@ -1,4 +1,28 @@
 <%@ page import="java.util.List,java.time.LocalDate,java.time.Period,model.Pet,model.Customer,model.User" %>
+<%@ page import="java.net.URLEncoder" %>
+<%!
+    private String resolvePhotoUrl(jakarta.servlet.http.HttpServletRequest request, String rawPhotoUrl, String fallbackUrl) {
+        if (rawPhotoUrl == null || rawPhotoUrl.trim().isEmpty()) {
+            return fallbackUrl;
+        }
+
+        String value = rawPhotoUrl.trim().replace("\\", "/");
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            return value;
+        }
+
+        if (value.matches("^[A-Za-z]:/.*")) {
+            int lastSlash = value.lastIndexOf('/');
+            String fileName = lastSlash >= 0 ? value.substring(lastSlash + 1) : value;
+            value = "uploads/pets/" + fileName;
+        }
+
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        return request.getContextPath() + "/" + value;
+    }
+%>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
@@ -39,6 +63,29 @@
     if (deletedPets == null) {
         deletedPets = new java.util.ArrayList<>();
     }
+
+    String custIdParam = request.getParameter("customer_id");
+    Customer customer = (Customer) session.getAttribute("customer");
+    if ((custIdParam == null || custIdParam.isEmpty()) && customer != null) {
+        custIdParam = String.valueOf(customer.getCustomerId());
+    }
+    String customerIdUrl = custIdParam != null && !custIdParam.isEmpty() ? "&customer_id=" + custIdParam : "";
+
+    String returnUrl = request.getParameter("returnUrl");
+    if (returnUrl == null || returnUrl.trim().isEmpty()) {
+        String referer = request.getHeader("referer");
+        if (referer != null && !referer.trim().isEmpty()) {
+            returnUrl = referer;
+        } else {
+            returnUrl = request.getContextPath() + "/customer/dashboard" + (custIdParam != null && !custIdParam.isEmpty() ? "?customer_id=" + custIdParam : "");
+        }
+    }
+    String encodedReturnUrl = "";
+    try {
+        encodedReturnUrl = URLEncoder.encode(returnUrl, "UTF-8");
+    } catch (Exception ex) {
+        encodedReturnUrl = "";
+    }
 %>
 <div class="flex h-screen overflow-hidden">
 <aside class="w-64 flex flex-col bg-white dark:bg-[#2d2116] border-r border-[#f5f2f0] dark:border-[#3d2f23]">
@@ -56,7 +103,7 @@
 <span class="material-symbols-outlined">pets</span>
 <span class="text-sm font-semibold">My Pets</span>
 </a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#ff7b0015] text-primary border-l-4 border-primary transition-colors" href="<%= request.getContextPath() %>/pets?action=trash">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#ff7b0015] text-primary border-l-4 border-primary transition-colors" href="<%= request.getContextPath() %>/pets?action=trash<%= customerIdUrl %>&returnUrl=<%= encodedReturnUrl %>">
 <span class="material-symbols-outlined">delete</span>
 <span class="text-sm font-bold">Trash</span>
 </a>
@@ -108,9 +155,8 @@
         for (Pet pet : deletedPets) {
             String petName = pet.getName() != null ? pet.getName() : "(No name)";
             String species = pet.getSpecies() != null ? pet.getSpecies() : "N/A";
-            String photoUrl = pet.getPhotoUrl() != null && !pet.getPhotoUrl().isEmpty() 
-                ? request.getContextPath() + "/" + pet.getPhotoUrl() 
-                : "https://via.placeholder.com/150/cccccc/666666?text=" + (species != null ? species.substring(0,1) : "P");
+            String fallbackPhotoUrl = "https://via.placeholder.com/150/cccccc/666666?text=" + (species != null ? species.substring(0,1) : "P");
+            String photoUrl = resolvePhotoUrl(request, pet.getPhotoUrl(), fallbackPhotoUrl);
 %>
 <tr class="hover:bg-[#fcfbf9] dark:hover:bg-[#34281d] transition-colors">
     <td class="px-6 py-4">
@@ -126,7 +172,7 @@
     <td class="px-6 py-4 text-sm text-gray-500">Recently</td>
     <td class="px-6 py-4">
         <div class="flex items-center justify-end gap-2">
-            <a class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-1" href="<%= request.getContextPath() %>/pets?action=restore&id=<%= pet.getPetId() %>" title="Restore">
+            <a class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-1" href="<%= request.getContextPath() %>/pets?action=restore&id=<%= pet.getPetId() %><%= customerIdUrl %>&returnUrl=<%= encodedReturnUrl %>" title="Restore">
                 <span class="material-symbols-outlined text-sm">restore</span>
                 Restore
             </a>
@@ -205,7 +251,7 @@ function closePermanentDeleteModal() {
 
 function executePermanentDelete() {
     if (permanentDeletePetId) {
-        window.location.href = '<%= request.getContextPath() %>/pets?action=hardDelete&id=' + permanentDeletePetId;
+        window.location.href = '<%= request.getContextPath() %>/pets?action=hardDelete&id=' + permanentDeletePetId + '<%= customerIdUrl %>&returnUrl=<%= encodedReturnUrl %>';
     }
 }
 </script>

@@ -1,9 +1,34 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.Pet" %>
 <%@ page import="model.Customer" %>
+<%!
+    private String resolvePhotoUrl(jakarta.servlet.http.HttpServletRequest request, String rawPhotoUrl, String fallbackUrl) {
+        if (rawPhotoUrl == null || rawPhotoUrl.trim().isEmpty()) {
+            return fallbackUrl;
+        }
+
+        String value = rawPhotoUrl.trim().replace("\\", "/");
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            return value;
+        }
+
+        if (value.matches("^[A-Za-z]:/.*")) {
+            int lastSlash = value.lastIndexOf('/');
+            String fileName = lastSlash >= 0 ? value.substring(lastSlash + 1) : value;
+            value = "uploads/pets/" + fileName;
+        }
+
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        return request.getContextPath() + "/" + value;
+    }
+%>
 <%
     Pet pet = (Pet) request.getAttribute("pet");
-    String photoUrl = pet != null && pet.getPhotoUrl() != null ? pet.getPhotoUrl() : "";
+    String photoUrl = resolvePhotoUrl(request,
+        pet != null ? pet.getPhotoUrl() : null,
+        "https://via.placeholder.com/300/cccccc/666666?text=P");
     Customer customer = (Customer) session.getAttribute("customer");
     
     // Check if customer_id is provided in URL parameter for testing
@@ -144,7 +169,7 @@
 <input type="hidden" name="customer_id" value="<%= request.getParameter("customer_id") != null ? request.getParameter("customer_id") : "" %>"/>
 <div class="flex flex-col items-center justify-center mb-10 pb-10 border-b border-gray-100 dark:border-gray-800">
 <div class="relative group">
-<div id="photoPreview" class="size-32 rounded-full border-4 border-solid border-primary/20 flex items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden shadow-inner bg-cover bg-center" style="background-image: url('<%= request.getContextPath() %>/<%= photoUrl %>');"></div>
+<div id="photoPreview" class="size-32 rounded-full border-4 border-solid border-primary/20 flex items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden shadow-inner bg-cover bg-center" style="background-image: url('<%= photoUrl %>');"></div>
 <label for="photoInput" class="absolute bottom-0 right-0 size-10 rounded-full bg-primary text-white flex items-center justify-center border-4 border-white dark:border-background-dark shadow-lg hover:scale-105 transition-transform cursor-pointer">
 <span class="material-symbols-outlined text-xl">edit</span>
 </label>

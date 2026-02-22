@@ -172,17 +172,21 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
 
     @Override
     public boolean delete(int petId) {
-        String sql = "UPDATE dbo.Pets SET isDeleted = 1, deleted_at = ? "
-            + "WHERE pet_id = ? AND (isDeleted = 0 OR isDeleted IS NULL)";
+        try (Connection conn = getConnection()) {
+            boolean hasDeletedAt = hasColumn(conn, "Pets", "deleted_at");
+            String sql = hasDeletedAt
+                ? "UPDATE dbo.Pets SET isDeleted = 1, deleted_at = ? WHERE pet_id = ? AND (isDeleted = 0 OR isDeleted IS NULL)"
+                : "UPDATE dbo.Pets SET isDeleted = 1 WHERE pet_id = ? AND (isDeleted = 0 OR isDeleted IS NULL)";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
-            ps.setInt(2, petId);
-            int affected = ps.executeUpdate();
-            return affected > 0;
-
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                int index = 1;
+                if (hasDeletedAt) {
+                    ps.setTimestamp(index++, Timestamp.valueOf(LocalDateTime.now()));
+                }
+                ps.setInt(index, petId);
+                int affected = ps.executeUpdate();
+                return affected > 0;
+            }
         } catch (SQLException ex) {
             ex.printStackTrace();
             return false;
@@ -208,15 +212,17 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
 
     @Override
     public boolean restore(int petId) {
-        String sql = "UPDATE dbo.Pets SET isDeleted = 0, deleted_at = NULL WHERE pet_id = ?";
+        try (Connection conn = getConnection()) {
+            boolean hasDeletedAt = hasColumn(conn, "Pets", "deleted_at");
+            String sql = hasDeletedAt
+                ? "UPDATE dbo.Pets SET isDeleted = 0, deleted_at = NULL WHERE pet_id = ?"
+                : "UPDATE dbo.Pets SET isDeleted = 0 WHERE pet_id = ?";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, petId);
-            int affected = ps.executeUpdate();
-            return affected > 0;
-
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, petId);
+                int affected = ps.executeUpdate();
+                return affected > 0;
+            }
         } catch (SQLException ex) {
             ex.printStackTrace();
             return false;
@@ -226,16 +232,18 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
     @Override
     public List<Pet> findAllDeleted() {
         List<Pet> pets = new ArrayList<>();
-        String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
-            + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
-            + "WHERE isDeleted = 1 ORDER BY deleted_at DESC";
+        try (Connection conn = getConnection()) {
+            boolean hasDeletedAt = hasColumn(conn, "Pets", "deleted_at");
+            String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
+                + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
+                + "WHERE isDeleted = 1 "
+                + (hasDeletedAt ? "ORDER BY deleted_at DESC" : "ORDER BY created_at DESC");
 
-        try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                pets.add(mapRowToPet(rs));
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(sql)) {
+                while (rs.next()) {
+                    pets.add(mapRowToPet(rs));
+                }
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -243,17 +251,27 @@ public class PetJdbcDAO extends BaseDAO implements PetDAO {
         return pets;
     }
 
+    private boolean hasColumn(Connection conn, String tableName, String columnName) throws SQLException {
+        DatabaseMetaData metadata = conn.getMetaData();
+        try (ResultSet rs = metadata.getColumns(conn.getCatalog(), null, tableName, columnName)) {
+            return rs.next();
+        }
+    }
+
     @Override
     public List<Pet> searchByName(String name) {
         List<Pet> pets = new ArrayList<>();
         String sql = "SELECT pet_id, customer_id, name, species, breed, gender, "
             + "birth_date, weight, photoUrl, created_at FROM dbo.Pets "
-                + "WHERE name LIKE ? AND (isDeleted = 0 OR isDeleted IS NULL) ORDER BY name";
+                + "WHERE (name LIKE ? OR species LIKE ?) "
+                + "AND (isDeleted = 0 OR isDeleted IS NULL) ORDER BY name";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, "%" + name + "%");
+            String keyword = "%" + name + "%";
+            ps.setString(1, keyword);
+            ps.setString(2, keyword);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     pets.add(mapRowToPet(rs));

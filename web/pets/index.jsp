@@ -1,4 +1,27 @@
 <%@ page import="java.util.List,java.time.LocalDate,java.time.Period,java.time.temporal.ChronoUnit,model.Pet,model.Customer,model.User" %>
+<%!
+    private String resolvePhotoUrl(jakarta.servlet.http.HttpServletRequest request, String rawPhotoUrl, String fallbackUrl) {
+        if (rawPhotoUrl == null || rawPhotoUrl.trim().isEmpty()) {
+            return fallbackUrl;
+        }
+
+        String value = rawPhotoUrl.trim().replace("\\", "/");
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            return value;
+        }
+
+        if (value.matches("^[A-Za-z]:/.*")) {
+            int lastSlash = value.lastIndexOf('/');
+            String fileName = lastSlash >= 0 ? value.substring(lastSlash + 1) : value;
+            value = "uploads/pets/" + fileName;
+        }
+
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        return request.getContextPath() + "/" + value;
+    }
+%>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
@@ -163,6 +186,9 @@
 <%
     // Get customer_id from parameter or session
     String custIdParam = request.getParameter("customer_id");
+    if ((custIdParam == null || custIdParam.isEmpty()) && customer != null) {
+        custIdParam = String.valueOf(customer.getCustomerId());
+    }
     String customerIdUrl = custIdParam != null && !custIdParam.isEmpty() ? "&customer_id=" + custIdParam : "";
 %>
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -177,6 +203,10 @@
 </div>
 <div class="mb-6">
 <form method="get" action="<%= request.getContextPath() %>/pets" class="relative">
+<input type="hidden" name="action" value="search"/>
+<% if (custIdParam != null && !custIdParam.isEmpty()) { %>
+<input type="hidden" name="customer_id" value="<%= custIdParam %>"/>
+<% } %>
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
 <input class="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#2d2116] border border-[#f5f2f0] dark:border-[#3d2f23] rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" 
        placeholder="Search pets by name or species..." 
@@ -211,9 +241,12 @@
             String petName = pet.getName() != null ? pet.getName() : "(No name)";
             String species = pet.getSpecies() != null ? pet.getSpecies() : "N/A";
             String breed = pet.getBreed() != null ? pet.getBreed() : "N/A";
-            String photoUrl = pet.getPhotoUrl() != null && !pet.getPhotoUrl().isEmpty() 
-                ? request.getContextPath() + "/" + pet.getPhotoUrl() 
-                : "https://via.placeholder.com/150/cccccc/666666?text=" + (species != null ? species.substring(0,1) : "P");
+            String fallbackPhotoUrl = "https://via.placeholder.com/150/cccccc/666666?text=" + (species != null ? species.substring(0,1) : "P");
+            String photoUrl = resolvePhotoUrl(request, pet.getPhotoUrl(), fallbackPhotoUrl);
+            String rowCustomerIdUrl = customerIdUrl;
+            if ((rowCustomerIdUrl == null || rowCustomerIdUrl.isEmpty()) && pet.getOwner() != null) {
+                rowCustomerIdUrl = "&customer_id=" + pet.getOwner().getCustomerId();
+            }
             String ageText = "N/A";
             if (pet.getBirthDate() != null) {
                 Period age = Period.between(pet.getBirthDate(), LocalDate.now());
@@ -252,13 +285,13 @@
     <td class="px-6 py-4 text-sm">N/A</td>
     <td class="px-6 py-4">
         <div class="flex items-center justify-end gap-2">
-            <a class="p-2 text-primary hover:bg-primary/10 rounded-lg" title="View Details" href="<%= request.getContextPath() %>/pets?action=details&id=<%= pet.getPetId() %><%= customerIdUrl %>">
+            <a class="p-2 text-primary hover:bg-primary/10 rounded-lg" title="View Details" href="<%= request.getContextPath() %>/pets?action=details&id=<%= pet.getPetId() %><%= rowCustomerIdUrl %>">
                 <span class="material-symbols-outlined text-xl">visibility</span>
             </a>
-            <a class="p-2 text-[#8d755e] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title="Edit" href="<%= request.getContextPath() %>/pets?action=edit&id=<%= pet.getPetId() %><%= customerIdUrl %>">
+            <a class="p-2 text-[#8d755e] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title="Edit" href="<%= request.getContextPath() %>/pets?action=edit&id=<%= pet.getPetId() %><%= rowCustomerIdUrl %>">
                 <span class="material-symbols-outlined text-xl">edit</span>
             </a>
-            <a class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg delete-btn" title="Delete" href="javascript:void(0);" data-pet-id="<%= pet.getPetId() %>" data-pet-name="<%= petName.replace("\"", "&quot;") %>" data-customer-url="<%= customerIdUrl %>">
+            <a class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg delete-btn" title="Delete" href="javascript:void(0);" data-pet-id="<%= pet.getPetId() %>" data-pet-name="<%= petName.replace("\"", "&quot;") %>" data-customer-url="<%= rowCustomerIdUrl %>">
                 <span class="material-symbols-outlined text-xl">delete</span>
             </a>
         </div>
@@ -305,7 +338,7 @@
                 <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium">
                     Cancel
                 </button>
-                <button onclick="executeDelet()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+                <button onclick="executeDelete()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
                     Delete
                 </button>
             </div>
@@ -341,7 +374,7 @@ function closeDeleteModal() {
     deletePetId = null;
 }
 
-function executeDelet() {
+function executeDelete() {
     if (deletePetId) {
         window.location.href = '<%= request.getContextPath() %>/pets?action=delete&id=' + deletePetId + deleteCustomerIdUrl;
     }

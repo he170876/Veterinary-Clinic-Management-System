@@ -2,6 +2,29 @@
 <%@ page import="java.time.LocalDate" %>
 <%@ page import="java.time.YearMonth" %>
 <%@ page import="java.time.temporal.ChronoUnit" %>
+<%!
+    private String resolvePhotoUrl(jakarta.servlet.http.HttpServletRequest request, String rawPhotoUrl, String fallbackUrl) {
+        if (rawPhotoUrl == null || rawPhotoUrl.trim().isEmpty()) {
+            return fallbackUrl;
+        }
+
+        String value = rawPhotoUrl.trim().replace("\\", "/");
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            return value;
+        }
+
+        if (value.matches("^[A-Za-z]:/.*")) {
+            int lastSlash = value.lastIndexOf('/');
+            String fileName = lastSlash >= 0 ? value.substring(lastSlash + 1) : value;
+            value = "uploads/pets/" + fileName;
+        }
+
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        return request.getContextPath() + "/" + value;
+    }
+%>
 <!DOCTYPE html>
 
 <html class="light" lang="en"><head>
@@ -70,9 +93,9 @@
     
     String weight = pet != null && pet.getWeight() != null ? String.format("%.1f kg", pet.getWeight()) : "N/A";
     int petId = pet != null ? pet.getPetId() : 0;
-    String photoUrl = pet != null && pet.getPhotoUrl() != null && !pet.getPhotoUrl().isEmpty()
-        ? request.getContextPath() + "/" + pet.getPhotoUrl()
-        : "https://via.placeholder.com/300/cccccc/666666?text=" + (species != null && !"N/A".equals(species) ? species.substring(0,1) : "P");
+    String photoUrl = resolvePhotoUrl(request,
+        pet != null ? pet.getPhotoUrl() : null,
+        "https://via.placeholder.com/300/cccccc/666666?text=" + (species != null && !"N/A".equals(species) ? species.substring(0,1) : "P"));
 %>
 <div class="flex h-screen overflow-hidden">
 <!-- Sidebar -->

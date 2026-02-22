@@ -2,7 +2,9 @@ package controller.pet;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -52,7 +54,11 @@ public class PetServlet extends HttpServlet {
             throws ServletException, IOException {
 
         String action = request.getParameter("action");
-        if (action == null) {
+        String searchQuery = request.getParameter("q");
+        if ((action == null || action.trim().isEmpty())
+                && searchQuery != null && !searchQuery.trim().isEmpty()) {
+            action = "search";
+        } else if (action == null) {
             action = "list";
         }
 
@@ -478,6 +484,9 @@ public class PetServlet extends HttpServlet {
             if (petOpt.isPresent()) {
                 Pet pet = petOpt.get();
                 int petOwnerId = pet.getOwner().getCustomerId();
+                if (customerId == 0) {
+                    customerId = petOwnerId;
+                }
                 
                 // If customer is logged in, verify they own the pet
                 if (sessionCustomer != null && petOwnerId != sessionCustomer.getCustomerId()) {
@@ -526,11 +535,16 @@ public class PetServlet extends HttpServlet {
             if (petOpt.isPresent()) {
                 Pet pet = petOpt.get();
                 int petOwnerId = pet.getOwner().getCustomerId();
+                if (customerId == 0) {
+                    customerId = petOwnerId;
+                }
                 
                 if (sessionCustomer != null && petOwnerId != sessionCustomer.getCustomerId()) {
                     System.err.println("❌ Access denied: Customer " + sessionCustomer.getCustomerId() + 
                                      " trying to hard delete pet of customer " + petOwnerId);
-                    response.sendRedirect("pets?customer_id=" + customerId + "&error=You can only delete your own pets");
+                    String fallback = buildDefaultDashboardUrl(request, customerId);
+                    String target = appendQueryParam(resolveSafeReturnUrl(request, fallback), "error", "You can only delete your own pets");
+                    response.sendRedirect(target);
                     return;
                 }
             }
@@ -542,9 +556,13 @@ public class PetServlet extends HttpServlet {
                     deleteUploadedFileIfExists(request, petOpt.get().getPhotoUrl());
                 }
                 System.out.println("✅ Pet " + petId + " permanently deleted from database");
-                response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet permanently deleted");
+                String fallback = buildDefaultDashboardUrl(request, customerId);
+                String target = appendQueryParam(resolveSafeReturnUrl(request, fallback), "success", "Pet permanently deleted");
+                response.sendRedirect(target);
             } else {
-                response.sendRedirect("pets?customer_id=" + customerId + "&error=Failed to delete pet");
+                String fallback = buildDefaultDashboardUrl(request, customerId);
+                String target = appendQueryParam(resolveSafeReturnUrl(request, fallback), "error", "Failed to delete pet");
+                response.sendRedirect(target);
             }
         } catch (NumberFormatException e) {
             response.sendRedirect("pets?error=Invalid pet ID");
@@ -567,13 +585,60 @@ public class PetServlet extends HttpServlet {
 
             if (success) {
                 System.out.println("✅ Pet " + petId + " restored successfully");
-                response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet restored successfully");
+                String fallback = buildDefaultDashboardUrl(request, customerId);
+                String target = appendQueryParam(resolveSafeReturnUrl(request, fallback), "success", "Pet restored successfully");
+                response.sendRedirect(target);
             } else {
-                response.sendRedirect("pets?customer_id=" + customerId + "&error=Failed to restore pet");
+                String fallback = buildDefaultDashboardUrl(request, customerId);
+                String target = appendQueryParam(resolveSafeReturnUrl(request, fallback), "error", "Failed to restore pet");
+                response.sendRedirect(target);
             }
         } catch (NumberFormatException e) {
             response.sendRedirect("pets?error=Invalid pet ID");
         }
+    }
+
+    private String buildDefaultDashboardUrl(HttpServletRequest request, int customerId) {
+        StringBuilder builder = new StringBuilder(request.getContextPath()).append("/customer/dashboard");
+        if (customerId > 0) {
+            builder.append("?customer_id=").append(customerId);
+        }
+        return builder.toString();
+    }
+
+    private String resolveSafeReturnUrl(HttpServletRequest request, String fallback) {
+        String returnUrl = request.getParameter("returnUrl");
+        if (returnUrl == null || returnUrl.trim().isEmpty()) {
+            return fallback;
+        }
+
+        String value = returnUrl.trim();
+        String contextPath = request.getContextPath();
+
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            String host = request.getServerName();
+            if (!(value.contains("://" + host + "/") || value.contains("://" + host + ":"))) {
+                return fallback;
+            }
+            return value;
+        }
+
+        if (value.startsWith(contextPath + "/")) {
+            return value;
+        }
+
+        if (value.startsWith("/")) {
+            return contextPath + value;
+        }
+
+        return fallback;
+    }
+
+    private String appendQueryParam(String url, String key, String value) {
+        String separator = url.contains("?") ? "&" : "?";
+        return url + separator
+            + URLEncoder.encode(key, StandardCharsets.UTF_8)
+            + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private void searchPets(HttpServletRequest request, HttpServletResponse response)
@@ -684,19 +749,31 @@ public class PetServlet extends HttpServlet {
             return;
         }
 
-        if (!photoUrl.startsWith("uploads/")) {
+        String normalized = photoUrl.trim().replace("\\", "/");
+        File file;
+
+        File rawFile = new File(photoUrl.trim());
+        if (rawFile.isAbsolute()) {
+            file = rawFile;
+        } else if (normalized.startsWith("uploads/")) {
+            String relative = normalized.substring("uploads/".length());
+            file = new File(getUploadBaseDir(), relative.replace("/", File.separator));
+        } else if (normalized.startsWith("pets/")) {
+            file = new File(getUploadBaseDir(), normalized.replace("/", File.separator));
+        } else if (normalized.contains("/uploads/")) {
+            int uploadsIndex = normalized.indexOf("/uploads/");
+            String relative = normalized.substring(uploadsIndex + "/uploads/".length());
+            file = new File(getUploadBaseDir(), relative.replace("/", File.separator));
+        } else {
             return;
         }
 
-        String absolutePath = getUploadBaseDir() + File.separator
-            + photoUrl.replace("uploads/", "").replace("/", File.separator);
-        File file = new File(absolutePath);
         if (file.exists() && file.isFile()) {
             boolean deleted = file.delete();
             if (deleted) {
-                System.out.println("✅ Deleted old file: " + absolutePath);
+                System.out.println("✅ Deleted old file: " + file.getAbsolutePath());
             } else {
-                System.out.println("⚠️ Failed to delete old file: " + absolutePath);
+                System.out.println("⚠️ Failed to delete old file: " + file.getAbsolutePath());
             }
         }
     }
