@@ -177,7 +177,7 @@
 <div class="mt-4 text-center">
 <h3 class="text-lg font-bold">Pet Photo</h3>
 <p class="text-sm text-gray-500 mb-4">Click to update your pet's profile picture</p>
-<input type="file" id="photoInput" name="photo" accept="image/*" class="hidden" onchange="previewPhoto(event)"/>
+<input type="file" id="photoInput" name="photo" accept="image/*" class="hidden" onchange="previewPhoto(this)"/>
 <label for="photoInput" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-bold text-sm transition-colors cursor-pointer">
 <span class="material-symbols-outlined text-lg">upload</span>
                                 Upload New
@@ -185,15 +185,50 @@
 </div>
 </div>
 <script>
-function previewPhoto(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('photoPreview').style.backgroundImage = `url('${e.target.result}')`;
-        };
-        reader.readAsDataURL(file);
+function previewPhoto(source) {
+    const input = source && source.files ? source : document.getElementById('photoInput');
+    if (!input) {
+        return;
     }
+
+    const file = input.files && input.files.length > 0 ? input.files[0] : null;
+    if (!file) {
+        return;
+    }
+
+    if (!file.type || !file.type.startsWith('image/')) {
+        alert('Please choose a valid image file.');
+        input.value = '';
+        return;
+    }
+
+    const preview = document.getElementById('photoPreview');
+    if (!preview) {
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        preview.style.backgroundImage = "url('" + e.target.result + "')";
+    };
+    reader.readAsDataURL(file);
+}
+
+function bindPhotoPreview() {
+    const input = document.getElementById('photoInput');
+    if (!input || input.dataset.previewBound === 'true') {
+        return;
+    }
+
+    input.dataset.previewBound = 'true';
+
+    input.addEventListener('click', function() {
+        input.value = '';
+    });
+
+    input.addEventListener('change', function() {
+        previewPhoto(input);
+    });
 }
 </script>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -251,6 +286,8 @@ function previewPhoto(event) {
 <script>
 // Set max date to today for birth date validation
 document.addEventListener('DOMContentLoaded', function() {
+    bindPhotoPreview();
+
     const birthDateInput = document.getElementById('birthDate');
     if (birthDateInput) {
         const today = new Date().toISOString().split('T')[0];
