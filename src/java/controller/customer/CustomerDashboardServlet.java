@@ -26,6 +26,15 @@ public class CustomerDashboardServlet extends HttpServlet {
         }
 
         User user = (User) session.getAttribute("currentUser");
+        String ctx = request.getContextPath();
+
+        // Force customer to add phone if missing (e.g. Google account)
+        if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
+            session.setAttribute("pendingPhoneRequired", Boolean.TRUE);
+            response.sendRedirect(ctx + "/customer/edit-profile?required=phone");
+            return;
+        }
+
         request.setAttribute("user", user);
         request.getRequestDispatcher("/WEB-INF/views/customer/dashboard.jsp").forward(request, response);
     }

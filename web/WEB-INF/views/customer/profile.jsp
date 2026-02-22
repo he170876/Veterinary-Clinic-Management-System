@@ -14,9 +14,13 @@
             ? user.getCreatedAt().format(DateTimeFormatter.ofPattern("MMM yyyy"))
             : "—";
     String customerId = "AN-" + user.getUserId();
+    String profilePicUrl = user.getProfilePictureUrl();
+    boolean hasProfilePic = (profilePicUrl != null && !profilePicUrl.isEmpty());
+    boolean isGoogleUser = user.isGoogleUser();
     String pwMsg = request.getParameter("pw");
     String pwErr = request.getParameter("pwError");
     String profileUpdated = request.getParameter("updated");
+    request.setAttribute("customerCurrentPage", "profile");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -50,51 +54,7 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display">
 <div class="flex min-h-screen">
-    <!-- Sidebar -->
-    <aside class="w-64 border-r border-[#f4f0f0] bg-white dark:bg-background-dark flex flex-col justify-between p-4 sticky top-0 h-screen">
-        <div class="flex flex-col gap-8">
-            <a href="<%= ctx %>/index.jsp" class="flex gap-3 items-center">
-                <div class="bg-primary rounded-full size-10 flex items-center justify-center text-white">
-                    <span class="material-symbols-outlined">pets</span>
-                </div>
-                <div class="flex flex-col">
-                    <h1 class="text-[#181111] dark:text-white text-base font-bold leading-normal">Anipats</h1>
-                    <p class="text-[#896461] text-xs font-normal leading-normal">Veterinary Medical Center</p>
-                </div>
-            </a>
-            <nav class="flex flex-col gap-2">
-                <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="<%= ctx %>/customer/dashboard">
-                    <span class="material-symbols-outlined">dashboard</span>
-                    <p class="text-sm font-medium">Dashboard</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
-                    <span class="material-symbols-outlined">calendar_today</span>
-                    <p class="text-sm font-medium">Appointments</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2 rounded-xl bg-primary/10 text-primary" href="<%= ctx %>/customer/profile">
-                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">person</span>
-                    <p class="text-sm font-medium">My Profile</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
-                    <span class="material-symbols-outlined">medical_services</span>
-                    <p class="text-sm font-medium">Medical Records</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
-                    <span class="material-symbols-outlined">payments</span>
-                    <p class="text-sm font-medium">Billing</p>
-                </a>
-            </nav>
-        </div>
-        <div class="flex flex-col gap-2">
-            <a href="tel:+15550001234" class="flex min-w-full cursor-pointer items-center justify-center rounded-xl h-11 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
-                <span class="truncate">Emergency Call</span>
-            </a>
-            <a href="<%= ctx %>/logout" class="flex items-center justify-center gap-2 px-3 py-2 text-[#896461] dark:text-white/70 text-sm font-medium hover:text-primary transition-colors rounded-xl">
-                <span class="material-symbols-outlined text-[18px]">logout</span>
-                Log Out
-            </a>
-        </div>
-    </aside>
+    <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <!-- Main Content -->
     <main class="flex-1 flex flex-col min-w-0">
         <!-- Header -->
@@ -125,9 +85,13 @@
                         <span class="material-symbols-outlined">settings</span>
                     </button>
                 </div>
+                <% if (hasProfilePic) { %>
+                <img src="<%= ctx %><%= profilePicUrl %>" alt="<%= displayName %>" class="rounded-full size-10 border-2 border-primary/20 object-cover" title="<%= displayName %>"/>
+                <% } else { %>
                 <div class="bg-primary/10 rounded-full size-10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-lg" title="<%= displayName %>">
                     <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
                 </div>
+                <% } %>
             </div>
         </header>
         <div class="p-8 max-w-7xl mx-auto w-full">
@@ -156,9 +120,13 @@
             <div class="bg-white dark:bg-white/5 rounded-2xl p-6 shadow-sm border border-[#f4f0f0] dark:border-white/10 mb-8">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div class="flex items-center gap-6">
+                        <% if (hasProfilePic) { %>
+                        <img src="<%= ctx %><%= profilePicUrl %>" alt="<%= displayName %>" class="rounded-full size-24 border-4 border-white dark:border-background-dark shadow-md object-cover"/>
+                        <% } else { %>
                         <div class="bg-primary/10 rounded-full size-24 border-4 border-white dark:border-background-dark shadow-md flex items-center justify-center text-primary font-bold text-4xl">
                             <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
                         </div>
+                        <% } %>
                         <div class="flex flex-col">
                             <h3 class="text-[#181111] dark:text-white text-2xl font-bold"><%= displayName %></h3>
                             <p class="text-[#896461] text-sm font-medium">Customer ID: <%= customerId %> • Member since <%= memberSince %></p>
@@ -172,10 +140,12 @@
                             <span class="material-symbols-outlined text-sm">edit</span>
                             Edit Profile
                         </a>
+                        <% if (!isGoogleUser) { %>
                         <button type="button" id="btnChangePassword" class="flex items-center gap-2 px-5 py-2.5 bg-background-light dark:bg-white/10 text-[#181111] dark:text-white text-sm font-bold rounded-xl border border-transparent hover:border-primary/20 transition-all">
                             <span class="material-symbols-outlined text-sm">lock_reset</span>
                             Change Password
                         </button>
+                        <% } %>
                     </div>
                 </div>
             </div>
@@ -266,6 +236,7 @@
     </main>
 </div>
 
+<% if (!isGoogleUser) { %>
 <!-- Change Password Modal -->
 <div id="modalChangePassword" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-[#181111]/60 backdrop-blur-sm">
     <div class="w-full max-w-[480px] bg-white dark:bg-white/10 rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
@@ -289,14 +260,14 @@
             <div class="flex flex-col gap-2">
                 <label class="text-[#181111] dark:text-white text-sm font-semibold leading-normal">New Password</label>
                 <div class="relative flex w-full items-stretch rounded-xl border border-[#e6e0db] dark:border-white/20 bg-white dark:bg-white/5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 overflow-hidden h-12 transition-all">
-                    <input name="newPassword" class="flex w-full min-w-0 flex-1 border-none bg-transparent text-[#181111] dark:text-white placeholder:text-[#b0a194] px-4 text-sm font-normal leading-normal focus:ring-0" placeholder="Create a new password (min 6 characters)" type="password" required minlength="6"/>
+                    <input name="newPassword" class="flex w-full min-w-0 flex-1 border-none bg-transparent text-[#181111] dark:text-white placeholder:text-[#b0a194] px-4 text-sm font-normal leading-normal focus:ring-0" placeholder="6-128 chars, 1 uppercase, 1 number" type="password" required minlength="6" maxlength="128"/>
                 </div>
                 <p class="text-[11px] text-[#896461] leading-tight">Must include 6+ characters. For stronger security use numbers and symbols.</p>
             </div>
             <div class="flex flex-col gap-2">
                 <label class="text-[#181111] dark:text-white text-sm font-semibold leading-normal">Confirm New Password</label>
                 <div class="relative flex w-full items-stretch rounded-xl border border-[#e6e0db] dark:border-white/20 bg-white dark:bg-white/5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 overflow-hidden h-12 transition-all">
-                    <input name="confirmPassword" class="flex w-full min-w-0 flex-1 border-none bg-transparent text-[#181111] dark:text-white placeholder:text-[#b0a194] px-4 text-sm font-normal leading-normal focus:ring-0" placeholder="Confirm your new password" type="password" required minlength="6"/>
+                    <input name="confirmPassword" class="flex w-full min-w-0 flex-1 border-none bg-transparent text-[#181111] dark:text-white placeholder:text-[#b0a194] px-4 text-sm font-normal leading-normal focus:ring-0" placeholder="Confirm your new password" type="password" required minlength="6" maxlength="128"/>
                 </div>
             </div>
             <div class="flex flex-col gap-3 pt-4">
@@ -313,6 +284,7 @@
         </div>
     </div>
 </div>
+<% } %>
 
 <script>
 (function() {
@@ -320,7 +292,8 @@
     var btnOpen = document.getElementById('btnChangePassword');
     var btnClose = document.getElementById('btnCloseModal');
     var btnCancel = document.getElementById('btnCancelModal');
-    if (btnOpen) btnOpen.addEventListener('click', function() {
+    if (!modal || !btnOpen) return;
+    btnOpen.addEventListener('click', function() {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     });

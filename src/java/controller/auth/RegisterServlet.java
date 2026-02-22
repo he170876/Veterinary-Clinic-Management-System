@@ -1,6 +1,8 @@
 package controller.auth;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -11,6 +13,7 @@ import dao.impl.UserJdbcDAO;
 import model.User;
 import service.AuthService;
 import service.impl.AuthServiceImpl;
+import utils.ValidationUtil;
 
 /**
  * Servlet handling customer registration.
@@ -40,29 +43,63 @@ public class RegisterServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String fullName = request.getParameter("fullName");
-        String email = request.getParameter("email");
-        String phone = request.getParameter("phone");
-        String password = request.getParameter("password");
+        request.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        String fullName = ValidationUtil.trim(request.getParameter("fullName"));
+        String email = ValidationUtil.trim(request.getParameter("email"));
+        String phone = ValidationUtil.trim(request.getParameter("phone"));
+        String password = request.getParameter("password"); // no trim for password
         String confirmPassword = request.getParameter("confirmPassword");
 
-        // Validation
-        if (isBlank(fullName) || isBlank(email) || isBlank(password) || isBlank(confirmPassword)) {
+        // No leading/trailing spaces
+        if (ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("fullName"))
+                || ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("email"))
+                || ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("phone"))) {
+            request.setAttribute("error", "Fields must not contain leading or trailing spaces.");
+            preserveFormData(request, fullName, email, phone);
+            request.getRequestDispatcher("register.jsp").forward(request, response);
+            return;
+        }
+
+        if (fullName == null || email == null || password == null || confirmPassword == null
+                || password.isEmpty() || confirmPassword.isEmpty()) {
             request.setAttribute("error", "All required fields must be filled.");
+            preserveFormData(request, fullName != null ? fullName : "", email != null ? email : "", phone != null ? phone : "");
+            request.getRequestDispatcher("register.jsp").forward(request, response);
+            return;
+        }
+
+        // Phone is required
+        if (phone == null || phone.isEmpty()) {
+            request.setAttribute("error", "Phone number is required.");
+            preserveFormData(request, fullName, email, phone != null ? phone : "");
+            request.getRequestDispatcher("register.jsp").forward(request, response);
+            return;
+        }
+
+        // Full name: 1-30 chars, letters and spaces only
+        if (!ValidationUtil.isValidFullName(fullName)) {
+            request.setAttribute("error", "Full name must be 1-30 characters, letters and spaces only (any language).");
             preserveFormData(request, fullName, email, phone);
             request.getRequestDispatcher("register.jsp").forward(request, response);
             return;
         }
 
-        // Email format validation
-        if (!isValidEmail(email)) {
-            request.setAttribute("error", "Please enter a valid email address.");
+        // Email: must be @gmail.com
+        if (!ValidationUtil.isValidGmail(email)) {
+            request.setAttribute("error", "Email must be a Gmail address (@gmail.com).");
             preserveFormData(request, fullName, email, phone);
             request.getRequestDispatcher("register.jsp").forward(request, response);
             return;
         }
 
-        // Password match
+        // Phone: 10 digits starting with 0
+        if (!ValidationUtil.isValidPhone(phone)) {
+            request.setAttribute("error", "Phone must be 10 digits starting with 0 (e.g. 0123456789).");
+            preserveFormData(request, fullName, email, phone);
+            request.getRequestDispatcher("register.jsp").forward(request, response);
+            return;
+        }
+
         if (!password.equals(confirmPassword)) {
             request.setAttribute("error", "Passwords do not match.");
             preserveFormData(request, fullName, email, phone);
@@ -70,15 +107,13 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        // Password strength
-        if (password.length() < 6) {
-            request.setAttribute("error", "Password must be at least 6 characters long.");
+        if (!ValidationUtil.isValidPassword(password)) {
+            request.setAttribute("error", "Password must be 6-128 characters with 1 uppercase letter and 1 number.");
             preserveFormData(request, fullName, email, phone);
             request.getRequestDispatcher("register.jsp").forward(request, response);
             return;
         }
 
-        // Check if email already exists
         if (authService.isEmailTaken(email)) {
             request.setAttribute("error", "This email is already registered. Please sign in or use a different email.");
             preserveFormData(request, fullName, email, phone);
@@ -86,7 +121,6 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        // Register the user
         User created = authService.registerCustomer(fullName, email, phone, password);
 
         if (created == null) {
@@ -99,7 +133,7 @@ public class RegisterServlet extends HttpServlet {
                 msg = authErr;
             }
             request.setAttribute("error", msg);
-            preserveFormData(request, fullName, email, phone);
+            preserveFormData(request, fullName, email, phone != null ? phone : "");
             request.getRequestDispatcher("register.jsp").forward(request, response);
             return;
         }
@@ -110,14 +144,6 @@ public class RegisterServlet extends HttpServlet {
         session.setMaxInactiveInterval(30 * 60); // 30 minutes
 
         response.sendRedirect(request.getContextPath() + "/customer/dashboard");
-    }
-
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
-
-    private boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     }
 
     private void preserveFormData(HttpServletRequest request, String fullName, String email, String phone) {

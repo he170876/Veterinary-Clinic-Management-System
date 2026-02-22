@@ -1,6 +1,7 @@
 package controller.auth;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpSession;
 import model.User;
 import service.AuthService;
 import service.impl.AuthServiceImpl;
+import utils.ValidationUtil;
 
 /**
  * Servlet handling the Login use case.
@@ -42,12 +44,24 @@ public class LoginServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String email = request.getParameter("email");
+        request.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        String email = ValidationUtil.trim(request.getParameter("email"));
         String password = request.getParameter("password");
 
-        // Basic validation
-        if (email == null || email.trim().isEmpty() || password == null || password.isEmpty()) {
+        if (email == null || password == null || password.isEmpty()) {
             request.setAttribute("error", "Please enter both email and password.");
+            request.getRequestDispatcher("login.jsp").forward(request, response);
+            return;
+        }
+
+        if (ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("email"))) {
+            request.setAttribute("error", "Email must not contain leading or trailing spaces.");
+            request.getRequestDispatcher("login.jsp").forward(request, response);
+            return;
+        }
+
+        if (!ValidationUtil.isValidGmail(email)) {
+            request.setAttribute("error", "Email must be a Gmail address (@gmail.com).");
             request.getRequestDispatcher("login.jsp").forward(request, response);
             return;
         }
@@ -73,29 +87,8 @@ public class LoginServlet extends HttpServlet {
 
     private void redirectToDashboard(HttpServletRequest request, HttpServletResponse response, User user)
             throws IOException {
-        String roleName = user.getRole() != null ? user.getRole().getRoleName() : "";
         String contextPath = request.getContextPath();
-
-        switch (roleName.toLowerCase()) {
-            case "clinicowner":
-            case "owner":
-            case "admin":
-                response.sendRedirect(contextPath + "/owner/dashboard");
-                break;
-            case "veterinarian":
-                response.sendRedirect(contextPath + "/vet/dashboard");
-                break;
-            case "receptionist":
-            case "staff":
-                response.sendRedirect(contextPath + "/staff/dashboard");
-                break;
-            case "labstaff":
-                response.sendRedirect(contextPath + "/lab/dashboard");
-                break;
-            default:
-                // Customer or unknown
-                response.sendRedirect(contextPath + "/customer/dashboard");
-                break;
-        }
+        // Redirect all users to pets management page after login
+        response.sendRedirect(contextPath + "/pets");
     }
 }
