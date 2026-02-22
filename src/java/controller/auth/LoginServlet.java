@@ -87,29 +87,8 @@ public class LoginServlet extends HttpServlet {
 
     private void redirectToDashboard(HttpServletRequest request, HttpServletResponse response, User user)
             throws IOException {
-        String roleName = user.getRole() != null ? user.getRole().getRoleName() : "";
         String contextPath = request.getContextPath();
-
-        switch (roleName.toLowerCase()) {
-            case "clinicowner":
-            case "owner":
-            case "admin":
-                response.sendRedirect(contextPath + "/owner/dashboard");
-                break;
-            case "veterinarian":
-                response.sendRedirect(contextPath + "/vet/dashboard");
-                break;
-            case "receptionist":
-            case "staff":
-                response.sendRedirect(contextPath + "/staff/dashboard");
-                break;
-            case "labstaff":
-                response.sendRedirect(contextPath + "/lab/dashboard");
-                break;
-            default:
-                // Customer or unknown
-                response.sendRedirect(contextPath + "/customer/dashboard");
-                break;
-        }
+        // Redirect all users to pets management page after login
+        response.sendRedirect(contextPath + "/pets");
     }
 }

@@ -313,27 +313,8 @@ public class GoogleLoginServlet extends HttpServlet {
 
     private void redirectToDashboard(HttpServletRequest request, HttpServletResponse response, User user)
             throws IOException {
-        String roleName = user.getRole() != null ? user.getRole().getRoleName() : "";
         String ctx = request.getContextPath();
-        switch (roleName.toLowerCase()) {
-            case "clinicowner":
-            case "owner":
-            case "admin":
-                response.sendRedirect(ctx + "/owner/dashboard");
-                break;
-            case "veterinarian":
-                response.sendRedirect(ctx + "/vet/dashboard");
-                break;
-            case "receptionist":
-            case "staff":
-                response.sendRedirect(ctx + "/staff/dashboard");
-                break;
-            case "labstaff":
-                response.sendRedirect(ctx + "/lab/dashboard");
-                break;
-            default:
-                response.sendRedirect(ctx + "/customer/dashboard");
-                break;
-        }
+        // Redirect all users to pets management page after login
+        response.sendRedirect(ctx + "/pets");
     }
 }
