@@ -18,6 +18,7 @@ public class Pet {
     private Double weight;
     private String photoUrl;
     private LocalDateTime createdAt;
+    private String PhotoURL; 
 
     public Pet() {
     }
@@ -101,5 +102,15 @@ public class Pet {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    public String getPhotoURL() {
+        return PhotoURL;
+    }
+
+    public void setPhotoURL(String PhotoURL) {
+        this.PhotoURL = PhotoURL;
+    }
+    
+    
 }
 
