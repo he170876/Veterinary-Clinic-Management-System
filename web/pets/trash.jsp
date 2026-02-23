@@ -176,10 +176,10 @@
                 <span class="material-symbols-outlined text-sm">restore</span>
                 Restore
             </a>
-            <button type="button" class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium flex items-center gap-1 permanent-delete-btn" data-pet-id="<%= pet.getPetId() %>" data-pet-name="<%= petName %>" title="Delete Forever">
+<!--            <button type="button" class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium flex items-center gap-1 permanent-delete-btn" data-pet-id="<%= pet.getPetId() %>" data-pet-name="<%= petName %>" title="Delete Forever">
                 <span class="material-symbols-outlined text-sm">delete_forever</span>
                 Delete Forever
-            </button>
+            </button>-->
         </div>
     </td>
 </tr>
