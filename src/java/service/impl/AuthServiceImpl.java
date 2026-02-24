@@ -4,6 +4,8 @@ import dao.PasswordResetTokenDAO;
 import dao.UserDAO;
 import dao.impl.PasswordResetTokenJdbcDAO;
 import dao.impl.UserJdbcDAO;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +19,8 @@ import utils.ValidationUtil;
  * Default implementation of {@link AuthService}.
  */
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger LOG = Logger.getLogger(AuthServiceImpl.class.getName());
 
     private static volatile String lastRegistrationError;
 
@@ -107,17 +111,30 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Optional<String> createPasswordResetToken(String email) {
-        if (email == null || email.isEmpty()) return Optional.empty();
+        if (email == null || email.isEmpty()) {
+            LOG.log(Level.FINE, "Password reset: skipped (empty email)");
+            return Optional.empty();
+        }
         String normalized = email.trim().toLowerCase();
         Optional<User> userOpt = userDAO.findByEmail(normalized);
-        if (!userOpt.isPresent()) return Optional.empty();
+        if (!userOpt.isPresent()) {
+            LOG.log(Level.INFO, "Password reset: no token created for ''{0}'' (user not found or Roles JOIN failed)", normalized);
+            return Optional.empty();
+        }
         User user = userOpt.get();
-        if (user.isGoogleUser()) return Optional.empty();
-        if (!"Active".equalsIgnoreCase(user.getStatus())) return Optional.empty();
+        if (user.isGoogleUser()) {
+            LOG.log(Level.INFO, "Password reset: no token created for ''{0}'' (Google user)", normalized);
+            return Optional.empty();
+        }
+        if (!"Active".equalsIgnoreCase(user.getStatus())) {
+            LOG.log(Level.INFO, "Password reset: no token created for ''{0}'' (status not Active: {1})", new Object[]{normalized, user.getStatus()});
+            return Optional.empty();
+        }
 
         String token = UUID.randomUUID().toString().replace("-", "");
         LocalDateTime expiresAt = LocalDateTime.now().plusHours(RESET_TOKEN_EXPIRE_HOURS);
         resetTokenDAO.create(token, normalized, expiresAt);
+        LOG.log(Level.INFO, "Password reset: token created for ''{0}''", normalized);
         return Optional.of(token);
     }
 

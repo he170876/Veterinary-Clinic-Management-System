@@ -7,10 +7,10 @@
 
     <display-name>Veterinary Clinic Management System</display-name>
 
-    <!-- Optional: SMTP for forgot-password emails. Set mail.enabled=true and configure below. -->
+    <!-- SMTP for forgot-password. Gmail: smtp.gmail.com + App Password. -->
     <context-param>
         <param-name>mail.enabled</param-name>
-        <param-value>false</param-value>
+        <param-value>true</param-value>
     </context-param>
     <context-param>
         <param-name>mail.smtp.host</param-name>
@@ -26,15 +26,15 @@
     </context-param>
     <context-param>
         <param-name>mail.smtp.user</param-name>
-        <param-value></param-value>
+        <param-value>rivendk123@gmail.com</param-value>
     </context-param>
     <context-param>
         <param-name>mail.smtp.password</param-name>
-        <param-value></param-value>
+        <param-value>fcuajdlinzhsterg</param-value>
     </context-param>
     <context-param>
         <param-name>mail.from</param-name>
-        <param-value>noreply@anipats.com</param-value>
+        <param-value>rivendk123@gmail.com</param-value>
     </context-param>
 
     <!-- Welcome File: starter page (homepage) only -->

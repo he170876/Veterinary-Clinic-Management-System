@@ -44,18 +44,18 @@ public class RegisterServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        String fullName = ValidationUtil.trim(request.getParameter("fullName"));
+        // Normalize: trim and collapse spaces so "  Nguyễn   A  " -> "Nguyễn A" (no reject for spaces)
+        String fullName = ValidationUtil.normalizeFullName(request.getParameter("fullName"));
         String email = ValidationUtil.trim(request.getParameter("email"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
         String password = request.getParameter("password"); // no trim for password
         String confirmPassword = request.getParameter("confirmPassword");
 
-        // No leading/trailing spaces
-        if (ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("fullName"))
-                || ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("email"))
+        // Email and phone: reject if raw input had leading/trailing spaces (we still trim for storage)
+        if (ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("email"))
                 || ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("phone"))) {
-            request.setAttribute("error", "Fields must not contain leading or trailing spaces.");
-            preserveFormData(request, fullName, email, phone);
+            request.setAttribute("error", "Email and phone must not contain leading or trailing spaces.");
+            preserveFormData(request, fullName != null ? fullName : "", email != null ? email : "", phone != null ? phone : "");
             request.getRequestDispatcher("register.jsp").forward(request, response);
             return;
         }
@@ -78,7 +78,7 @@ public class RegisterServlet extends HttpServlet {
 
         // Full name: 1-30 chars, letters and spaces only
         if (!ValidationUtil.isValidFullName(fullName)) {
-            request.setAttribute("error", "Full name must be 1-30 characters, letters and spaces only (any language).");
+            request.setAttribute("error", "Full name must be 1-30 characters, letters and spaces only.");
             preserveFormData(request, fullName, email, phone);
             request.getRequestDispatcher("register.jsp").forward(request, response);
             return;

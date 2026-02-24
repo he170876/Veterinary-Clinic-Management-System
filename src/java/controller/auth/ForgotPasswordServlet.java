@@ -60,6 +60,9 @@ public class ForgotPasswordServlet extends HttpServlet {
             return;
         }
 
+        String normalizedEmail = email.trim().toLowerCase();
+        java.util.logging.Logger.getLogger(ForgotPasswordServlet.class.getName())
+                .info("Forgot password request for email: " + normalizedEmail);
         Optional<String> tokenOpt = authService.createPasswordResetToken(email);
         if (!tokenOpt.isPresent()) {
             // Don't reveal whether email exists or is Google user; same message
