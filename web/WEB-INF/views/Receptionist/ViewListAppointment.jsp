@@ -1,4 +1,4 @@
-<%-- 
+﻿<%-- 
     Document   : ViewListAppointment
     Created on : Feb 3, 2026, 12:56:24 AM
     Author     : admin
@@ -179,7 +179,7 @@
                         // Close popup
                         document.getElementById('confirmPopup').classList.remove('active');
                     } else {
-                        alert('Lỗi: ' + data.message);
+                        alert('Lá»—i: ' + data.message);
                         // Reset select
                         if (originalVetId) {
                             currentSelectElement.value = originalVetId;
@@ -188,7 +188,7 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Có lỗi xảy ra khi đổi bác sỹ');
+                    alert('CÃ³ lá»—i xáº£y ra khi Ä‘á»•i bÃ¡c sá»¹');
                     // Reset select
                     if (originalVetId) {
                         currentSelectElement.value = originalVetId;
@@ -206,11 +206,82 @@
                 const toastMessage = document.getElementById('toastMessage');
                 toastMessage.textContent = message;
                 toast.classList.add('active');
-                
-                // Auto hide after 3 seconds
-                setTimeout(() => {
-                    toast.classList.remove('active');
-                }, 3000);
+                setTimeout(() => { toast.classList.remove('active'); }, 3000);
+            }
+
+            function openDetail(appointmentId) {
+                const panel = document.getElementById('detailView');
+                const loading = document.getElementById('detailLoading');
+                const content = document.getElementById('detailContent');
+                const footer = document.getElementById('detailFooter');
+                panel.classList.remove('hidden');
+                loading.classList.remove('hidden');
+                content.classList.add('hidden');
+                footer.classList.add('hidden');
+                fetch('GetAppointmentDetail?appointmentId=' + appointmentId)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.success) {
+                            alert('Lỗi: ' + data.message);
+                            panel.classList.add('hidden');
+                            return;
+                        }
+                        populateDetail(data);
+                        loading.classList.add('hidden');
+                        content.classList.remove('hidden');
+                        footer.classList.remove('hidden');
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Có lỗi xảy ra khi tải thông tin');
+                        panel.classList.add('hidden');
+                    });
+            }
+
+            function populateDetail(d) {
+                const pet = d.pet || {};
+                const owner = d.owner || {};
+                const photoEl = document.getElementById('d-pet-photo');
+                const noPhotoEl = document.getElementById('d-pet-no-photo');
+                if (pet.photoUrl) {
+                    photoEl.src = pet.photoUrl;
+                    photoEl.classList.remove('hidden');
+                    noPhotoEl.classList.add('hidden');
+                } else {
+                    photoEl.classList.add('hidden');
+                    noPhotoEl.classList.remove('hidden');
+                }
+                document.getElementById('d-pet-name').textContent = pet.name || '';
+                document.getElementById('d-status-badge').textContent = d.status || '';
+                const sb = document.getElementById('d-status-badge');
+                sb.className = 'px-3 py-1 text-xs font-bold rounded-full bg-primary/10 text-primary';
+                const s = (d.status || '').toLowerCase();
+                if (s === 'pending' || s === 'scheduled') sb.className = 'px-3 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-600';
+                else if (s === 'confirmed') sb.className = 'px-3 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-600';
+                else if (s === 'checked-in') sb.className = 'px-3 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-600';
+                else if (s === 'in-examination') sb.className = 'px-3 py-1 text-xs font-bold rounded-full bg-orange-100 text-orange-600';
+                else if (s === 'completed' || s === 'done') sb.className = 'px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-600';
+                else if (s === 'canceled' || s === 'cancelled') sb.className = 'px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-600';
+                const sp = pet.species || '', br = pet.breed || '';
+                document.getElementById('d-species-breed').textContent = sp && br ? sp + ' / ' + br : (sp || br || 'N/A');
+                document.getElementById('d-age').textContent = pet.age || 'N/A';
+                document.getElementById('d-gender').textContent = pet.gender || 'N/A';
+                document.getElementById('d-weight').textContent = pet.weight || 'N/A';
+                document.getElementById('d-owner-name').textContent = owner.name || 'N/A';
+                document.getElementById('d-owner-phone').textContent = owner.phone || 'N/A';
+                document.getElementById('d-owner-email').textContent = owner.email || 'N/A';
+                document.getElementById('d-owner-address').textContent = owner.address || 'N/A';
+                document.getElementById('d-date').textContent = d.date || 'N/A';
+                document.getElementById('d-time').textContent = d.time || 'N/A';
+                document.getElementById('d-service').textContent = d.service || 'Chưa có';
+                document.getElementById('d-doctor').textContent = d.veterinarianName || 'Chưa có';
+                const isPending = s === 'pending' || s === 'scheduled';
+                document.getElementById('d-btn-confirm').classList.toggle('hidden', !isPending);
+                document.getElementById('d-btn-reject').classList.toggle('hidden', !isPending);
+            }
+
+            function closeDetail() {
+                document.getElementById('detailView').classList.add('hidden');
             }
         </script>
     </head>
@@ -279,10 +350,34 @@
                             <p class="text-slate-500 dark:text-slate-400 text-sm">Manage and monitor today's scheduled visits</p>
                         </div>
                         <div class="flex gap-3">
-                            <div class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2">
-                                <span class="material-symbols-outlined text-slate-400 mr-2 text-xl">calendar_month</span>
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">November 12, 2023</span>
-                            </div>
+                            <form method="get" class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 gap-3">
+                                <input type="hidden" name="status" value="${statusFilter}"/>
+                                <span class="material-symbols-outlined text-slate-400 text-xl">calendar_month</span>
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-slate-400 dark:text-slate-500">Date range</span>
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        ${displayDateRange}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 ml-3">
+                                    <input 
+                                        type="date" 
+                                        name="fromDate" 
+                                        value="${fromDate}" 
+                                        class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+                                    <span class="text-xs text-slate-400 dark:text-slate-500">to</span>
+                                    <input 
+                                        type="date" 
+                                        name="toDate" 
+                                        value="${toDate}" 
+                                        class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+                                </div>
+                                <button 
+                                    type="submit"
+                                    class="ml-2 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:opacity-90 transition-all">
+                                    Apply
+                                </button>
+                            </form>
                             <button class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
                                 <span class="material-symbols-outlined text-lg">add</span>
                                 <span>New Appointment</span>
@@ -291,12 +386,15 @@
                     </div>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
                         <div class="flex gap-8">
-                            <a href="?status=All" class="pb-4 text-sm font-semibold ${statusFilter == 'All' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">All (${totalCount})</a>
-                            <a href="?status=Pending" class="pb-4 text-sm font-medium ${statusFilter == 'Pending' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Pending (${pendingCount})</a>
-                            <a href="?status=Checked-in" class="pb-4 text-sm font-medium ${statusFilter == 'Checked-in' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Checked-in (${checkedInCount})</a>
-                            <a href="?status=In-Examination" class="pb-4 text-sm font-medium ${statusFilter == 'In-Examination' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">In Examination (${inExaminationCount})</a>
-                            <a href="?status=Completed" class="pb-4 text-sm font-medium ${statusFilter == 'Completed' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Done (${doneCount})</a>
-                            <a href="?status=Canceled" class="pb-4 text-sm font-medium ${statusFilter == 'Canceled' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Canceled (${canceledCount})</a>
+                            <a href="?status=All&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-semibold ${statusFilter == 'All' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">All (${totalCount})</a>
+                            <a href="?status=Pending&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Pending' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Pending (${pendingCount})</a>
+                            <a href="?status=Confirmed&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Confirmed' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Confirmed (${confirmedCount})</a>
+                            <a href="?status=Re-Scheduled&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Re-Scheduled' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Re-Scheduled (${rescheduledCount})</a>
+                            <a href="?status=Checked-in&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Checked-in' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Checked-in (${checkedInCount})</a>
+                            <a href="?status=In-Examination&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'In-Examination' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">In Examination (${inExaminationCount})</a>
+                            <a href="?status=Waiting-for-Payment&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Waiting-for-Payment' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Waiting for Payment (${waitingForPaymentCount})</a>
+                            <a href="?status=Done&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Done' || statusFilter == 'Completed' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Done (${doneCount})</a>
+                            <a href="?status=Canceled&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Canceled' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Canceled (${canceledCount})</a>
                         </div>
                         <div class="flex items-center gap-3 pb-2">
                             <button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
@@ -317,7 +415,7 @@
                             <c:when test="${empty list}">
                                 <div class="text-center py-12">
                                     <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700">event_busy</span>
-                                    <p class="mt-4 text-slate-500 dark:text-slate-400">Không có appointment nào</p>
+                                    <p class="mt-4 text-slate-500 dark:text-slate-400">KhÃ´ng cÃ³ appointment nÃ o</p>
                                 </div>
                             </c:when>
                             <c:otherwise>
@@ -325,8 +423,11 @@
                             <c:set var="status" value="${appointment.status}"/>
                             <c:set var="isCompleted" value="${status == 'Completed' || status == 'Done'}"/>
                             <c:set var="isPending" value="${status == 'Pending' || status == 'Scheduled'}"/>
+                            <c:set var="isConfirmed" value="${status == 'Confirmed'}"/>
+                            <c:set var="isRescheduled" value="${status == 'Re-Scheduled' || status == 'Rescheduled'}"/>
                             <c:set var="isInExamination" value="${status == 'In-Examination' || status == 'In Progress'}"/>
-                            <c:set var="isCheckedIn" value="${status == 'Checked-in' || status == 'Confirmed'}"/>
+                            <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
+                            <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
                             <c:set var="isCanceled" value="${status == 'Canceled' || status == 'Cancelled'}"/>
                             
                             <c:choose>
@@ -366,8 +467,17 @@
                                             <c:when test="${isPending}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 text-[9px] font-bold rounded uppercase tracking-wider">Pending</span>
                                             </c:when>
+                                            <c:when test="${isConfirmed}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold rounded uppercase tracking-wider">Confirmed</span>
+                                            </c:when>
+                                            <c:when test="${isRescheduled}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold rounded uppercase tracking-wider">Re-Scheduled</span>
+                                            </c:when>
                                             <c:when test="${isCompleted}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-500/70 text-[9px] font-bold rounded uppercase tracking-wider">Done</span>
+                                            </c:when>
+                                            <c:when test="${isWaitingForPayment}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[9px] font-bold rounded uppercase tracking-wider">Waiting for Payment</span>
                                             </c:when>
                                             <c:when test="${isCanceled}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[9px] font-bold rounded uppercase tracking-wider">Canceled</span>
@@ -380,7 +490,7 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60">person</span>
-                                    <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'Chưa có'}</span>
+                                    <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'ChÆ°a cÃ³'}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">schedule</span>
@@ -388,14 +498,14 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">medical_services</span>
-                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'Chưa có'}</span>
+                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'ChÆ°a cÃ³'}</span>
                                 </div>
                                 <div>
                                     <select 
                                         class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                         data-original-vet="${appointment.veterinarianId}"
                                         onchange="showConfirmPopup(${appointment.appointmentId}, this, this.value)">
-                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Chưa có</option>
+                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>ChÆ°a cÃ³</option>
                                         <c:forEach var="vet" items="${veterinarians}">
                                             <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
                                                 ${vet.fullName}
@@ -404,11 +514,31 @@
                                     </select>
                                 </div>
                                 <div class="flex items-center justify-end gap-2 pr-2">
-                                    <c:if test="${isPending}">
+                                    <%-- Pending / Re-Scheduled: Confirm + Reject --%>
+                                    <c:if test="${isPending || isRescheduled}">
                                         <button class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                         <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
                                     </c:if>
-                                    <button class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
+                                    <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
+                                    <c:if test="${isConfirmed}">
+                                        <button class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
+                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
+                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                    </c:if>
+                                    <%-- Checked-in: Cancel only --%>
+                                    <c:if test="${isCheckedIn}">
+                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                    </c:if>
+                                    <%-- Waiting for Payment: Mark as Paid --%>
+                                    <c:if test="${isWaitingForPayment}">
+                                        <button class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
+                                    </c:if>
+                                    <%-- Done: View Invoice --%>
+                                    <c:if test="${isCompleted}">
+                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
+                                    </c:if>
+                                    <%-- In-Examination and Canceled: no action buttons --%>
+                                    <button onclick="openDetail(${appointment.appointmentId})" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
                                 </div>
                             </div>
                         </c:forEach>
@@ -416,29 +546,193 @@
                         </c:choose>
                     </div>
                     <div class="flex items-center justify-between mt-4">
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Showing <span class="font-semibold text-slate-800 dark:text-white"><c:out value="${not empty list ? list.size() : 0}"/></span> of <span class="font-semibold text-slate-800 dark:text-white"><c:out value="${not empty list ? list.size() : 0}"/></span> appointments</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">
+                            Showing 
+                            <span class="font-semibold text-slate-800 dark:text-white">
+                                <c:out value="${not empty list ? list.size() : 0}"/>
+                            </span> 
+                            of 
+                            <span class="font-semibold text-slate-800 dark:text-white">
+                                <c:out value="${totalFiltered}"/>
+                            </span> 
+                            appointments
+                        </p>
                         <div class="flex gap-2">
-                            <button class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 disabled:opacity-50" disabled="">
-                                <span class="material-symbols-outlined">chevron_left</span>
-                            </button>
-                            <button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white font-semibold">1</button>
-                            <button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">2</button>
-                            <button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">3</button>
-                            <button class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
-                                <span class="material-symbols-outlined">chevron_right</span>
-                            </button>
+                            <!-- Previous page -->
+                            <c:choose>
+                                <c:when test="${currentPage > 1}">
+                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage - 1}"
+                                       class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                        <span class="material-symbols-outlined">chevron_left</span>
+                                    </a>
+                                </c:when>
+                                <c:otherwise>
+                                    <button class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 opacity-50 cursor-not-allowed" disabled>
+                                        <span class="material-symbols-outlined">chevron_left</span>
+                                    </button>
+                                </c:otherwise>
+                            </c:choose>
+
+                            <!-- Page numbers -->
+                            <c:forEach var="i" begin="1" end="${totalPages}">
+                                <c:choose>
+                                    <c:when test="${i == currentPage}">
+                                        <button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white font-semibold">
+                                            ${i}
+                                        </button>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${i}"
+                                           class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                            ${i}
+                                        </a>
+                                    </c:otherwise>
+                                </c:choose>
+                            </c:forEach>
+
+                            <!-- Next page -->
+                            <c:choose>
+                                <c:when test="${currentPage < totalPages}">
+                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage + 1}"
+                                       class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                        <span class="material-symbols-outlined">chevron_right</span>
+                                    </a>
+                                </c:when>
+                                <c:otherwise>
+                                    <button class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 opacity-50 cursor-not-allowed" disabled>
+                                        <span class="material-symbols-outlined">chevron_right</span>
+                                    </button>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
         <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end" id="detailView">
-            <div class="bg-white dark:bg-slate-900 w-full max-w-xl h-full shadow-2xl flex flex-col p-8">
-                <div class="flex items-center justify-between mb-8">
+            <div class="bg-white dark:bg-slate-900 w-full max-w-xl h-full shadow-2xl flex flex-col relative">
+                <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
                     <h2 class="text-xl font-bold text-slate-800 dark:text-white">Appointment Details</h2>
-                    <button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400" onclick="document.getElementById('detailView').classList.add('hidden')">
+                    <button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400" onclick="closeDetail()">
                         <span class="material-symbols-outlined">close</span>
                     </button>
+                </div>
+                <!-- Loading state -->
+                <div id="detailLoading" class="flex-1 flex items-center justify-center">
+                    <div class="text-center">
+                        <span class="material-symbols-outlined text-4xl text-slate-300 animate-spin">progress_activity</span>
+                        <p class="mt-2 text-sm text-slate-400">Loading...</p>
+                    </div>
+                </div>
+                <!-- Detail content -->
+                <div id="detailContent" class="hidden flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+                    <section>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Pet Profile</h3>
+                        <div class="flex items-start gap-5">
+                            <img id="d-pet-photo" alt="Pet" class="w-24 h-24 rounded-2xl object-cover ring-4 ring-primary/5" src=""/>
+                            <div id="d-pet-no-photo" class="hidden w-24 h-24 rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center ring-4 ring-primary/5">
+                                <span class="material-symbols-outlined text-slate-400 text-4xl">pets</span>
+                            </div>
+                            <div class="space-y-3 flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 id="d-pet-name" class="text-2xl font-bold text-slate-800 dark:text-white"></h4>
+                                    <span id="d-status-badge" class="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full"></span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-y-2 text-sm">
+                                    <div>
+                                        <p class="text-slate-400">Species/Breed</p>
+                                        <p id="d-species-breed" class="font-medium text-slate-700 dark:text-slate-300"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-400">Age</p>
+                                        <p id="d-age" class="font-medium text-slate-700 dark:text-slate-300"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-400">Gender</p>
+                                        <p id="d-gender" class="font-medium text-slate-700 dark:text-slate-300"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-400">Weight</p>
+                                        <p id="d-weight" class="font-medium text-slate-700 dark:text-slate-300"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Owner Information</h3>
+                        <div class="grid grid-cols-2 gap-6 text-sm">
+                            <div class="flex gap-3">
+                                <span class="material-symbols-outlined text-primary/60">person</span>
+                                <div>
+                                    <p class="text-slate-400 text-xs">Name</p>
+                                    <p id="d-owner-name" class="font-semibold text-slate-700 dark:text-slate-300"></p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <span class="material-symbols-outlined text-primary/60">phone</span>
+                                <div>
+                                    <p class="text-slate-400 text-xs">Phone</p>
+                                    <p id="d-owner-phone" class="font-semibold text-slate-700 dark:text-slate-300"></p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <span class="material-symbols-outlined text-primary/60">mail</span>
+                                <div>
+                                    <p class="text-slate-400 text-xs">Email</p>
+                                    <p id="d-owner-email" class="font-semibold text-slate-700 dark:text-slate-300"></p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <span class="material-symbols-outlined text-primary/60">location_on</span>
+                                <div>
+                                    <p class="text-slate-400 text-xs">Address</p>
+                                    <p id="d-owner-address" class="font-semibold text-slate-700 dark:text-slate-300"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Appointment Data</h3>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-medium text-slate-500">Date</label>
+                                    <div class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm">
+                                        <span class="material-symbols-outlined text-sm text-primary">calendar_today</span>
+                                        <span id="d-date"></span>
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-medium text-slate-500">Time</label>
+                                    <div class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm">
+                                        <span class="material-symbols-outlined text-sm text-primary">schedule</span>
+                                        <span id="d-time"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-medium text-slate-500">Service</label>
+                                <div class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm">
+                                    <span class="material-symbols-outlined text-sm text-primary">medical_services</span>
+                                    <span id="d-service"></span>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-medium text-slate-500">Assigned Doctor</label>
+                                <div class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm">
+                                    <span class="material-symbols-outlined text-sm text-primary opacity-60">stethoscope</span>
+                                    <span id="d-doctor"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                <div id="detailFooter" class="hidden p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between gap-3">
+                    <div class="flex gap-2">
+                        <button id="d-btn-confirm" class="hidden px-5 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Confirm Visit</button>
+                        <button id="d-btn-reject" class="hidden px-5 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">Reject</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -450,21 +744,21 @@
                     <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">warning</span>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Xác nhận đổi bác sỹ</h3>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">XÃ¡c nháº­n Ä‘á»•i bÃ¡c sá»¹</h3>
                 </div>
                 <p class="text-slate-600 dark:text-slate-400 mb-6">
-                    Bạn có chắc chắn muốn đổi bác sỹ? Hãy chắc chắn rằng đã thông báo cho khách hàng biết.
+                    Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n Ä‘á»•i bÃ¡c sá»¹? HÃ£y cháº¯c cháº¯n ráº±ng Ä‘Ã£ thÃ´ng bÃ¡o cho khÃ¡ch hÃ ng biáº¿t.
                 </p>
                 <div class="flex gap-3 justify-end">
                     <button 
                         onclick="closePopup()"
                         class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-medium">
-                        Hủy
+                        Há»§y
                     </button>
                     <button 
                         onclick="confirmDoctorChange()"
                         class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all font-medium">
-                        Xác nhận
+                        XÃ¡c nháº­n
                     </button>
                 </div>
             </div>
@@ -473,7 +767,7 @@
         <!-- Success Toast -->
         <div id="successToast" class="toast">
             <span class="material-symbols-outlined">check_circle</span>
-            <span id="toastMessage">Đổi bác sỹ thành công!</span>
+            <span id="toastMessage">Äá»•i bÃ¡c sá»¹ thÃ nh cÃ´ng!</span>
         </div>
 
     </body></html>
