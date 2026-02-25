@@ -1,6 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.Pet" %>
-<%@ page import="model.Customer" %>
 <%!
     private String resolvePhotoUrl(jakarta.servlet.http.HttpServletRequest request, String rawPhotoUrl, String fallbackUrl) {
         if (rawPhotoUrl == null || rawPhotoUrl.trim().isEmpty()) {
@@ -29,32 +28,6 @@
     String photoUrl = resolvePhotoUrl(request,
         pet != null ? pet.getPhotoUrl() : null,
         "https://via.placeholder.com/300/cccccc/666666?text=P");
-    Customer customer = (Customer) session.getAttribute("customer");
-    
-    // Check if customer_id is provided in URL parameter for testing
-    String customerIdParam = request.getParameter("customer_id");
-    
-    if (customerIdParam != null && !customerIdParam.isEmpty()) {
-        // URL parameter takes precedence - use it to create/update test customer
-        try {
-            int testCustomerId = Integer.parseInt(customerIdParam);
-            customer = new Customer();
-            customer.setCustomerId(testCustomerId);
-            session.setAttribute("customer", customer);
-        } catch (NumberFormatException e) {
-            // Invalid parameter, keep existing customer or create default
-            if (customer == null) {
-                customer = new Customer();
-                customer.setCustomerId(1);
-                session.setAttribute("customer", customer);
-            }
-        }
-    } else if (customer == null) {
-        // No URL parameter and no session customer - create default test customer with ID 1
-        customer = new Customer();
-        customer.setCustomerId(1);
-        session.setAttribute("customer", customer);
-    }
 %>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
@@ -166,7 +139,6 @@
 <div class="bg-white dark:bg-background-dark rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
 <form class="p-8" method="post" action="<%= request.getContextPath() %>/pets?action=update" enctype="multipart/form-data">
 <input type="hidden" name="petId" value="<%= pet != null ? pet.getPetId() : "" %>"/>
-<input type="hidden" name="customer_id" value="<%= request.getParameter("customer_id") != null ? request.getParameter("customer_id") : "" %>"/>
 <div class="flex flex-col items-center justify-center mb-10 pb-10 border-b border-gray-100 dark:border-gray-800">
 <div class="relative group">
 <div id="photoPreview" class="size-32 rounded-full border-4 border-solid border-primary/20 flex items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden shadow-inner bg-cover bg-center" style="background-image: url('<%= photoUrl %>');"></div>
@@ -177,7 +149,7 @@
 <div class="mt-4 text-center">
 <h3 class="text-lg font-bold">Pet Photo</h3>
 <p class="text-sm text-gray-500 mb-4">Click to update your pet's profile picture</p>
-<input type="file" id="photoInput" name="photo" accept="image/*" class="hidden" onchange="previewPhoto(this)"/>
+q<input type="file" id="photoInput" name="photo" accept="image/*" class="hidden" onchange="previewPhoto(this)"/>
 <label for="photoInput" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-bold text-sm transition-colors cursor-pointer">
 <span class="material-symbols-outlined text-lg">upload</span>
                                 Upload New

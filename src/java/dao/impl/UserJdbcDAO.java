@@ -113,34 +113,56 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
 
     @Override
     public User createCustomerUser(User user) {
-        String sql = "INSERT INTO Users (email, password, role_id, status, created_at, updated_at, "
+        String insertUserSql = "INSERT INTO Users (email, password, role_id, status, created_at, updated_at, "
                 + "full_name, phone, address) "
                 + "OUTPUT INSERTED.user_id "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String insertCustomerSql = "INSERT INTO Customers (user_id) VALUES (?)";
 
         LocalDateTime now = LocalDateTime.now();
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(insertUserSql)) {
 
-            ps.setString(1, user.getEmail());
-            ps.setString(2, user.getPasswordHash());
-            ps.setInt(3, user.getRole().getRoleId());
-            ps.setString(4, user.getStatus());
-            ps.setTimestamp(5, Timestamp.valueOf(now));
-            ps.setTimestamp(6, Timestamp.valueOf(now));
-            ps.setString(7, user.getFullName());
-            ps.setString(8, user.getPhone());
-            ps.setString(9, user.getAddress());
+                    ps.setString(1, user.getEmail());
+                    ps.setString(2, user.getPasswordHash());
+                    ps.setInt(3, user.getRole().getRoleId());
+                    ps.setString(4, user.getStatus());
+                    ps.setTimestamp(5, Timestamp.valueOf(now));
+                    ps.setTimestamp(6, Timestamp.valueOf(now));
+                    ps.setString(7, user.getFullName());
+                    ps.setString(8, user.getPhone());
+                    ps.setString(9, user.getAddress());
 
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    user.setUserId(rs.getInt(1));
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            user.setUserId(rs.getInt(1));
+                        } else {
+                            throw new SQLException("Creating user failed, no user_id returned.");
+                        }
+                    }
                 }
+
+                try (PreparedStatement customerPs = conn.prepareStatement(insertCustomerSql)) {
+                    customerPs.setInt(1, user.getUserId());
+                    customerPs.executeUpdate();
+                }
+
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
             }
+
             user.setCreatedAt(now);
             user.setUpdatedAt(now);
             lastInsertError = null;
             return user;
+
         } catch (SQLException ex) {
             lastInsertError = ex.getMessage();
             System.err.println("[UserJdbcDAO] INSERT failed: " + lastInsertError);

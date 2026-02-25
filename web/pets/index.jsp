@@ -183,20 +183,12 @@
 </div>
 </div>
 </div>
-<%
-    // Get customer_id from parameter or session
-    String custIdParam = request.getParameter("customer_id");
-    if ((custIdParam == null || custIdParam.isEmpty()) && customer != null) {
-        custIdParam = String.valueOf(customer.getCustomerId());
-    }
-    String customerIdUrl = custIdParam != null && !custIdParam.isEmpty() ? "&customer_id=" + custIdParam : "";
-%>
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
 <div>
 <h3 class="text-2xl font-extrabold tracking-tight">Pet List</h3>
 <p class="text-[#8d755e] dark:text-[#a68e7a] text-sm">Manage your pets and their health records below.</p>
 </div>
-<a class="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-primary/20" href="<%= request.getContextPath() %>/pets?action=create<%= customerIdUrl %>">
+<a class="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-primary/20" href="<%= request.getContextPath() %>/pets?action=create">
 <span class="material-symbols-outlined text-xl">add</span>
 <span>Add Pet</span>
 </a>
@@ -204,9 +196,6 @@
 <div class="mb-6">
 <form method="get" action="<%= request.getContextPath() %>/pets" class="relative">
 <input type="hidden" name="action" value="search"/>
-<% if (custIdParam != null && !custIdParam.isEmpty()) { %>
-<input type="hidden" name="customer_id" value="<%= custIdParam %>"/>
-<% } %>
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
 <input class="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#2d2116] border border-[#f5f2f0] dark:border-[#3d2f23] rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" 
        placeholder="Search pets by name or species..." 
@@ -243,10 +232,6 @@
             String breed = pet.getBreed() != null ? pet.getBreed() : "N/A";
             String fallbackPhotoUrl = "https://via.placeholder.com/150/cccccc/666666?text=" + (species != null ? species.substring(0,1) : "P");
             String photoUrl = resolvePhotoUrl(request, pet.getPhotoUrl(), fallbackPhotoUrl);
-            String rowCustomerIdUrl = customerIdUrl;
-            if ((rowCustomerIdUrl == null || rowCustomerIdUrl.isEmpty()) && pet.getOwner() != null) {
-                rowCustomerIdUrl = "&customer_id=" + pet.getOwner().getCustomerId();
-            }
             String ageText = "N/A";
             if (pet.getBirthDate() != null) {
                 Period age = Period.between(pet.getBirthDate(), LocalDate.now());
@@ -285,13 +270,13 @@
     <td class="px-6 py-4 text-sm">N/A</td>
     <td class="px-6 py-4">
         <div class="flex items-center justify-end gap-2">
-            <a class="p-2 text-primary hover:bg-primary/10 rounded-lg" title="View Details" href="<%= request.getContextPath() %>/pets?action=details&id=<%= pet.getPetId() %><%= rowCustomerIdUrl %>">
+            <a class="p-2 text-primary hover:bg-primary/10 rounded-lg" title="View Details" href="<%= request.getContextPath() %>/pets?action=details&id=<%= pet.getPetId() %>">
                 <span class="material-symbols-outlined text-xl">visibility</span>
             </a>
-            <a class="p-2 text-[#8d755e] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title="Edit" href="<%= request.getContextPath() %>/pets?action=edit&id=<%= pet.getPetId() %><%= rowCustomerIdUrl %>">
+            <a class="p-2 text-[#8d755e] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title="Edit" href="<%= request.getContextPath() %>/pets?action=edit&id=<%= pet.getPetId() %>">
                 <span class="material-symbols-outlined text-xl">edit</span>
             </a>
-            <a class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg delete-btn" title="Delete" href="javascript:void(0);" data-pet-id="<%= pet.getPetId() %>" data-pet-name="<%= petName.replace("\"", "&quot;") %>" data-customer-url="<%= rowCustomerIdUrl %>">
+            <a class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg delete-btn" title="Delete" href="javascript:void(0);" data-pet-id="<%= pet.getPetId() %>" data-pet-name="<%= petName.replace("\"", "&quot;") %>">
                 <span class="material-symbols-outlined text-xl">delete</span>
             </a>
         </div>
@@ -348,7 +333,6 @@
 
 <script>
 let deletePetId = null;
-let deleteCustomerIdUrl = '';
 
 // Event delegation for delete buttons
 document.addEventListener('DOMContentLoaded', function() {
@@ -356,15 +340,13 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             var petId = this.getAttribute('data-pet-id');
             var petName = this.getAttribute('data-pet-name');
-            var customerUrl = this.getAttribute('data-customer-url');
-            confirmDelete(petId, petName, customerUrl);
+            confirmDelete(petId, petName);
         });
     });
 });
 
-function confirmDelete(petId, petName, customerIdUrl) {
+function confirmDelete(petId, petName) {
     deletePetId = petId;
-    deleteCustomerIdUrl = customerIdUrl;
     document.getElementById('deletePetName').textContent = petName;
     document.getElementById('deleteModal').classList.remove('hidden');
 }
@@ -376,7 +358,7 @@ function closeDeleteModal() {
 
 function executeDelete() {
     if (deletePetId) {
-        window.location.href = '<%= request.getContextPath() %>/pets?action=delete&id=' + deletePetId + deleteCustomerIdUrl;
+        window.location.href = '<%= request.getContextPath() %>/pets?action=delete&id=' + deletePetId;
     }
 }
 </script>

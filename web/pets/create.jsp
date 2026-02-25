@@ -1,33 +1,13 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.Customer" %>
+<%@ page import="model.User" %>
 <%
-    Customer customer = (Customer) session.getAttribute("customer");
-    
-    // Check if customer_id is provided in URL parameter for testing
-    String customerIdParam = request.getParameter("customer_id");
-    
-    if (customerIdParam != null && !customerIdParam.isEmpty()) {
-        // URL parameter takes precedence - use it to create/update test customer
-        try {
-            int testCustomerId = Integer.parseInt(customerIdParam);
-            customer = new Customer();
-            customer.setCustomerId(testCustomerId);
-            session.setAttribute("customer", customer);
-        } catch (NumberFormatException e) {
-            // Invalid parameter, keep existing customer or create default
-            if (customer == null) {
-                customer = new Customer();
-                customer.setCustomerId(1);
-                session.setAttribute("customer", customer);
-            }
-        }
-    } else if (customer == null) {
-        // No URL parameter and no session customer - create default test customer with ID 1
-        customer = new Customer();
-        customer.setCustomerId(1);
-        session.setAttribute("customer", customer);
-    }
-    
+    User currentUser = (User) session.getAttribute("currentUser");
+    String currentRole = (currentUser != null && currentUser.getRole() != null)
+            ? currentUser.getRole().getRoleName() : "";
+    boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
+
+    Customer customer = (Customer) request.getAttribute("customer");
     Integer customerId = customer != null ? customer.getCustomerId() : null;
 %>
 <!DOCTYPE html>
@@ -136,7 +116,7 @@
 <div class="max-w-4xl mx-auto w-full px-8 py-8">
 <!-- Breadcrumbs -->
 <nav class="flex items-center gap-2 mb-6">
-<a class="text-gray-500 hover:text-primary text-sm font-medium transition-colors" href="#">My Pets</a>
+<a class="text-gray-500 hover:text-primary text-sm font-medium transition-colors" href="<%= request.getContextPath() %>/pets">My Pets</a>
 <span class="text-gray-400 material-symbols-outlined text-base">chevron_right</span>
 <span class="text-primary text-sm font-bold">Add New Pet</span>
 </nav>
@@ -220,22 +200,18 @@ function bindPhotoPreview() {
 </script>
 <!-- Basic Info Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+<% if (isCustomerUser && customerId != null) { %>
+<input type="hidden" name="customerId" value="<%= customerId %>"/>
+<% } %>
+<% if (!isCustomerUser) { %>
 <!-- Customer ID (optional for staff) -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-bold text-gray-700 dark:text-gray-300">
                                     Customer ID
 </label>
-<% if (customerId != null) { %>
-    <!-- Customer logged in - show readonly display -->
-    <div class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-        <%= customerId %>
-    </div>
-    <input type="hidden" name="customerId" value="<%= customerId %>"/>
-<% } else { %>
-    <!-- No logged-in customer - allow input for admin/staff -->
     <input class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" name="customerId" placeholder="Enter customer ID" type="number" required=""/>
-<% } %>
 </div>
+<% } %>
 <!-- Pet Name -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-bold text-gray-700 dark:text-gray-300">

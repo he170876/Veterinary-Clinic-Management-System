@@ -63,23 +63,7 @@
     if (deletedPets == null) {
         deletedPets = new java.util.ArrayList<>();
     }
-
-    String custIdParam = request.getParameter("customer_id");
-    Customer customer = (Customer) session.getAttribute("customer");
-    if ((custIdParam == null || custIdParam.isEmpty()) && customer != null) {
-        custIdParam = String.valueOf(customer.getCustomerId());
-    }
-    String customerIdUrl = custIdParam != null && !custIdParam.isEmpty() ? "&customer_id=" + custIdParam : "";
-
-    String returnUrl = request.getParameter("returnUrl");
-    if (returnUrl == null || returnUrl.trim().isEmpty()) {
-        String referer = request.getHeader("referer");
-        if (referer != null && !referer.trim().isEmpty()) {
-            returnUrl = referer;
-        } else {
-            returnUrl = request.getContextPath() + "/customer/dashboard" + (custIdParam != null && !custIdParam.isEmpty() ? "?customer_id=" + custIdParam : "");
-        }
-    }
+    String returnUrl = request.getContextPath() + "/pets";
     String encodedReturnUrl = "";
     try {
         encodedReturnUrl = URLEncoder.encode(returnUrl, "UTF-8");
@@ -103,7 +87,7 @@
 <span class="material-symbols-outlined">pets</span>
 <span class="text-sm font-semibold">My Pets</span>
 </a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#ff7b0015] text-primary border-l-4 border-primary transition-colors" href="<%= request.getContextPath() %>/pets?action=trash<%= customerIdUrl %>&returnUrl=<%= encodedReturnUrl %>">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#ff7b0015] text-primary border-l-4 border-primary transition-colors" href="<%= request.getContextPath() %>/pets?action=trash&returnUrl=<%= encodedReturnUrl %>">
 <span class="material-symbols-outlined">delete</span>
 <span class="text-sm font-bold">Trash</span>
 </a>
@@ -172,7 +156,7 @@
     <td class="px-6 py-4 text-sm text-gray-500">Recently</td>
     <td class="px-6 py-4">
         <div class="flex items-center justify-end gap-2">
-            <a class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-1" href="<%= request.getContextPath() %>/pets?action=restore&id=<%= pet.getPetId() %><%= customerIdUrl %>&returnUrl=<%= encodedReturnUrl %>" title="Restore">
+            <a class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-1" href="<%= request.getContextPath() %>/pets?action=restore&id=<%= pet.getPetId() %>&returnUrl=<%= encodedReturnUrl %>" title="Restore">
                 <span class="material-symbols-outlined text-sm">restore</span>
                 Restore
             </a>
@@ -251,7 +235,7 @@ function closePermanentDeleteModal() {
 
 function executePermanentDelete() {
     if (permanentDeletePetId) {
-        window.location.href = '<%= request.getContextPath() %>/pets?action=hardDelete&id=' + permanentDeletePetId + '<%= customerIdUrl %>&returnUrl=<%= encodedReturnUrl %>';
+        window.location.href = '<%= request.getContextPath() %>/pets?action=hardDelete&id=' + permanentDeletePetId + '&returnUrl=<%= encodedReturnUrl %>';
     }
 }
 </script>

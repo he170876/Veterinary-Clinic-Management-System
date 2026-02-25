@@ -49,9 +49,64 @@ public class PetServlet extends HttpServlet {
         System.out.println("=== PetService created successfully ===");
     }
 
+    private User getCurrentUser(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+        Object currentUserObj = session.getAttribute("currentUser");
+        return currentUserObj instanceof User ? (User) currentUserObj : null;
+    }
+
+    private Optional<Customer> resolveCurrentCustomer(HttpSession session) {
+        User currentUser = getCurrentUser(session);
+        if (currentUser == null || currentUser.getRole() == null
+                || !"Customer".equalsIgnoreCase(currentUser.getRole().getRoleName())) {
+            return Optional.empty();
+        }
+        Optional<Customer> customerOpt = customerDAO.findByUserId(currentUser.getUserId());
+        if (customerOpt.isPresent()) {
+            return customerOpt;
+        }
+
+        try {
+            Customer autoCustomer = new Customer();
+            autoCustomer.setUser(currentUser);
+            customerDAO.create(autoCustomer);
+            return customerDAO.findByUserId(currentUser.getUserId());
+        } catch (Exception ex) {
+            System.err.println("Could not auto-create customer profile for userId=" + currentUser.getUserId() + ": " + ex.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private boolean isCustomerUser(User user) {
+        return user != null && user.getRole() != null
+                && "Customer".equalsIgnoreCase(user.getRole().getRoleName());
+    }
+
+    private Optional<Pet> findDeletedPetById(int petId) {
+        List<Pet> deletedPets = petService.getDeletedPets();
+        if (deletedPets == null || deletedPets.isEmpty()) {
+            return Optional.empty();
+        }
+        for (Pet pet : deletedPets) {
+            if (pet != null && pet.getPetId() == petId) {
+                return Optional.of(pet);
+            }
+        }
+        return Optional.empty();
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
+        HttpSession session = request.getSession(false);
+        User currentUser = getCurrentUser(session);
+        if (currentUser == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
 
         String action = request.getParameter("action");
         String searchQuery = request.getParameter("q");
@@ -106,6 +161,13 @@ public class PetServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        HttpSession session = request.getSession(false);
+        User currentUser = getCurrentUser(session);
+        if (currentUser == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+
         String action = request.getParameter("action");
         if (action == null) {
             action = "create";
@@ -134,63 +196,37 @@ public class PetServlet extends HttpServlet {
         System.out.println("=== PetServlet.listPets() called ===");
         
         HttpSession session = request.getSession(false);
-        List<Pet> pets;
+        List<Pet> pets = java.util.Collections.emptyList();
         Customer displayCustomer = null;
 
-        // Check for customer_id in URL parameter (for testing)
-        String customerIdParam = request.getParameter("customer_id");
-        
-        // If no session and no customer_id parameter, redirect to login
-        if ((session == null || session.getAttribute("user") == null) && 
-            (customerIdParam == null || customerIdParam.isEmpty())) {
-            System.out.println("No authenticated user and no customer_id parameter, redirecting to login");
-            response.sendRedirect(request.getContextPath() + "/login.jsp");
+        User currentUser = getCurrentUser(session);
+        if (currentUser == null) {
+            System.out.println("No authenticated user, redirecting to login");
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
         
         // If user is logged in as customer, show only their pets
         // Otherwise show all pets (for admin/staff)
-        if (session != null && session.getAttribute("user") != null) {
-            User user = (User) session.getAttribute("user");
-            System.out.println("User logged in: " + user.getFullName());
+        if (currentUser != null) {
+            System.out.println("User logged in: " + currentUser.getFullName());
             
             // Check if user is a customer
-            if ("Customer".equals(user.getRole().getRoleName())) {
-                Customer customer = (Customer) session.getAttribute("customer");
-                if (customer != null) {
+            if (isCustomerUser(currentUser)) {
+                Optional<Customer> customerOpt = resolveCurrentCustomer(session);
+                if (customerOpt.isPresent()) {
+                    Customer customer = customerOpt.get();
                     System.out.println("Loading pets for customer ID: " + customer.getCustomerId());
                     pets = petService.getPetsByCustomerId(customer.getCustomerId());
                     displayCustomer = customer;
                 } else {
-                    System.out.println("Customer object is null, loading all pets");
-                    pets = petService.getAllPets();
+                    System.out.println("Customer role detected but no customer record found");
+                    pets = java.util.Collections.emptyList();
                 }
             } else {
                 System.out.println("User is not a customer, loading all pets");
                 pets = petService.getAllPets();
             }
-        } else if (customerIdParam != null && !customerIdParam.isEmpty()) {
-            // Test mode: load pets by customer_id parameter
-            try {
-                int customerId = Integer.parseInt(customerIdParam);
-                System.out.println("Test mode: Loading pets for customer ID: " + customerId);
-                pets = petService.getPetsByCustomerId(customerId);
-                
-                // Load customer from database
-                Optional<Customer> customerOpt = customerDAO.findById(customerId);
-                if (customerOpt.isPresent()) {
-                    displayCustomer = customerOpt.get();
-                    System.out.println("Customer found: " + displayCustomer.getName());
-                } else {
-                    System.out.println("Customer not found");
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid customer_id parameter, loading all pets");
-                pets = petService.getAllPets();
-            }
-        } else {
-            System.out.println("No session or user, loading all pets");
-            pets = petService.getAllPets();
         }
 
         System.out.println("Total pets retrieved: " + (pets != null ? pets.size() : "null"));
@@ -204,10 +240,8 @@ public class PetServlet extends HttpServlet {
         if (displayCustomer != null) {
             request.setAttribute("customer", displayCustomer);
         } else if (session != null) {
-            Customer customer = (Customer) session.getAttribute("customer");
-            User user = (User) session.getAttribute("user");
-            request.setAttribute("customer", customer);
-            request.setAttribute("user", user);
+            resolveCurrentCustomer(session).ifPresent(customer -> request.setAttribute("customer", customer));
+            request.setAttribute("user", currentUser);
         }
         
         request.getRequestDispatcher("/pets/index.jsp").forward(request, response);
@@ -216,8 +250,27 @@ public class PetServlet extends HttpServlet {
     private void listDeletedPets(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         System.out.println("Loading deleted pets (trash)...");
-        
+
+        HttpSession session = request.getSession(false);
+        User currentUser = getCurrentUser(session);
+        Optional<Customer> currentCustomerOpt = resolveCurrentCustomer(session);
+
         List<Pet> deletedPets = petService.getDeletedPets();
+        if (isCustomerUser(currentUser)) {
+            if (!currentCustomerOpt.isPresent()) {
+                response.sendRedirect("pets?error=Customer profile not found");
+                return;
+            }
+            int currentCustomerId = currentCustomerOpt.get().getCustomerId();
+            java.util.ArrayList<Pet> ownDeletedPets = new java.util.ArrayList<>();
+            for (Pet pet : deletedPets) {
+                if (pet != null && pet.getOwner() != null && pet.getOwner().getCustomerId() == currentCustomerId) {
+                    ownDeletedPets.add(pet);
+                }
+            }
+            deletedPets = ownDeletedPets;
+            request.setAttribute("customer", currentCustomerOpt.get());
+        }
         
         System.out.println("Total deleted pets retrieved: " + (deletedPets != null ? deletedPets.size() : "null"));
         
@@ -227,6 +280,10 @@ public class PetServlet extends HttpServlet {
 
     private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        User currentUser = getCurrentUser(session);
+        request.setAttribute("user", currentUser);
+        resolveCurrentCustomer(session).ifPresent(customer -> request.setAttribute("customer", customer));
         request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
     }
 
@@ -237,6 +294,17 @@ public class PetServlet extends HttpServlet {
         Optional<Pet> pet = petService.getPetById(petId);
 
         if (pet.isPresent()) {
+            HttpSession session = request.getSession(false);
+            User currentUser = getCurrentUser(session);
+            if (isCustomerUser(currentUser)) {
+                Optional<Customer> customerOpt = resolveCurrentCustomer(session);
+                if (!customerOpt.isPresent()
+                        || pet.get().getOwner() == null
+                        || pet.get().getOwner().getCustomerId() != customerOpt.get().getCustomerId()) {
+                    response.sendRedirect("pets?error=You can only edit your own pets");
+                    return;
+                }
+            }
             request.setAttribute("pet", pet.get());
             request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
         } else {
@@ -251,6 +319,17 @@ public class PetServlet extends HttpServlet {
         Optional<Pet> pet = petService.getPetById(petId);
 
         if (pet.isPresent()) {
+            HttpSession session = request.getSession(false);
+            User currentUser = getCurrentUser(session);
+            if (isCustomerUser(currentUser)) {
+                Optional<Customer> customerOpt = resolveCurrentCustomer(session);
+                if (!customerOpt.isPresent()
+                        || pet.get().getOwner() == null
+                        || pet.get().getOwner().getCustomerId() != customerOpt.get().getCustomerId()) {
+                    response.sendRedirect("pets?error=You can only view your own pets");
+                    return;
+                }
+            }
             request.setAttribute("pet", pet.get());
             request.getRequestDispatcher("/pets/details.jsp").forward(request, response);
         } else {
@@ -265,11 +344,18 @@ public class PetServlet extends HttpServlet {
             // Get customer ID from session or request
             HttpSession session = request.getSession(false);
             int customerId;
+            User currentUser = getCurrentUser(session);
 
-            if (session != null && session.getAttribute("customer") != null) {
-                Customer customer = (Customer) session.getAttribute("customer");
+            Optional<Customer> sessionCustomerOpt = resolveCurrentCustomer(session);
+            if (sessionCustomerOpt.isPresent()) {
+                Customer customer = sessionCustomerOpt.get();
                 customerId = customer.getCustomerId();
             } else {
+                if (isCustomerUser(currentUser)) {
+                    request.setAttribute("error", "Customer profile not found");
+                    request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+                    return;
+                }
                 // For admin/staff creating pet for a customer
                 String customerIdParam = request.getParameter("customerId");
                 if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
@@ -282,8 +368,8 @@ public class PetServlet extends HttpServlet {
             }
             
             // Validate: Customer can only create pets for themselves (if not admin)
-            if (session != null && session.getAttribute("customer") != null) {
-                Customer customer = (Customer) session.getAttribute("customer");
+            if (sessionCustomerOpt.isPresent()) {
+                Customer customer = sessionCustomerOpt.get();
                 String customerIdParam = request.getParameter("customerId");
                 if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
                     int paramCustomerId = Integer.parseInt(customerIdParam);
@@ -336,7 +422,7 @@ public class PetServlet extends HttpServlet {
             }
             
             // Redirect with customer_id to maintain session context
-            response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet created successfully");
+            response.sendRedirect("pets?success=Pet created successfully");
 
         } catch (NumberFormatException | DateTimeParseException e) {
             System.err.println("❌ Format error: " + e.getMessage());
@@ -365,11 +451,18 @@ public class PetServlet extends HttpServlet {
             // Get customerId from session or parameter for redirect
             int customerId = 0;
             HttpSession session = request.getSession(false);
+            User currentUser = getCurrentUser(session);
             Customer sessionCustomer = null;
-            if (session != null && session.getAttribute("customer") != null) {
-                sessionCustomer = (Customer) session.getAttribute("customer");
+            Optional<Customer> sessionCustomerOpt = resolveCurrentCustomer(session);
+            if (sessionCustomerOpt.isPresent()) {
+                sessionCustomer = sessionCustomerOpt.get();
                 customerId = sessionCustomer.getCustomerId();
             } else {
+                if (isCustomerUser(currentUser)) {
+                    request.setAttribute("error", "Customer profile not found");
+                    request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+                    return;
+                }
                 String customerIdParam = request.getParameter("customer_id");
                 if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
                     customerId = Integer.parseInt(customerIdParam);
@@ -436,9 +529,9 @@ public class PetServlet extends HttpServlet {
             }
 
             if (success) {
-                response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet updated successfully");
+                response.sendRedirect("pets?success=Pet updated successfully");
             } else {
-                response.sendRedirect("pets?customer_id=" + customerId + "&error=Failed to update pet");
+                response.sendRedirect("pets?error=Failed to update pet");
             }
 
         } catch (NumberFormatException | DateTimeParseException e) {
@@ -468,11 +561,17 @@ public class PetServlet extends HttpServlet {
             // Get customerId for redirect and validate ownership
             int customerId = 0;
             HttpSession session = request.getSession(false);
+            User currentUser = getCurrentUser(session);
             Customer sessionCustomer = null;
-            if (session != null && session.getAttribute("customer") != null) {
-                sessionCustomer = (Customer) session.getAttribute("customer");
+            Optional<Customer> sessionCustomerOpt = resolveCurrentCustomer(session);
+            if (sessionCustomerOpt.isPresent()) {
+                sessionCustomer = sessionCustomerOpt.get();
                 customerId = sessionCustomer.getCustomerId();
             } else {
+                if (isCustomerUser(currentUser)) {
+                    response.sendRedirect("pets?error=Customer profile not found");
+                    return;
+                }
                 String customerIdParam = request.getParameter("customer_id");
                 if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
                     customerId = Integer.parseInt(customerIdParam);
@@ -480,7 +579,7 @@ public class PetServlet extends HttpServlet {
             }
             
             // Validate: Check if pet exists and belongs to customer
-            Optional<Pet> petOpt = petService.getPetById(petId);
+            Optional<Pet> petOpt = findDeletedPetById(petId);
             if (petOpt.isPresent()) {
                 Pet pet = petOpt.get();
                 int petOwnerId = pet.getOwner().getCustomerId();
@@ -492,7 +591,7 @@ public class PetServlet extends HttpServlet {
                 if (sessionCustomer != null && petOwnerId != sessionCustomer.getCustomerId()) {
                     System.err.println("❌ Access denied: Customer " + sessionCustomer.getCustomerId() + 
                                      " trying to delete pet of customer " + petOwnerId);
-                    response.sendRedirect("pets?customer_id=" + customerId + "&error=You can only delete your own pets");
+                    response.sendRedirect("pets?error=You can only delete your own pets");
                     return;
                 }
             }
@@ -503,9 +602,9 @@ public class PetServlet extends HttpServlet {
                 if (petOpt.isPresent()) {
                     deleteUploadedFileIfExists(request, petOpt.get().getPhotoUrl());
                 }
-                response.sendRedirect("pets?customer_id=" + customerId + "&success=Pet deleted successfully");
+                response.sendRedirect("pets?success=Pet deleted successfully");
             } else {
-                response.sendRedirect("pets?customer_id=" + customerId + "&error=Failed to delete pet");
+                response.sendRedirect("pets?error=Failed to delete pet");
             }
         } catch (NumberFormatException e) {
             response.sendRedirect("pets?error=Invalid pet ID");
@@ -520,11 +619,17 @@ public class PetServlet extends HttpServlet {
             
             int customerId = 0;
             HttpSession session = request.getSession(false);
+            User currentUser = getCurrentUser(session);
             Customer sessionCustomer = null;
-            if (session != null && session.getAttribute("customer") != null) {
-                sessionCustomer = (Customer) session.getAttribute("customer");
+            Optional<Customer> sessionCustomerOpt = resolveCurrentCustomer(session);
+            if (sessionCustomerOpt.isPresent()) {
+                sessionCustomer = sessionCustomerOpt.get();
                 customerId = sessionCustomer.getCustomerId();
             } else {
+                if (isCustomerUser(currentUser)) {
+                    response.sendRedirect("pets?error=Customer profile not found");
+                    return;
+                }
                 String customerIdParam = request.getParameter("customer_id");
                 if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
                     customerId = Integer.parseInt(customerIdParam);
@@ -547,6 +652,9 @@ public class PetServlet extends HttpServlet {
                     response.sendRedirect(target);
                     return;
                 }
+            } else {
+                response.sendRedirect("pets?error=Pet not found in trash");
+                return;
             }
             
             boolean success = petService.hardDeletePet(petId);
@@ -574,11 +682,28 @@ public class PetServlet extends HttpServlet {
 
         try {
             int petId = Integer.parseInt(request.getParameter("id"));
-            
+
+            HttpSession session = request.getSession(false);
+            User currentUser = getCurrentUser(session);
+            Optional<Customer> sessionCustomerOpt = resolveCurrentCustomer(session);
+            Customer sessionCustomer = sessionCustomerOpt.orElse(null);
+
             int customerId = 0;
-            String customerIdParam = request.getParameter("customer_id");
-            if (customerIdParam != null && !customerIdParam.trim().isEmpty()) {
-                customerId = Integer.parseInt(customerIdParam);
+            Optional<Pet> petOpt = findDeletedPetById(petId);
+            if (petOpt.isPresent()) {
+                Pet pet = petOpt.get();
+                int petOwnerId = pet.getOwner().getCustomerId();
+                if (customerId == 0) {
+                    customerId = petOwnerId;
+                }
+
+                if (isCustomerUser(currentUser) && (sessionCustomer == null || petOwnerId != sessionCustomer.getCustomerId())) {
+                    response.sendRedirect("pets?error=You can only restore your own pets");
+                    return;
+                }
+            } else {
+                response.sendRedirect("pets?error=Pet not found in trash");
+                return;
             }
             
             boolean success = petService.restorePet(petId);
@@ -648,7 +773,29 @@ public class PetServlet extends HttpServlet {
         System.out.println("=== searchPets() called with query: " + searchQuery + " ===");
 
         List<Pet> pets;
-        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+        HttpSession session = request.getSession(false);
+        User currentUser = getCurrentUser(session);
+        Optional<Customer> currentCustomerOpt = resolveCurrentCustomer(session);
+
+        if (currentCustomerOpt.isPresent()) {
+            Customer currentCustomer = currentCustomerOpt.get();
+            List<Pet> customerPets = petService.getPetsByCustomerId(currentCustomer.getCustomerId());
+            if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+                String keyword = searchQuery.trim().toLowerCase();
+                java.util.ArrayList<Pet> filteredPets = new java.util.ArrayList<>();
+                for (Pet pet : customerPets) {
+                    String petName = pet.getName() == null ? "" : pet.getName().toLowerCase();
+                    String petSpecies = pet.getSpecies() == null ? "" : pet.getSpecies().toLowerCase();
+                    if (petName.contains(keyword) || petSpecies.contains(keyword)) {
+                        filteredPets.add(pet);
+                    }
+                }
+                pets = filteredPets;
+            } else {
+                pets = customerPets;
+            }
+            request.setAttribute("customer", currentCustomer);
+        } else if (searchQuery != null && !searchQuery.trim().isEmpty()) {
             pets = petService.searchPetsByName(searchQuery.trim());
             System.out.println("Search results: " + pets.size() + " pets found");
         } else {
@@ -657,13 +804,7 @@ public class PetServlet extends HttpServlet {
 
         request.setAttribute("pets", pets);
         request.setAttribute("searchQuery", searchQuery);
-        
-        // Set customer info for header display
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            Customer customer = (Customer) session.getAttribute("customer");
-            request.setAttribute("customer", customer);
-        }
+        request.setAttribute("user", currentUser);
         
         request.getRequestDispatcher("/pets/index.jsp").forward(request, response);
     }
