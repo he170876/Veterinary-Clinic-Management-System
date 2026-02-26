@@ -24,13 +24,14 @@ public interface BlogDAO {
     // ===== Delete =====
     boolean delete(int blogId);
 
-    // ===== Pagination =====
-    List<Blog> findAllWithPaging(int offset, int limit);
+    // ===== Pagination + Sorting =====
+    List<Blog> findAllWithPaging(int offset, int limit,
+            String sort, String order);
 
     int countAll();
 
-    // ===== Search + Filter + Paging (dùng cho management page) =====
-    List<Blog> search(String keyword, String status, int offset, int limit);
+    // ===== Search + Filter + Paging + Sorting =====
+    List<Blog> search(String keyword, String status, String sort, int offset, int limit);
 
     int countSearch(String keyword, String status);
 }

@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -62,7 +63,7 @@
 
                 <!-- FILTER -->
                 <form action="blog-management" method="get"
-                      class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                      class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
 
                     <input type="hidden" name="page" value="1"/>
 
@@ -79,13 +80,13 @@
                     </select>
 
                     <!-- Buttons -->
-                    <div class="flex gap-3">
+                    <div class="flex gap-3 col-span-2">
                         <button type="submit"
                                 class="flex-1 bg-orange-500 text-white font-bold rounded-xl py-3 hover:bg-orange-600 transition">
                             Filter
                         </button>
 
-                        <a href="blog-management?page=1"
+                        <a href="blog-management?page=1&sort=date_desc"
                            class="flex-1 bg-gray-200 text-gray-700 font-bold rounded-xl py-3
                            flex items-center justify-center hover:bg-gray-300 transition">
                             Clear
@@ -96,63 +97,144 @@
 
                 <!-- TABLE -->
                 <div class="bg-white rounded-2xl shadow overflow-x-auto">
-                    <table class="min-w-full text-sm">
+                    <table class="min-w-full table-fixed text-sm">
+
                         <thead class="bg-gray-100">
                             <tr>
-                                <th class="px-6 py-4">ID</th>
-                                <th class="px-6 py-4">Title</th>
-                                <th class="px-6 py-4">Category</th>
-                                <th class="px-6 py-4">Author ID</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4">Created At</th>
-                                <th class="px-6 py-4 text-center w-[220px]">Actions</th>
+                                <!-- ID -->
+                                <th class="w-[70px] px-4 py-3 text-left">
+                                    <form method="get" action="blog-management"
+                                          class="inline-flex items-center gap-1">
+
+                                        <input type="hidden" name="keyword" value="${param.keyword}" />
+                                        <input type="hidden" name="status" value="${param.status}" />
+                                        <input type="hidden" name="page" value="1" />
+
+                                        <input type="hidden" name="sort"
+                                               value="${sort == 'id_asc' ? 'id_desc' : 'id_asc'}" />
+
+                                        ID
+
+                                        <button type="submit"
+                                                class="ml-1 font-bold text-orange-600 hover:scale-110 transition">
+                                            <c:choose>
+                                                <c:when test="${sort eq 'id_asc'}">↑</c:when>
+                                                <c:when test="${sort eq 'id_desc'}">↓</c:when>
+                                                <c:otherwise>↕</c:otherwise>
+                                            </c:choose>
+                                        </button>
+                                    </form>
+                                </th>
+
+                                <!-- Title -->
+                                <th class="w-[280px] px-4 py-3 text-left">
+                                    Title
+                                </th>
+
+                                <!-- Category -->
+                                <th class="w-[150px] px-4 py-3 text-left">
+                                    Category
+                                </th>
+
+                                <!-- Author -->
+                                <th class="w-[90px] px-4 py-3 text-center">
+                                    Author
+                                </th>
+
+                                <!-- Status -->
+                                <th class="w-[120px] px-4 py-3 text-center">
+                                    Status
+                                </th>
+
+                                <!-- Created Date -->
+                                <th class="w-[170px] px-4 py-3 text-left">
+                                    <form method="get" action="blog-management"
+                                          class="inline-flex items-center gap-1">
+
+                                        <input type="hidden" name="keyword" value="${param.keyword}" />
+                                        <input type="hidden" name="status" value="${param.status}" />
+                                        <input type="hidden" name="page" value="1" />
+
+                                        <input type="hidden" name="sort"
+                                               value="${sort == 'date_asc' ? 'date_desc' : 'date_asc'}" />
+
+                                        Created Date
+
+                                        <button type="submit"
+                                                class="ml-1 font-bold text-orange-600 hover:scale-110 transition">
+                                            <c:choose>
+                                                <c:when test="${sort eq 'date_asc'}">↑</c:when>
+                                                <c:when test="${sort eq 'date_desc'}">↓</c:when>
+                                                <c:otherwise>↕</c:otherwise>
+                                            </c:choose>
+                                        </button>
+                                    </form>
+                                </th>
+
+                                <!-- Actions -->
+                                <th class="w-[220px] px-4 py-3 text-center">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
 
                         <tbody class="divide-y">
                             <c:forEach items="${blogs}" var="b">
                                 <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4">${b.blogId}</td>
 
-                                    <td class="px-6 py-4 font-semibold">
+                                    <!-- ID -->
+                                    <td class="px-4 py-3">
+                                        ${b.blogId}
+                                    </td>
+
+                                    <!-- Title -->
+                                    <td class="px-4 py-3 font-semibold truncate">
                                         <c:out value="${b.title}" />
                                     </td>
 
-                                    <td class="px-6 py-4">
+                                    <!-- Category -->
+                                    <td class="px-4 py-3 truncate">
                                         <c:out value="${b.category}" default="N/A"/>
                                     </td>
 
-                                    <td class="px-6 py-4">
+                                    <!-- Author -->
+                                    <td class="px-4 py-3 text-center">
                                         ${b.authorUserId}
                                     </td>
 
-                                    <td class="px-6 py-4">
+                                    <!-- Status -->
+                                    <td class="px-4 py-3 text-center">
                                         <span class="px-3 py-1 rounded-full text-xs font-bold
                                               ${b.status=='Published'?'status-published':'status-draft'}">
                                             ${b.status}
                                         </span>
                                     </td>
 
-                                    <!-- Date giữ nguyên để bạn xử lý ở BE -->
-                                    <td class="px-6 py-4 text-gray-600">
+                                    <!-- Created Date -->
+                                    <td class="px-4 py-3 text-gray-600">
                                         ${b.createdAt}
                                     </td>
 
-                                    <!-- ACTION BUTTONS -->
-                                    <td class="px-6 py-4">
+                                    <!-- Actions -->
+                                    <td class="px-4 py-3">
                                         <div class="flex justify-center items-center gap-2">
 
                                             <button type="button"
-                                                    onclick="openModal(
-                                                                    '${b.title}',
-                                                                    '${b.category}',
-                                                                    '${b.status}',
-                                                                    '${b.authorUserId}',
-                                                                    '${b.createdAt}',
-                                                                    `${b.content}`
-                                                                    )"
-                                                    class="min-w-[60px] text-center px-3 py-1.5 text-xs font-semibold rounded-lg
-                                                    bg-blue-500 text-white hover:bg-blue-600 transition">
+                                                    class="viewBtn min-w-[60px] text-center px-3 py-1.5 text-xs font-semibold rounded-lg
+                                                    bg-blue-500 text-white hover:bg-blue-600 transition"
+
+                                                    data-id="${b.blogId}"
+                                                    data-title="${fn:escapeXml(b.title)}"
+                                                    data-category="${fn:escapeXml(b.category)}"
+                                                    data-status="${b.status}"
+                                                    data-author="${b.authorUserId}"
+                                                    data-created="${b.createdAt}"
+                                                    data-updated="${b.updatedAt}"
+                                                    data-slug="${fn:escapeXml(b.slug)}"
+                                                    data-thumbnail="${fn:escapeXml(b.thumbnailUrl)}"
+                                                    data-meta="${fn:escapeXml(b.metaDescription)}"
+                                                    data-content="${fn:escapeXml(b.content)}">
+
                                                 View
                                             </button>
 
@@ -183,6 +265,7 @@
                                 </tr>
                             </c:if>
                         </tbody>
+
                     </table>
                 </div>
 
@@ -212,14 +295,14 @@
                     <div class="flex justify-center items-center gap-2 mt-8">
 
                         <c:if test="${currentPage > 1}">
-                            <a href="blog-management?page=${currentPage-1}&keyword=${param.keyword}&status=${param.status}"
+                            <a href="blog-management?page=${currentPage-1}&keyword=${param.keyword}&status=${param.status}&sort=${sort}"
                                class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                 Prev
                             </a>
                         </c:if>
 
                         <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="blog-management?page=${i}&keyword=${param.keyword}&status=${param.status}"
+                            <a href="blog-management?page=${i}&keyword=${param.keyword}&status=${param.status}&sort=${sort}"
                                class="px-4 py-2 rounded-lg font-bold
                                ${i == currentPage ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}">
                                 ${i}
@@ -227,7 +310,7 @@
                         </c:forEach>
 
                         <c:if test="${currentPage < totalPages}">
-                            <a href="blog-management?page=${currentPage+1}&keyword=${param.keyword}&status=${param.status}"
+                            <a href="blog-management?page=${currentPage+1}&keyword=${param.keyword}&status=${param.status}&sort=${sort}"
                                class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                 Next
                             </a>
@@ -247,40 +330,80 @@
         <div id="blogModal"
              class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
 
-            <div class="bg-white w-[700px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl p-8 relative">
+            <div class="bg-white w-[800px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl p-8 relative">
 
-                <!-- Close Button -->
                 <button onclick="closeModal()"
                         class="absolute top-4 right-4 text-gray-500 hover:text-black text-xl">
                     ✕
                 </button>
 
-                <h2 id="modalTitle" class="text-2xl font-bold mb-4"></h2>
+                <h2 id="modalTitle" class="text-3xl font-bold mb-6"></h2>
 
-                <div class="text-sm text-gray-500 mb-4 space-y-1">
-                    <div><b>Category:</b> <span id="modalCategory"></span></div>
+                <!-- META INFO -->
+                <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+
+                    <div><b>ID:</b> <span id="modalId"></span></div>
                     <div><b>Status:</b> <span id="modalStatus"></span></div>
+
+                    <div><b>Category:</b> <span id="modalCategory"></span></div>
                     <div><b>Author ID:</b> <span id="modalAuthor"></span></div>
+
+                    <div><b>Slug:</b> <span id="modalSlug"></span></div>
                     <div><b>Created At:</b> <span id="modalDate"></span></div>
+
+                    <div><b>Updated At:</b> <span id="modalUpdated"></span></div>
+
                 </div>
 
-                <hr class="my-4">
+                <hr class="my-6">
 
-                <div id="modalContent"
-                     class="prose max-w-none text-gray-700 whitespace-pre-line">
+                <!-- Thumbnail -->
+                <div id="modalThumbnailWrapper" class="mb-6 hidden">
+                    <img id="modalThumbnail"
+                         class="w-full rounded-xl shadow">
+                </div>
+
+                <!-- Meta Description -->
+                <div class="mb-6">
+                    <h3 class="font-semibold text-lg mb-2">Meta Description</h3>
+                    <p id="modalMeta" class="text-gray-600"></p>
+                </div>
+
+                <hr class="my-6">
+
+                <!-- Content -->
+                <div>
+                    <h3 class="font-semibold text-lg mb-3">Content</h3>
+                    <div id="modalContent"
+                         class="prose max-w-none text-gray-700 whitespace-pre-line">
+                    </div>
                 </div>
 
             </div>
         </div>
 
         <script>
-            function openModal(title, category, status, author, date, content) {
+            function openModal(id, title, category, status, author,
+                    createdAt, updatedAt, slug,
+                    thumbnailUrl, metaDescription, content) {
+
+                document.getElementById("modalId").innerText = id;
                 document.getElementById("modalTitle").innerText = title;
                 document.getElementById("modalCategory").innerText = category || "N/A";
                 document.getElementById("modalStatus").innerText = status;
                 document.getElementById("modalAuthor").innerText = author;
-                document.getElementById("modalDate").innerText = date;
+                document.getElementById("modalDate").innerText = createdAt;
+                document.getElementById("modalUpdated").innerText = updatedAt || "N/A";
+                document.getElementById("modalSlug").innerText = slug || "N/A";
+                document.getElementById("modalMeta").innerText = metaDescription || "N/A";
                 document.getElementById("modalContent").innerText = content;
+
+                if (thumbnailUrl && thumbnailUrl !== "null") {
+                    document.getElementById("modalThumbnail").src = thumbnailUrl;
+                    document.getElementById("modalThumbnailWrapper").classList.remove("hidden");
+                } else {
+                    document.getElementById("modalThumbnailWrapper").classList.add("hidden");
+                }
 
                 const modal = document.getElementById("blogModal");
                 modal.classList.remove("hidden");
@@ -293,13 +416,30 @@
                 modal.classList.add("hidden");
             }
 
-            // Click outside to close
             window.onclick = function (event) {
                 const modal = document.getElementById("blogModal");
                 if (event.target === modal) {
                     closeModal();
                 }
             }
+
+            document.querySelectorAll(".viewBtn").forEach(btn => {
+                btn.addEventListener("click", function () {
+                    openModal(
+                            this.dataset.id,
+                            this.dataset.title,
+                            this.dataset.category,
+                            this.dataset.status,
+                            this.dataset.author,
+                            this.dataset.created,
+                            this.dataset.updated,
+                            this.dataset.slug,
+                            this.dataset.thumbnail,
+                            this.dataset.meta,
+                            this.dataset.content
+                            );
+                });
+            });
         </script>
 
     </body>

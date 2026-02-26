@@ -157,10 +157,28 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
 
     // ================= PAGING =================
     @Override
-    public List<Blog> findAllWithPaging(int offset, int limit) {
+    public List<Blog> findAllWithPaging(int offset, int limit,
+            String sort, String order) {
+
         List<Blog> list = new ArrayList<>();
-        String sql = "SELECT * FROM " + TABLE + " ORDER BY created_at DESC "
-                + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+
+        // ===== SAFE SORTING =====
+        String sortColumn = "created_at"; // default
+        String sortOrder = "DESC";        // default
+
+        if ("id".equalsIgnoreCase(sort)) {
+            sortColumn = "blog_id";
+        } else if ("date".equalsIgnoreCase(sort)) {
+            sortColumn = "created_at";
+        }
+
+        if ("asc".equalsIgnoreCase(order)) {
+            sortOrder = "ASC";
+        }
+
+        String sql = "SELECT * FROM " + TABLE
+                + " ORDER BY " + sortColumn + " " + sortOrder
+                + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -175,6 +193,7 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return list;
     }
 
@@ -197,9 +216,12 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
 
     // ================= SEARCH + FILTER + PAGING =================
     @Override
-    public List<Blog> search(String keyword, String status, int offset, int limit) {
+    public List<Blog> search(String keyword, String status,
+            String sort,
+            int offset, int limit) {
 
         List<Blog> list = new ArrayList<>();
+
         StringBuilder sql = new StringBuilder(
                 "SELECT * FROM " + TABLE + " WHERE 1=1 "
         );
@@ -215,7 +237,26 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
             sql.append("AND status = ? ");
         }
 
-        sql.append("ORDER BY created_at DESC ");
+        // ===== SAFE SORTING (NEW) =====
+        String orderBy;
+
+        switch (sort) {
+            case "id_asc":
+                orderBy = "blog_id ASC";
+                break;
+            case "id_desc":
+                orderBy = "blog_id DESC";
+                break;
+            case "date_asc":
+                orderBy = "created_at ASC";
+                break;
+            case "date_desc":
+            default:
+                orderBy = "created_at DESC";
+                break;
+        }
+
+        sql.append("ORDER BY ").append(orderBy).append(" ");
         sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -226,7 +267,6 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
             if (hasKeyword) {
                 keyword = keyword.trim();
 
-                // limit length to avoid abuse
                 if (keyword.length() > 100) {
                     keyword = keyword.substring(0, 100);
                 }
@@ -330,7 +370,10 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
         blog.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         blog.setStatus(rs.getString("status"));
         blog.setAuthorUserId(rs.getInt("author_user_id"));
-        blog.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+        Timestamp updatedTs = rs.getTimestamp("updated_at");
+        blog.setUpdatedAt(
+                updatedTs != null ? updatedTs.toLocalDateTime() : null
+        );
         blog.setThumbnailUrl(rs.getString("thumbnail_url"));
         blog.setSlug(rs.getString("slug"));
         blog.setCategory(rs.getString("category"));
