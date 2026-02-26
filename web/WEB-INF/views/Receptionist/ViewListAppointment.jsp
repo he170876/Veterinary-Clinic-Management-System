@@ -275,9 +275,40 @@
                 document.getElementById('d-time').textContent = d.time || 'N/A';
                 document.getElementById('d-service').textContent = d.service || 'Chưa có';
                 document.getElementById('d-doctor').textContent = d.veterinarianName || 'Chưa có';
-                const isPending = s === 'pending' || s === 'scheduled';
-                document.getElementById('d-btn-confirm').classList.toggle('hidden', !isPending);
-                document.getElementById('d-btn-reject').classList.toggle('hidden', !isPending);
+
+                // Show/hide footer buttons based on status
+                const allBtns = ['d-btn-confirm','d-btn-reject','d-btn-checkin','d-btn-reschedule','d-btn-cancel','d-btn-markpaid','d-btn-invoice'];
+                allBtns.forEach(id => document.getElementById(id).classList.add('hidden'));
+
+                const isPending   = s === 'pending' || s === 'scheduled';
+                const isRescheduled = s === 're-scheduled' || s === 'rescheduled';
+                const isConfirmed = s === 'confirmed';
+                const isCheckedIn = s === 'checked-in';
+                const isWaiting   = s === 'waiting-for-payment' || s === 'waiting for payment';
+                const isDone      = s === 'completed' || s === 'done';
+
+                if (isPending || isRescheduled) {
+                    document.getElementById('d-btn-confirm').classList.remove('hidden');
+                    document.getElementById('d-btn-reject').classList.remove('hidden');
+                }
+                if (isConfirmed) {
+                    document.getElementById('d-btn-checkin').classList.remove('hidden');
+                    document.getElementById('d-btn-reschedule').classList.remove('hidden');
+                    document.getElementById('d-btn-cancel').classList.remove('hidden');
+                }
+                if (isCheckedIn) {
+                    document.getElementById('d-btn-cancel').classList.remove('hidden');
+                }
+                if (isWaiting) {
+                    document.getElementById('d-btn-markpaid').classList.remove('hidden');
+                }
+                if (isDone) {
+                    document.getElementById('d-btn-invoice').classList.remove('hidden');
+                }
+
+                // Show footer only if there are visible buttons
+                const hasButtons = isPending || isRescheduled || isConfirmed || isCheckedIn || isWaiting || isDone;
+                document.getElementById('detailFooter').classList.toggle('hidden', !hasButtons);
             }
 
             function closeDetail() {
@@ -315,12 +346,7 @@
                     <span class="font-medium">Settings</span>
                 </a>
             </nav>
-            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-                <button class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-300" onclick="toggleDarkMode()">
-                    <span class="material-symbols-outlined text-sm">dark_mode</span>
-                    <span class="text-sm font-medium">Switch Mode</span>
-                </button>
-            </div>
+
         </aside>
         <main class="flex-1 flex flex-col min-h-screen">
             <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 sticky top-0 z-10">
@@ -728,11 +754,18 @@
                         </div>
                     </section>
                 </div>
-                <div id="detailFooter" class="hidden p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between gap-3">
-                    <div class="flex gap-2">
-                        <button id="d-btn-confirm" class="hidden px-5 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Confirm Visit</button>
-                        <button id="d-btn-reject" class="hidden px-5 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">Reject</button>
-                    </div>
+                <div id="detailFooter" class="hidden p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-end gap-2 flex-wrap">
+                    <!-- Pending / Re-Scheduled -->
+                    <button id="d-btn-confirm"     class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl shadow shadow-primary/20 hover:opacity-90 transition-all">Confirm</button>
+                    <button id="d-btn-reject"      class="hidden px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">Reject</button>
+                    <!-- Confirmed -->
+                    <button id="d-btn-checkin"     class="hidden px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all">Check-in</button>
+                    <button id="d-btn-reschedule"  class="hidden px-4 py-2 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-sm font-semibold rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
+                    <button id="d-btn-cancel"      class="hidden px-4 py-2 border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 text-sm font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                    <!-- Waiting for Payment -->
+                    <button id="d-btn-markpaid"    class="hidden px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all">Mark as Paid</button>
+                    <!-- Done -->
+                    <button id="d-btn-invoice"     class="hidden px-4 py-2 border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 text-sm font-semibold rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
                 </div>
             </div>
         </div>

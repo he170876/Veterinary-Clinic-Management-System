@@ -100,6 +100,8 @@ public class LoginServlet extends HttpServlet {
                 response.sendRedirect(contextPath + "/vet/dashboard");
                 break;
             case "receptionist":
+                response.sendRedirect(contextPath + "/receptionist/dashboard");
+                break;
             case "staff":
                 response.sendRedirect(contextPath + "/staff/dashboard");
                 break;
