@@ -283,14 +283,17 @@ public class ImageServlet extends HttpServlet {
      */
     private String saveUploadedFile(HttpServletRequest request, Part filePart) {
         try {
-            // Create uploads directory if it doesn't exist
-            String appPath = request.getServletContext().getRealPath("/");
-            String uploadPath = appPath + File.separator + "uploads" + File.separator + "images";
+            String uploadPath = getUploadBaseDir(request) + File.separator + "images";
             Files.createDirectories(Paths.get(uploadPath));
 
             // Generate unique filename
-            String originalFileName = filePart.getSubmittedFileName();
-            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+            String submitted = filePart.getSubmittedFileName();
+            String originalFileName = submitted == null ? "" : Paths.get(submitted).getFileName().toString();
+            String fileExtension = "";
+            int dot = originalFileName.lastIndexOf('.');
+            if (dot >= 0) {
+                fileExtension = originalFileName.substring(dot);
+            }
             String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
 
             // Save file
@@ -304,5 +307,19 @@ public class ImageServlet extends HttpServlet {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private String getUploadBaseDir(HttpServletRequest request) {
+        String configured = request.getServletContext().getInitParameter("uploadDir");
+        if (configured != null && !configured.trim().isEmpty()) {
+            String path = configured.trim();
+            if (!new File(path).isAbsolute()) {
+                File projectRoot = new File(System.getProperty("user.dir"));
+                path = new File(projectRoot, path).getAbsolutePath();
+            }
+            return path;
+        }
+
+        return System.getProperty("user.dir") + File.separator + "uploads";
     }
 }
