@@ -25,6 +25,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
+import static jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN;
 
 /**
  * Servlet controller for Pet CRUD operations
@@ -82,6 +83,21 @@ public class PetServlet extends HttpServlet {
     private boolean isCustomerUser(User user) {
         return user != null && user.getRole() != null
                 && "Customer".equalsIgnoreCase(user.getRole().getRoleName());
+    }
+
+    private boolean isPetOwnedByCustomer(Pet pet, Customer customer) {
+        return pet != null
+                && customer != null
+                && pet.getOwner() != null
+                && pet.getOwner().getCustomerId() == customer.getCustomerId();
+    }
+
+    private void forwardAccessDenied(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+        request.setAttribute("denyMessage", message);
+        request.setAttribute("backUrl", request.getContextPath() + "/customer/dashboard");
+        response.setStatus(SC_FORBIDDEN);
+        request.getRequestDispatcher("/access-denied.jsp").forward(request, response);
     }
 
     private Optional<Pet> findDeletedPetById(int petId) {
@@ -244,7 +260,7 @@ public class PetServlet extends HttpServlet {
             request.setAttribute("user", currentUser);
         }
         
-        request.getRequestDispatcher("/pets/index.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/pets/index.jsp").forward(request, response);
     }
 
     private void listDeletedPets(HttpServletRequest request, HttpServletResponse response)
@@ -275,7 +291,7 @@ public class PetServlet extends HttpServlet {
         System.out.println("Total deleted pets retrieved: " + (deletedPets != null ? deletedPets.size() : "null"));
         
         request.setAttribute("deletedPets", deletedPets);
-        request.getRequestDispatcher("/pets/trash.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/pets/trash.jsp").forward(request, response);
     }
 
     private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
@@ -284,7 +300,7 @@ public class PetServlet extends HttpServlet {
         User currentUser = getCurrentUser(session);
         request.setAttribute("user", currentUser);
         resolveCurrentCustomer(session).ifPresent(customer -> request.setAttribute("customer", customer));
-        request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
     }
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
@@ -298,15 +314,13 @@ public class PetServlet extends HttpServlet {
             User currentUser = getCurrentUser(session);
             if (isCustomerUser(currentUser)) {
                 Optional<Customer> customerOpt = resolveCurrentCustomer(session);
-                if (!customerOpt.isPresent()
-                        || pet.get().getOwner() == null
-                        || pet.get().getOwner().getCustomerId() != customerOpt.get().getCustomerId()) {
-                    response.sendRedirect("pets?error=You can only edit your own pets");
+                if (!customerOpt.isPresent() || !isPetOwnedByCustomer(pet.get(), customerOpt.get())) {
+                    forwardAccessDenied(request, response, "Bạn không có quyền chỉnh sửa thú cưng của khách hàng khác.");
                     return;
                 }
             }
             request.setAttribute("pet", pet.get());
-            request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
         } else {
             response.sendRedirect("pets?error=Pet not found");
         }
@@ -323,15 +337,13 @@ public class PetServlet extends HttpServlet {
             User currentUser = getCurrentUser(session);
             if (isCustomerUser(currentUser)) {
                 Optional<Customer> customerOpt = resolveCurrentCustomer(session);
-                if (!customerOpt.isPresent()
-                        || pet.get().getOwner() == null
-                        || pet.get().getOwner().getCustomerId() != customerOpt.get().getCustomerId()) {
-                    response.sendRedirect("pets?error=You can only view your own pets");
+                if (!customerOpt.isPresent() || !isPetOwnedByCustomer(pet.get(), customerOpt.get())) {
+                    forwardAccessDenied(request, response, "Bạn không có quyền xem thú cưng của khách hàng khác.");
                     return;
                 }
             }
             request.setAttribute("pet", pet.get());
-            request.getRequestDispatcher("/pets/details.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/details.jsp").forward(request, response);
         } else {
             response.sendRedirect("pets?error=Pet not found");
         }
@@ -353,7 +365,7 @@ public class PetServlet extends HttpServlet {
             } else {
                 if (isCustomerUser(currentUser)) {
                     request.setAttribute("error", "Customer profile not found");
-                    request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+                    request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
                     return;
                 }
                 // For admin/staff creating pet for a customer
@@ -362,7 +374,7 @@ public class PetServlet extends HttpServlet {
                     customerId = Integer.parseInt(customerIdParam);
                 } else {
                     request.setAttribute("error", "Customer ID is required");
-                    request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+                    request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
                     return;
                 }
             }
@@ -377,7 +389,7 @@ public class PetServlet extends HttpServlet {
                         System.err.println("❌ Access denied: Customer " + customer.getCustomerId() + 
                                          " trying to create pet for customer " + paramCustomerId);
                         request.setAttribute("error", "You can only create pets for your own account");
-                        request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+                        request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
                         return;
                     }
                 }
@@ -428,17 +440,17 @@ public class PetServlet extends HttpServlet {
             System.err.println("❌ Format error: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Invalid input format: " + e.getMessage());
-            request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
         } catch (IllegalArgumentException e) {
             System.err.println("❌ Validation error: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", e.getMessage());
-            request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
         } catch (Exception e) {
             System.err.println("❌ Unexpected error in createPet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Error creating pet: " + e.getMessage());
-            request.getRequestDispatcher("/pets/create.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
         }
     }
 
@@ -460,7 +472,7 @@ public class PetServlet extends HttpServlet {
             } else {
                 if (isCustomerUser(currentUser)) {
                     request.setAttribute("error", "Customer profile not found");
-                    request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+                    request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
                     return;
                 }
                 String customerIdParam = request.getParameter("customer_id");
@@ -473,7 +485,7 @@ public class PetServlet extends HttpServlet {
             Optional<Pet> petOpt = petService.getPetById(petId);
             if (!petOpt.isPresent()) {
                 request.setAttribute("error", "Pet not found");
-                request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
                 return;
             }
             
@@ -484,8 +496,7 @@ public class PetServlet extends HttpServlet {
             if (sessionCustomer != null && petOwnerId != sessionCustomer.getCustomerId()) {
                 System.err.println("❌ Access denied: Customer " + sessionCustomer.getCustomerId() + 
                                  " trying to edit pet of customer " + petOwnerId);
-                request.setAttribute("error", "You can only edit your own pets");
-                request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+                forwardAccessDenied(request, response, "Bạn không có quyền chỉnh sửa thú cưng của khách hàng khác.");
                 return;
             }
             
@@ -538,17 +549,17 @@ public class PetServlet extends HttpServlet {
             System.err.println("❌ Format error in updatePet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Invalid input format: " + e.getMessage());
-            request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
         } catch (IllegalArgumentException e) {
             System.err.println("❌ Validation error in updatePet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", e.getMessage());
-            request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
         } catch (Exception e) {
             System.err.println("❌ Unexpected error in updatePet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Error updating pet: " + e.getMessage());
-            request.getRequestDispatcher("/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
         }
     }
 
@@ -579,7 +590,7 @@ public class PetServlet extends HttpServlet {
             }
             
             // Validate: Check if pet exists and belongs to customer
-            Optional<Pet> petOpt = findDeletedPetById(petId);
+            Optional<Pet> petOpt = petService.getPetById(petId);
             if (petOpt.isPresent()) {
                 Pet pet = petOpt.get();
                 int petOwnerId = pet.getOwner().getCustomerId();
@@ -591,9 +602,12 @@ public class PetServlet extends HttpServlet {
                 if (sessionCustomer != null && petOwnerId != sessionCustomer.getCustomerId()) {
                     System.err.println("❌ Access denied: Customer " + sessionCustomer.getCustomerId() + 
                                      " trying to delete pet of customer " + petOwnerId);
-                    response.sendRedirect("pets?error=You can only delete your own pets");
+                    forwardAccessDenied(request, response, "Bạn không có quyền xóa thú cưng của khách hàng khác.");
                     return;
                 }
+            } else {
+                response.sendRedirect("pets?error=Pet not found");
+                return;
             }
             
             boolean success = petService.deletePet(petId);
@@ -647,9 +661,7 @@ public class PetServlet extends HttpServlet {
                 if (sessionCustomer != null && petOwnerId != sessionCustomer.getCustomerId()) {
                     System.err.println("❌ Access denied: Customer " + sessionCustomer.getCustomerId() + 
                                      " trying to hard delete pet of customer " + petOwnerId);
-                    String fallback = buildDefaultDashboardUrl(request, customerId);
-                    String target = appendQueryParam(resolveSafeReturnUrl(request, fallback), "error", "You can only delete your own pets");
-                    response.sendRedirect(target);
+                    forwardAccessDenied(request, response, "Bạn không có quyền xóa vĩnh viễn thú cưng của khách hàng khác.");
                     return;
                 }
             } else {
@@ -698,7 +710,7 @@ public class PetServlet extends HttpServlet {
                 }
 
                 if (isCustomerUser(currentUser) && (sessionCustomer == null || petOwnerId != sessionCustomer.getCustomerId())) {
-                    response.sendRedirect("pets?error=You can only restore your own pets");
+                    forwardAccessDenied(request, response, "Bạn không có quyền khôi phục thú cưng của khách hàng khác.");
                     return;
                 }
             } else {
@@ -806,7 +818,7 @@ public class PetServlet extends HttpServlet {
         request.setAttribute("searchQuery", searchQuery);
         request.setAttribute("user", currentUser);
         
-        request.getRequestDispatcher("/pets/index.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/pets/index.jsp").forward(request, response);
     }
     
     /**

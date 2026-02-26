@@ -96,6 +96,9 @@
     String photoUrl = resolvePhotoUrl(request,
         pet != null ? pet.getPhotoUrl() : null,
         "https://via.placeholder.com/300/cccccc/666666?text=" + (species != null && !"N/A".equals(species) ? species.substring(0,1) : "P"));
+    model.User currentUser = (model.User) session.getAttribute("currentUser");
+    String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
+    boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
 %>
 <div class="flex h-screen overflow-hidden">
 <!-- Sidebar -->
@@ -167,6 +170,11 @@
 </div>
 </div>
 <div class="flex items-center gap-3">
+<% if (isCustomerUser) { %>
+<a class="px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:brightness-110 transition-all" href="<%= request.getContextPath() %>/customer/dashboard">
+                            Quay lại trang đầu
+                        </a>
+<% } %>
 <a class="px-5 py-2.5 bg-background-light dark:bg-zinc-800 border border-[#e5e7eb] dark:border-zinc-700 rounded-lg text-sm font-bold hover:bg-zinc-100 transition-colors" href="<%= request.getContextPath() %>/pets?action=edit&id=<%= petId %>">
                             Edit Pet
                         </a>

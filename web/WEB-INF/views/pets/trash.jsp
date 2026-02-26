@@ -63,6 +63,9 @@
     if (deletedPets == null) {
         deletedPets = new java.util.ArrayList<>();
     }
+    User currentUser = (User) session.getAttribute("currentUser");
+    String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
+    boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
     String returnUrl = request.getContextPath() + "/pets";
     String encodedReturnUrl = "";
     try {
@@ -98,6 +101,12 @@
 <div class="flex items-center gap-4 flex-1">
 <h2 class="text-xl font-bold tracking-tight">Deleted Pets (Trash)</h2>
 </div>
+<% if (isCustomerUser) { %>
+<a href="<%= request.getContextPath() %>/customer/dashboard" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 font-medium flex items-center gap-2 text-sm">
+    <span class="material-symbols-outlined text-lg">arrow_back</span>
+    Quay lại trang đầu
+</a>
+<% } %>
 </header>
 <div class="p-8 max-w-7xl mx-auto w-full">
 <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6">

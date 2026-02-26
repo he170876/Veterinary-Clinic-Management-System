@@ -1,3 +1,4 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="java.util.List,java.time.LocalDate,java.time.Period,java.time.temporal.ChronoUnit,model.Pet,model.Customer,model.User" %>
 <%!
     private String resolvePhotoUrl(jakarta.servlet.http.HttpServletRequest request, String rawPhotoUrl, String fallbackUrl) {
@@ -67,6 +68,9 @@
     List<Pet> pets = (List<Pet>) request.getAttribute("pets");
     String searchQuery = (String) request.getAttribute("searchQuery");
     if (searchQuery == null) searchQuery = "";
+    User currentUser = (User) session.getAttribute("currentUser");
+    String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
+    boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
 %>
 <%
     if (pets == null) {
@@ -131,6 +135,12 @@
     <span class="material-symbols-outlined text-lg">delete</span>
     View Trash
 </a>
+<% if (isCustomerUser) { %>
+<a href="<%= request.getContextPath() %>/customer/dashboard" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 font-medium flex items-center gap-2 text-sm">
+    <span class="material-symbols-outlined text-lg">arrow_back</span>
+    Quay l&#7841;i trang &#273;&#7847;u
+</a>
+<% } %>
 </div>
 <div class="flex items-center gap-6">
 <button class="relative p-2 text-[#8d755e] hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] rounded-full transition-colors">
