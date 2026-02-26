@@ -2,6 +2,8 @@
 <%@ page import="model.User" %>
 <%
     User user = (User) request.getAttribute("user");
+    Integer petCount = (Integer) request.getAttribute("petCount");
+    if (petCount == null) petCount = 0;
     if (user == null) {
         response.sendRedirect(request.getContextPath() + "/login");
         return;
@@ -61,7 +63,7 @@
                         <span class="material-symbols-outlined text-2xl">pets</span>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-900">0</p>
+                        <p class="text-2xl font-bold text-gray-900"><%= petCount %></p>
                         <p class="text-sm text-gray-500">My Pets</p>
                     </div>
                 </div>
@@ -93,7 +95,7 @@
         <!-- Quick Actions -->
         <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <a href="#" class="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all">
+            <a href="<%= ctx %>/pets?action=create" class="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all">
                 <div class="size-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">add</span>
                 </div>

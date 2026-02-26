@@ -10,6 +10,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import model.Role;
 import model.User;
@@ -19,7 +21,9 @@ import model.User;
  */
 public class UserJdbcDAO extends BaseDAO implements UserDAO {
 
-    /** Last SQL error message when createCustomerUser fails (for UI). */
+    /**
+     * Last SQL error message when createCustomerUser fails (for UI).
+     */
     private static volatile String lastInsertError;
 
     public static String getLastInsertError() {
@@ -34,8 +38,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
                 + "JOIN Roles r ON u.role_id = r.role_id "
                 + "WHERE u.email = ?";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
@@ -57,8 +60,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
                 + "JOIN Roles r ON u.role_id = r.role_id "
                 + "WHERE u.user_id = ?";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -76,8 +78,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     public boolean existsByEmail(String email) {
         String sql = "SELECT 1 FROM Users WHERE email = ?";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
@@ -93,8 +94,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     public Optional<Role> findRoleByName(String roleName) {
         String sql = "SELECT role_id, role_name FROM Roles WHERE LTRIM(RTRIM(role_name)) COLLATE SQL_Latin1_General_CP1_CI_AS = LTRIM(RTRIM(?))";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, roleName == null ? "" : roleName);
             try (ResultSet rs = ps.executeQuery()) {
@@ -113,35 +113,56 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
 
     @Override
     public User createCustomerUser(User user) {
-        String sql = "INSERT INTO Users (email, password, role_id, status, created_at, updated_at, "
+        String insertUserSql = "INSERT INTO Users (email, password, role_id, status, created_at, updated_at, "
                 + "full_name, phone, address) "
                 + "OUTPUT INSERTED.user_id "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String insertCustomerSql = "INSERT INTO Customers (user_id) VALUES (?)";
 
         LocalDateTime now = LocalDateTime.now();
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(insertUserSql)) {
 
-            ps.setString(1, user.getEmail());
-            ps.setString(2, user.getPasswordHash());
-            ps.setInt(3, user.getRole().getRoleId());
-            ps.setString(4, user.getStatus());
-            ps.setTimestamp(5, Timestamp.valueOf(now));
-            ps.setTimestamp(6, Timestamp.valueOf(now));
-            ps.setString(7, user.getFullName());
-            ps.setString(8, user.getPhone());
-            ps.setString(9, user.getAddress());
+                    ps.setString(1, user.getEmail());
+                    ps.setString(2, user.getPasswordHash());
+                    ps.setInt(3, user.getRole().getRoleId());
+                    ps.setString(4, user.getStatus());
+                    ps.setTimestamp(5, Timestamp.valueOf(now));
+                    ps.setTimestamp(6, Timestamp.valueOf(now));
+                    ps.setString(7, user.getFullName());
+                    ps.setString(8, user.getPhone());
+                    ps.setString(9, user.getAddress());
 
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    user.setUserId(rs.getInt(1));
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            user.setUserId(rs.getInt(1));
+                        } else {
+                            throw new SQLException("Creating user failed, no user_id returned.");
+                        }
+                    }
                 }
+
+                try (PreparedStatement customerPs = conn.prepareStatement(insertCustomerSql)) {
+                    customerPs.setInt(1, user.getUserId());
+                    customerPs.executeUpdate();
+                }
+
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
             }
+
             user.setCreatedAt(now);
             user.setUpdatedAt(now);
             lastInsertError = null;
             return user;
+
         } catch (SQLException ex) {
             lastInsertError = ex.getMessage();
             System.err.println("[UserJdbcDAO] INSERT failed: " + lastInsertError);
@@ -154,8 +175,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     public boolean updateUser(User user) {
         String sql = "UPDATE Users SET full_name = ?, phone = ?, address = ?, profile_picture_url = ?, updated_at = ? WHERE user_id = ?";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, user.getFullName());
             ps.setString(2, user.getPhone());
@@ -178,8 +198,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     @Override
     public boolean updatePassword(int userId, String newPasswordHash) {
         String sql = "UPDATE Users SET password = ?, updated_at = ? WHERE user_id = ?";
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, newPasswordHash);
             ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
             ps.setInt(3, userId);
@@ -188,6 +207,188 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
             ex.printStackTrace();
         }
         return false;
+    }
+
+    @Override
+    public List<User> filterUsers(String keyword, Integer roleId, String status,
+            String sort, int offset, int pageSize) {
+
+        List<User> users = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder("""
+        SELECT u.user_id, u.email, u.password, u.status, u.created_at, u.updated_at,
+               u.full_name, u.phone, u.address,
+               r.role_id, r.role_name
+        FROM Users u
+        JOIN Roles r ON u.role_id = r.role_id
+        WHERE 1=1
+    """);
+
+        List<Object> params = new ArrayList<>();
+
+        /* ===== KEYWORD ===== */
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (u.full_name LIKE ? ESCAPE '\\' OR u.email LIKE ? ESCAPE '\\')");
+
+            String kw = "%" + escapeLike(keyword.trim()) + "%";
+            params.add(kw);
+            params.add(kw);
+        }
+
+        /* ===== ROLE ===== */
+        if (roleId != null) {
+            sql.append(" AND u.role_id = ?");
+            params.add(roleId);
+        }
+
+        /* ===== STATUS ===== */
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append(" AND u.status = ?");
+            params.add(status);
+        }
+
+        /* ===== SORT ===== */
+        if ("id_asc".equalsIgnoreCase(sort)) {
+            sql.append(" ORDER BY u.user_id ASC ");
+        } else {
+            // mặc định
+            sql.append(" ORDER BY u.user_id DESC ");
+        }
+
+        /* ===== PAGINATION (SQL SERVER) ===== */
+        sql.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY ");
+
+        params.add(offset);
+        params.add(pageSize);
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapRowToUser(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return users;
+    }
+
+    private String escapeLike(String input) {
+        return input
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+    }
+
+    @Override
+    public int countUsers(String keyword, Integer roleId, String status) {
+
+        StringBuilder sql = new StringBuilder("""
+        SELECT COUNT(*)
+        FROM Users u
+        WHERE 1=1
+    """);
+
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (u.full_name LIKE ? OR u.email LIKE ?)");
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw);
+            params.add(kw);
+        }
+
+        if (roleId != null) {
+            sql.append(" AND u.role_id = ?");
+            params.add(roleId);
+        }
+
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append(" AND u.status = ?");
+            params.add(status);
+        }
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    @Override
+    public void updateUserStatus(int userId, String status) {
+        String sql = "UPDATE Users SET status = ?, updated_at = GETDATE() WHERE user_id = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, status);
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean updateUserByAdmin(
+            int userId,
+            String fullName,
+            String email,
+            String phone,
+            String address,
+            int roleId,
+            String status
+    ) {
+        String sql = """
+        UPDATE Users
+        SET full_name = ?,
+            email = ?,
+            phone = ?,
+            address = ?,
+            role_id = ?,
+            status = ?,
+            updated_at = ?
+        WHERE user_id = ?
+    """;
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, fullName);
+            ps.setString(2, email);
+            ps.setString(3, phone);
+            ps.setString(4, address);
+            ps.setInt(5, roleId);
+            ps.setString(6, status);
+            ps.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setInt(8, userId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("[UserJdbcDAO] updateUserByAdmin failed");
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Override

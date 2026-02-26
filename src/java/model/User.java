@@ -12,7 +12,7 @@ public class User {
     private String email;
     private String passwordHash;
     private Role role;
-    private String status; // Active, Inactive, Locked, etc.
+    private String status; // Active, Inactive, Blocked, etc.
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String fullName;

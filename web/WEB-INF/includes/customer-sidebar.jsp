@@ -22,6 +22,10 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 <p class="text-sm font-medium">Dashboard</p>
             </a>
+            <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="<%= ctx %>/pets">
+                <span class="material-symbols-outlined">pets</span>
+                <p class="text-sm font-medium">My Pets</p>
+            </a>
             <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
                 <span class="material-symbols-outlined">calendar_today</span>
                 <p class="text-sm font-medium">Appointments</p>

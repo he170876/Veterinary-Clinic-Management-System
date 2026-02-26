@@ -101,6 +101,89 @@ VALUES (
 );
 GO
 
+INSERT INTO Users (email, password, role_id, status, full_name, phone, address)
+VALUES
+-- ===== CUSTOMER =====
+(
+    'customer.active@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'Customer'),
+    'Active',
+    'John Active',
+    '+1 (555) 100-0001',
+    'New York'
+),
+(
+    'customer.inactive@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'Customer'),
+    'Inactive',
+    'John Inactive',
+    '+1 (555) 100-0002',
+    'California'
+),
+(
+    'customer.blocked@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'Customer'),
+    'Blocked',
+    'John Blocked',
+    '+1 (555) 100-0003',
+    NULL
+),
+
+-- ===== RECEPTIONIST =====
+(
+    'reception.active@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'Receptionist'),
+    'Active',
+    'Emma Davis',
+    '+1 (555) 300-4001',
+    NULL
+),
+(
+    'reception.inactive@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'Receptionist'),
+    'Inactive',
+    'Emma Inactive',
+    '+1 (555) 300-4002',
+    NULL
+),
+
+-- ===== VETERINARIAN =====
+(
+    'vet.active@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'Veterinarian'),
+    'Active',
+    'Dr. Sarah Wilson',
+    '+1 (555) 200-3001',
+    NULL
+),
+(
+    'vet.blocked@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'Veterinarian'),
+    'Blocked',
+    'Dr. Blocked',
+    '+1 (555) 200-3002',
+    NULL
+),
+
+-- ===== LAB STAFF =====
+(
+    'lab.active@anipats.com',
+    '87274af01876341455b32d805946f272871bb42effa6604dccf28bb027afa82b',
+    (SELECT role_id FROM Roles WHERE role_name = 'LabStaff'),
+    'Active',
+    'Michael Brown',
+    '+1 (555) 400-5001',
+    NULL
+);
+
+
 /* ========= USER SUB TYPES ========= */
 INSERT INTO Customers (user_id)
 SELECT user_id FROM Users WHERE email = 'dev@anipats.com';

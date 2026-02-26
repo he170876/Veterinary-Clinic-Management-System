@@ -8,6 +8,7 @@ public class Customer {
 
     private int customerId;
     private User user;
+    private String profilePicture;
 
     public Customer() {
     }
@@ -26,6 +27,18 @@ public class Customer {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public String getName() {
+        return user != null ? user.getFullName() : "Unknown";
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
 }
 
