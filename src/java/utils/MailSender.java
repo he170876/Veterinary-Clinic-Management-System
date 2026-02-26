@@ -51,8 +51,12 @@ public final class MailSender {
             Object session = sessionClass.getMethod("getInstance", Properties.class).invoke(null, props);
             Object msg = messageClass.getConstructor(sessionClass).newInstance(session);
 
-            Object fromAddr = internetAddressClass.getMethod("parse", String.class).invoke(null, from);
-            messageClass.getMethod("setFrom", addressClass).invoke(msg, fromAddr);
+            // InternetAddress.parse(String) returns Address[]; setFrom expects a single Address
+            Object fromArray = internetAddressClass.getMethod("parse", String.class).invoke(null, from);
+            Object fromAddr = Array.getLength(fromArray) > 0 ? Array.get(fromArray, 0) : null;
+            if (fromAddr != null) {
+                messageClass.getMethod("setFrom", addressClass).invoke(msg, fromAddr);
+            }
 
             Object[] toAddrs = (Object[]) internetAddressClass.getMethod("parse", String.class).invoke(null, to);
             Object toType = recipientTypeClass.getField("TO").get(null);

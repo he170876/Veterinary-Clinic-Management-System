@@ -69,17 +69,16 @@ public class CustomerEditProfileServlet extends HttpServlet {
             profilePart = request.getPart("profilePicture");
         } catch (Exception ignored) { /* not multipart or no part */ }
 
-        String fullName = ValidationUtil.trim(request.getParameter("fullName"));
+        // Normalize name and address: trim and collapse spaces (e.g. "  Nguyễn   A  " -> "Nguyễn A")
+        String fullName = ValidationUtil.normalizeFullName(request.getParameter("fullName"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
-        String address = ValidationUtil.trim(request.getParameter("address"));
+        String address = ValidationUtil.normalizeAddress(request.getParameter("address"));
 
         boolean pendingPhone = session.getAttribute("pendingPhoneRequired") != null;
         String redirectSuffix = pendingPhone ? "?required=phone" : "";
 
-        if (ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("fullName"))
-                || (request.getParameter("phone") != null && ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("phone")))
-                || (request.getParameter("address") != null && ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("address")))) {
-            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Fields must not contain leading or trailing spaces.", StandardCharsets.UTF_8));
+        if (request.getParameter("phone") != null && ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("phone"))) {
+            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Phone must not contain leading or trailing spaces.", StandardCharsets.UTF_8));
             return;
         }
 

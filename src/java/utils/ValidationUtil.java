@@ -29,6 +29,26 @@ public final class ValidationUtil {
         return !s.equals(s.trim());
     }
 
+    /**
+     * Normalize name: trim leading/trailing spaces and collapse multiple spaces between words to one.
+     * Use this before validating so "  Nguyễn   Văn   A  " becomes "Nguyễn Văn A".
+     * Returns null if null or empty after normalize.
+     */
+    public static String normalizeFullName(String s) {
+        if (s == null) return null;
+        String t = s.trim().replaceAll("\\s+", " ");
+        return t.isEmpty() ? null : t;
+    }
+
+    /**
+     * Normalize address: trim and collapse multiple spaces. Returns null if null or empty after normalize.
+     */
+    public static String normalizeAddress(String s) {
+        if (s == null) return null;
+        String t = s.trim().replaceAll("\\s+", " ");
+        return t.isEmpty() ? null : t;
+    }
+
     /** Full name: 1-30 characters, letters and spaces only (Unicode letters allowed, e.g. Vietnamese). */
     public static boolean isValidFullName(String name) {
         if (name == null) return false;

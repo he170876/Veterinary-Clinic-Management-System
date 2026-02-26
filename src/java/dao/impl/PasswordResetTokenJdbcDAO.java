@@ -32,6 +32,7 @@ public class PasswordResetTokenJdbcDAO extends BaseDAO implements PasswordResetT
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            throw new RuntimeException("Failed to create password reset token", e);
         }
     }
 

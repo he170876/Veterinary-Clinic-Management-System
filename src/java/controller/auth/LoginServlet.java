@@ -3,6 +3,8 @@ package controller.auth;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -21,6 +23,8 @@ import utils.ValidationUtil;
 @WebServlet(name = "LoginServlet", urlPatterns = {"/login"})
 public class LoginServlet extends HttpServlet {
 
+    private static final Logger LOG = Logger.getLogger(LoginServlet.class.getName());
+
     private AuthService authService;
 
     @Override
@@ -35,6 +39,8 @@ public class LoginServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         if (session != null && session.getAttribute("currentUser") != null) {
             User user = (User) session.getAttribute("currentUser");
+            LOG.log(Level.FINE, "GET /login: already logged in as {0} (roleId={1}), redirecting to dashboard",
+                    new Object[]{user.getEmail(), user.getRole() != null ? user.getRole().getRoleId() : null});
             redirectToDashboard(request, response, user);
             return;
         }
@@ -48,19 +54,24 @@ public class LoginServlet extends HttpServlet {
         String email = ValidationUtil.trim(request.getParameter("email"));
         String password = request.getParameter("password");
 
+        LOG.log(Level.FINE, "POST /login: attempt for email={0}", email);
+
         if (email == null || password == null || password.isEmpty()) {
+            LOG.log(Level.FINE, "POST /login: rejected - missing email or password");
             request.setAttribute("error", "Please enter both email and password.");
             request.getRequestDispatcher("login.jsp").forward(request, response);
             return;
         }
 
         if (ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("email"))) {
+            LOG.log(Level.FINE, "POST /login: rejected - email has leading/trailing spaces");
             request.setAttribute("error", "Email must not contain leading or trailing spaces.");
             request.getRequestDispatcher("login.jsp").forward(request, response);
             return;
         }
 
         if (!ValidationUtil.isValidGmail(email)) {
+            LOG.log(Level.FINE, "POST /login: rejected - email not Gmail");
             request.setAttribute("error", "Email must be a Gmail address (@gmail.com).");
             request.getRequestDispatcher("login.jsp").forward(request, response);
             return;
@@ -69,13 +80,17 @@ public class LoginServlet extends HttpServlet {
         Optional<User> userOpt = authService.login(email, password);
 
         if (!userOpt.isPresent()) {
+            LOG.log(Level.FINE, "POST /login: failed - invalid email or password for {0}", email);
             request.setAttribute("error", "Invalid email or password.");
             request.getRequestDispatcher("login.jsp").forward(request, response);
             return;
         }
 
         User user = userOpt.get();
-        
+        int roleId = user.getRole() != null ? user.getRole().getRoleId() : 0;
+        LOG.log(Level.FINE, "POST /login: success userId={0}, email={1}, roleId={2}",
+                new Object[]{user.getUserId(), user.getEmail(), roleId});
+
         // Create session and store user
         HttpSession session = request.getSession(true);
         session.setAttribute("currentUser", user);
@@ -87,29 +102,29 @@ public class LoginServlet extends HttpServlet {
 
     private void redirectToDashboard(HttpServletRequest request, HttpServletResponse response, User user)
             throws IOException {
-        String roleName = user.getRole() != null ? user.getRole().getRoleName() : "";
+        int roleId = (user.getRole() != null) ? user.getRole().getRoleId() : 0;
         String contextPath = request.getContextPath();
-
-        switch (roleName.toLowerCase()) {
-            case "clinicowner":
-            case "owner":
-            case "admin":
-                response.sendRedirect(contextPath + "/owner/dashboard");
+        String path;
+        switch (roleId) {
+            case 5:  // Admin
+            case 6:  // ClinicOwner
+                path = contextPath + "/owner/dashboard";
                 break;
-            case "veterinarian":
-                response.sendRedirect(contextPath + "/vet/dashboard");
+            case 2:  // Veterinarian
+                path = contextPath + "/vet/dashboard";
                 break;
-            case "receptionist":
-            case "staff":
-                response.sendRedirect(contextPath + "/staff/dashboard");
+            case 3:  // Receptionist
+                path = contextPath + "/staff/dashboard";
                 break;
-            case "labstaff":
-                response.sendRedirect(contextPath + "/lab/dashboard");
+            case 4:  // LabStaff
+                path = contextPath + "/lab/dashboard";
                 break;
+            case 1:  // Customer
             default:
-                // Customer or unknown
-                response.sendRedirect(contextPath + "/customer/dashboard");
+                path = contextPath + "/customer/dashboard";
                 break;
         }
+        LOG.log(Level.FINE, "redirectToDashboard: roleId={0} -> {1}", new Object[]{roleId, path});
+        response.sendRedirect(path);
     }
 }
