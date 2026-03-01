@@ -1,4 +1,4 @@
-<%-- Shared customer sidebar: include from dashboard, profile, edit-profile. Set request.setAttribute("customerCurrentPage", "dashboard"|"profile"|"edit-profile") to highlight active link. --%>
+<%-- Shared customer sidebar: include from dashboard, profile, edit-profile, pets, medical-history. Set request.setAttribute("customerCurrentPage", "dashboard"|"profile"|"edit-profile"|"pets"|"medical-history") to highlight active link. --%>
 <%
     String ctx = request.getContextPath();
     String currentPage = request.getAttribute("customerCurrentPage") != null ? (String) request.getAttribute("customerCurrentPage") : "";
@@ -22,7 +22,7 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 <p class="text-sm font-medium">Dashboard</p>
             </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="<%= ctx %>/pets">
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors <%= "pets".equals(currentPage) ? "bg-primary/10 text-primary" : "text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10" %>" href="<%= ctx %>/pets">
                 <span class="material-symbols-outlined">pets</span>
                 <p class="text-sm font-medium">My Pets</p>
             </a>
@@ -38,7 +38,7 @@
                 <span class="material-symbols-outlined">settings</span>
                 <p class="text-sm font-medium">Settings</p>
             </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
+            <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors <%= "medical-history".equals(currentPage) ? "bg-primary/10 text-primary" : "" %>" href="<%= ctx %>/customer/medical-history">
                 <span class="material-symbols-outlined">medical_services</span>
                 <p class="text-sm font-medium">Medical Records</p>
             </a>

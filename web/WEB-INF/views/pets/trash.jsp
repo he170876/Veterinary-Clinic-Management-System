@@ -73,29 +73,10 @@
     } catch (Exception ex) {
         encodedReturnUrl = "";
     }
+    request.setAttribute("customerCurrentPage", "pets");
 %>
 <div class="flex h-screen overflow-hidden">
-<aside class="w-64 flex flex-col bg-white dark:bg-[#2d2116] border-r border-[#f5f2f0] dark:border-[#3d2f23]">
-<div class="p-6 flex items-center gap-3">
-<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
-<span class="material-symbols-outlined text-2xl">pets</span>
-</div>
-<div>
-<h1 class="text-xl font-bold text-primary leading-tight">Anipat</h1>
-<p class="text-xs text-[#8d755e] dark:text-[#a68e7a]">Pet Management</p>
-</div>
-</div>
-<nav class="flex-1 mt-4 px-3 space-y-1">
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] transition-colors" href="<%= request.getContextPath() %>/pets">
-<span class="material-symbols-outlined">pets</span>
-<span class="text-sm font-semibold">My Pets</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#ff7b0015] text-primary border-l-4 border-primary transition-colors" href="<%= request.getContextPath() %>/pets?action=trash&returnUrl=<%= encodedReturnUrl %>">
-<span class="material-symbols-outlined">delete</span>
-<span class="text-sm font-bold">Trash</span>
-</a>
-</nav>
-</aside>
+<jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <main class="flex-1 flex flex-col overflow-y-auto">
 <header class="flex items-center justify-between bg-white dark:bg-[#2d2116] border-b border-[#f5f2f0] dark:border-[#3d2f23] px-8 py-4 sticky top-0 z-10">
 <div class="flex items-center gap-4 flex-1">

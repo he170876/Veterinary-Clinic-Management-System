@@ -9,6 +9,7 @@
 
     Customer customer = (Customer) request.getAttribute("customer");
     Integer customerId = customer != null ? customer.getCustomerId() : null;
+    request.setAttribute("customerCurrentPage", "pets");
 %>
 <!DOCTYPE html>
 
@@ -49,49 +50,7 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-[#181410] dark:text-[#f5f2f0]">
 <div class="flex h-screen overflow-hidden">
-<!-- Sidebar Navigation -->
-<aside class="w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark hidden md:flex flex-col justify-between p-4">
-<div class="flex flex-col gap-8">
-<div class="flex items-center gap-3 px-2">
-<div class="bg-primary rounded-lg p-1 text-white">
-<span class="material-symbols-outlined text-3xl">pets</span>
-</div>
-<div class="flex flex-col">
-<h1 class="text-[#181410] dark:text-white text-lg font-bold leading-tight">Anipat</h1>
-<p class="text-gray-500 text-xs font-normal">Pet Management</p>
-</div>
-</div>
-<nav class="flex flex-col gap-2">
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">dashboard</span>
-<span class="text-sm font-medium">Dashboard</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg" href="#">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">pets</span>
-<span class="text-sm font-medium">My Pets</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">medical_services</span>
-<span class="text-sm font-medium">Medical Records</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">calendar_today</span>
-<span class="text-sm font-medium">Appointments</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">settings</span>
-<span class="text-sm font-medium">Settings</span>
-</a>
-</nav>
-</div>
-<div class="flex items-center gap-3 border-t border-gray-100 dark:border-gray-800 pt-4">
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Profile photo of the user" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCNjCYz5ElV09GP68HLQU99MlT9I6woiAsDeGuSR5fndELAT97y0IMovkZXhNd5cpvC2a6bXv2wJ-BZZaUWNF-6iPNYTtUkhylyd5QCMEhDJSJHBZw_GQjX3xl21XzTdwJR4EBlITr3AQOp4x5Kzvm6y-AKhcG_oQkdcTqKcpkQc-OiaHHIPkzqb6ZHoVkODYfGKl9i9qv39a2Eeni1c0ucpXoIkGWEsVJv_lC-KTuqgKmZfFbuV16VNpbzp5kzntnKgvBH1-85HQ");'></div>
-<div class="flex flex-col overflow-hidden">
-<p class="text-sm font-bold truncate">Alex Johnson</p>
-<p class="text-xs text-gray-500 truncate">Pro Account</p>
-</div>
-</div>
-</aside>
+<jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <!-- Main Content Area -->
 <main class="flex-1 flex flex-col overflow-y-auto">
 <!-- Header -->

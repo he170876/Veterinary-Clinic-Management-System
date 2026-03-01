@@ -1,8 +1,12 @@
 package controller.customer;
 
 import dao.CustomerDAO;
+import dao.MedicalRecordDAO;
 import dao.impl.CustomerJdbcDAO;
+import dao.impl.MedicalRecordJdbcDAO;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -11,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Customer;
+import model.MedicalRecord;
 import model.User;
 import service.PetService;
 import service.impl.PetServiceImpl;
@@ -23,11 +28,13 @@ public class CustomerDashboardServlet extends HttpServlet {
 
     private transient CustomerDAO customerDAO;
     private transient PetService petService;
+    private transient MedicalRecordDAO medicalRecordDAO;
 
     @Override
     public void init() throws ServletException {
         customerDAO = new CustomerJdbcDAO();
         petService = new PetServiceImpl();
+        medicalRecordDAO = new MedicalRecordJdbcDAO();
     }
 
     private Optional<Customer> resolveCurrentCustomer(User user) {
@@ -76,8 +83,16 @@ public class CustomerDashboardServlet extends HttpServlet {
             petCount = petService.getPetsByCustomerId(customerOpt.get().getCustomerId()).size();
         }
 
+        // Get recent medical records (limit to 4)
+        List<MedicalRecord> recentMedicalRecords = new ArrayList<>();
+        if (customerOpt.isPresent()) {
+            recentMedicalRecords = medicalRecordDAO.getRecentMedicalHistoryByCustomer(
+                customerOpt.get().getCustomerId(), 4);
+        }
+
         request.setAttribute("user", user);
         request.setAttribute("petCount", petCount);
+        request.setAttribute("recentMedicalRecords", recentMedicalRecords);
         request.getRequestDispatcher("/WEB-INF/views/customer/dashboard.jsp").forward(request, response);
     }
 }
