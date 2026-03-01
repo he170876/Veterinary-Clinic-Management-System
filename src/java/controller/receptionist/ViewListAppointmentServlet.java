@@ -130,7 +130,10 @@ public class ViewListAppointmentServlet extends HttpServlet {
                         // Map filter to actual database statuses
                         switch (statusFilter) {
                             case "Pending":
-                                return "Scheduled".equalsIgnoreCase(status) || "Pending".equalsIgnoreCase(status);
+                                return "Scheduled".equalsIgnoreCase(status)
+                                        || "Pending".equalsIgnoreCase(status)
+                                        || "Reschedule-Requested".equalsIgnoreCase(status)
+                                        || "Doctor-Change-Requested".equalsIgnoreCase(status);
                             case "Confirmed":
                                 return "Confirmed".equalsIgnoreCase(status);
                             case "Re-Scheduled":
@@ -161,7 +164,11 @@ public class ViewListAppointmentServlet extends HttpServlet {
         // Count by status (within the selected date range)
         int totalCount = dateFiltered.size();
         int pendingCount = (int) dateFiltered.stream()
-                .filter(a -> a.getStatus() != null && ("Scheduled".equalsIgnoreCase(a.getStatus()) || "Pending".equalsIgnoreCase(a.getStatus())))
+            .filter(a -> a.getStatus() != null
+                && ("Scheduled".equalsIgnoreCase(a.getStatus())
+                || "Pending".equalsIgnoreCase(a.getStatus())
+                || "Reschedule-Requested".equalsIgnoreCase(a.getStatus())
+                || "Doctor-Change-Requested".equalsIgnoreCase(a.getStatus())))
                 .count();
         int confirmedCount = (int) dateFiltered.stream()
                 .filter(a -> a.getStatus() != null && "Confirmed".equalsIgnoreCase(a.getStatus()))

@@ -12,8 +12,10 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class AppointmentDAO extends DBContext {
@@ -387,6 +389,7 @@ public class AppointmentDAO extends DBContext {
             String message = "appointmentId=" + appointmentId
                     + ";customerId=" + customerId
                     + ";petId=" + petId
+                    + ";previousStatus=" + currentStatus
                     + ";oldTime=" + oldTime
                     + ";requestedTime=" + requestedAppointmentTime
                     + ";reason=" + note;
@@ -423,7 +426,15 @@ public class AppointmentDAO extends DBContext {
             WHERE u.status = 'Active'
         """;
 
+        String updateStatusSql = """
+            UPDATE appointments
+            SET status = 'Doctor-Change-Requested'
+            WHERE appointment_id = ? AND customer_id = ?
+        """;
+
         try (Connection con = getConnection()) {
+            con.setAutoCommit(false);
+
             LocalDateTime appointmentTime;
             String status;
             int petId;
@@ -435,11 +446,13 @@ public class AppointmentDAO extends DBContext {
                 findPs.setInt(2, customerId);
                 try (ResultSet rs = findPs.executeQuery()) {
                     if (!rs.next()) {
+                        con.rollback();
                         return false;
                     }
 
                     Timestamp ts = rs.getTimestamp("appointment_time");
                     if (ts == null) {
+                        con.rollback();
                         return false;
                     }
 
@@ -452,6 +465,7 @@ public class AppointmentDAO extends DBContext {
             }
 
             if (appointmentTime.isBefore(LocalDateTime.now())) {
+                con.rollback();
                 return false;
             }
 
@@ -463,6 +477,12 @@ public class AppointmentDAO extends DBContext {
                     || "Rescheduled".equalsIgnoreCase(status)
                     || "Reschedule-Requested".equalsIgnoreCase(status));
             if (!allowStatus) {
+                con.rollback();
+                return false;
+            }
+
+            if ("Doctor-Change-Requested".equalsIgnoreCase(status)) {
+                con.rollback();
                 return false;
             }
 
@@ -480,16 +500,261 @@ public class AppointmentDAO extends DBContext {
             String message = "appointmentId=" + appointmentId
                     + ";customerId=" + customerId
                     + ";petId=" + petId
+                    + ";previousStatus=" + status
                     + ";currentVeterinarianId=" + currentVetId
                     + ";currentVeterinarianName=" + (currentVetName == null ? "" : currentVetName)
                     + ";preferredDoctor=" + preferred
                     + ";reason=" + note;
 
+            try (PreparedStatement updatePs = con.prepareStatement(updateStatusSql)) {
+                updatePs.setInt(1, appointmentId);
+                updatePs.setInt(2, customerId);
+                if (updatePs.executeUpdate() == 0) {
+                    con.rollback();
+                    return false;
+                }
+            }
+
             try (PreparedStatement notifyPs = con.prepareStatement(notifySql)) {
                 notifyPs.setString(1, title);
                 notifyPs.setString(2, message);
-                return notifyPs.executeUpdate() > 0;
+                if (notifyPs.executeUpdate() <= 0) {
+                    con.rollback();
+                    return false;
+                }
             }
+
+            con.commit();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    private Map<String, String> parseRequestPayload(String message) {
+        Map<String, String> payload = new HashMap<>();
+        if (message == null || message.isBlank()) {
+            return payload;
+        }
+
+        String[] parts = message.split(";");
+        for (String part : parts) {
+            int idx = part.indexOf('=');
+            if (idx <= 0) {
+                continue;
+            }
+            String key = part.substring(0, idx).trim();
+            String value = part.substring(idx + 1).trim();
+            payload.put(key, value);
+        }
+        return payload;
+    }
+
+    private String getLatestRequestMessage(Connection con, int appointmentId, String title) throws Exception {
+        String sql = """
+            SELECT TOP 1 message
+            FROM Notifications
+            WHERE title = ?
+              AND message LIKE ?
+        """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, title);
+            ps.setString(2, "%appointmentId=" + appointmentId + ";%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("message");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private String normalizePreviousStatus(String previousStatus) {
+        if (previousStatus == null || previousStatus.isBlank()) {
+            return "Scheduled";
+        }
+        return previousStatus;
+    }
+
+    public boolean processRescheduleRequest(int appointmentId, boolean approve) {
+        String findSql = """
+            SELECT customer_id, status
+            FROM appointments
+            WHERE appointment_id = ?
+        """;
+
+        String updateApproveSql = """
+            UPDATE appointments
+            SET appointment_time = ?, status = 'Re-Scheduled'
+            WHERE appointment_id = ?
+        """;
+
+        String updateRejectSql = """
+            UPDATE appointments
+            SET status = ?
+            WHERE appointment_id = ?
+        """;
+
+        String notifyCustomerSql = """
+            INSERT INTO Notifications (user_id, title, message)
+            SELECT u.user_id, ?, ?
+            FROM appointments a
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            WHERE a.appointment_id = ?
+        """;
+
+        try (Connection con = getConnection()) {
+            con.setAutoCommit(false);
+
+            String status;
+            int customerId;
+            try (PreparedStatement findPs = con.prepareStatement(findSql)) {
+                findPs.setInt(1, appointmentId);
+                try (ResultSet rs = findPs.executeQuery()) {
+                    if (!rs.next()) {
+                        con.rollback();
+                        return false;
+                    }
+                    customerId = rs.getInt("customer_id");
+                    status = rs.getString("status");
+                }
+            }
+
+            if (!"Reschedule-Requested".equalsIgnoreCase(status)) {
+                con.rollback();
+                return false;
+            }
+
+            String payloadRaw = getLatestRequestMessage(con, appointmentId, "Reschedule Request");
+            Map<String, String> payload = parseRequestPayload(payloadRaw);
+            String previousStatus = normalizePreviousStatus(payload.get("previousStatus"));
+            String requestedTimeRaw = payload.get("requestedTime");
+
+            boolean updated;
+            if (approve) {
+                if (requestedTimeRaw == null || requestedTimeRaw.isBlank()) {
+                    con.rollback();
+                    return false;
+                }
+                LocalDateTime requestedTime = LocalDateTime.parse(requestedTimeRaw);
+                if (requestedTime.isBefore(LocalDateTime.now())) {
+                    con.rollback();
+                    return false;
+                }
+
+                try (PreparedStatement updatePs = con.prepareStatement(updateApproveSql)) {
+                    updatePs.setTimestamp(1, Timestamp.valueOf(requestedTime));
+                    updatePs.setInt(2, appointmentId);
+                    updated = updatePs.executeUpdate() > 0;
+                }
+            } else {
+                try (PreparedStatement updatePs = con.prepareStatement(updateRejectSql)) {
+                    updatePs.setString(1, previousStatus);
+                    updatePs.setInt(2, appointmentId);
+                    updated = updatePs.executeUpdate() > 0;
+                }
+            }
+
+            if (!updated) {
+                con.rollback();
+                return false;
+            }
+
+            String title = approve ? "Reschedule Approved" : "Reschedule Rejected";
+            String customerMessage = "appointmentId=" + appointmentId
+                    + ";customerId=" + customerId
+                    + ";result=" + (approve ? "approved" : "rejected");
+            try (PreparedStatement notifyPs = con.prepareStatement(notifyCustomerSql)) {
+                notifyPs.setString(1, title);
+                notifyPs.setString(2, customerMessage);
+                notifyPs.setInt(3, appointmentId);
+                notifyPs.executeUpdate();
+            }
+
+            con.commit();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public boolean processDoctorChangeRequest(int appointmentId, boolean approve) {
+        String findSql = """
+            SELECT customer_id, status
+            FROM appointments
+            WHERE appointment_id = ?
+        """;
+
+        String updateSql = """
+            UPDATE appointments
+            SET status = ?
+            WHERE appointment_id = ?
+        """;
+
+        String notifyCustomerSql = """
+            INSERT INTO Notifications (user_id, title, message)
+            SELECT u.user_id, ?, ?
+            FROM appointments a
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            WHERE a.appointment_id = ?
+        """;
+
+        try (Connection con = getConnection()) {
+            con.setAutoCommit(false);
+
+            String status;
+            int customerId;
+            try (PreparedStatement findPs = con.prepareStatement(findSql)) {
+                findPs.setInt(1, appointmentId);
+                try (ResultSet rs = findPs.executeQuery()) {
+                    if (!rs.next()) {
+                        con.rollback();
+                        return false;
+                    }
+                    customerId = rs.getInt("customer_id");
+                    status = rs.getString("status");
+                }
+            }
+
+            if (!"Doctor-Change-Requested".equalsIgnoreCase(status)) {
+                con.rollback();
+                return false;
+            }
+
+            String payloadRaw = getLatestRequestMessage(con, appointmentId, "Doctor Change Request");
+            Map<String, String> payload = parseRequestPayload(payloadRaw);
+            String previousStatus = normalizePreviousStatus(payload.get("previousStatus"));
+
+            try (PreparedStatement updatePs = con.prepareStatement(updateSql)) {
+                updatePs.setString(1, previousStatus);
+                updatePs.setInt(2, appointmentId);
+                if (updatePs.executeUpdate() == 0) {
+                    con.rollback();
+                    return false;
+                }
+            }
+
+            String title = approve ? "Doctor Change Approved" : "Doctor Change Rejected";
+            String customerMessage = "appointmentId=" + appointmentId
+                    + ";customerId=" + customerId
+                    + ";result=" + (approve ? "approved" : "rejected");
+            try (PreparedStatement notifyPs = con.prepareStatement(notifyCustomerSql)) {
+                notifyPs.setString(1, title);
+                notifyPs.setString(2, customerMessage);
+                notifyPs.setInt(3, appointmentId);
+                notifyPs.executeUpdate();
+            }
+
+            con.commit();
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -209,6 +209,33 @@
                 setTimeout(() => { toast.classList.remove('active'); }, 3000);
             }
 
+            function processAppointmentRequest(appointmentId, requestType, decision) {
+                fetch('HandleAppointmentRequest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'appointmentId=' + encodeURIComponent(appointmentId)
+                            + '&requestType=' + encodeURIComponent(requestType)
+                            + '&decision=' + encodeURIComponent(decision)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Xử lý yêu cầu thành công');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 450);
+                    } else {
+                        alert('Lỗi: ' + (data.message || 'Không thể xử lý yêu cầu'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi xử lý yêu cầu');
+                });
+            }
+
             function openDetail(appointmentId) {
                 const panel = document.getElementById('detailView');
                 const loading = document.getElementById('detailLoading');
@@ -425,6 +452,8 @@
                             <c:set var="isPending" value="${status == 'Pending' || status == 'Scheduled'}"/>
                             <c:set var="isConfirmed" value="${status == 'Confirmed'}"/>
                             <c:set var="isRescheduled" value="${status == 'Re-Scheduled' || status == 'Rescheduled'}"/>
+                            <c:set var="isRescheduleRequested" value="${status == 'Reschedule-Requested'}"/>
+                            <c:set var="isDoctorChangeRequested" value="${status == 'Doctor-Change-Requested'}"/>
                             <c:set var="isInExamination" value="${status == 'In-Examination' || status == 'In Progress'}"/>
                             <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
                             <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
@@ -473,6 +502,12 @@
                                             <c:when test="${isRescheduled}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold rounded uppercase tracking-wider">Re-Scheduled</span>
                                             </c:when>
+                                            <c:when test="${isRescheduleRequested}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[9px] font-bold rounded uppercase tracking-wider">Reschedule Requested</span>
+                                            </c:when>
+                                            <c:when test="${isDoctorChangeRequested}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[9px] font-bold rounded uppercase tracking-wider">Doctor Change Requested</span>
+                                            </c:when>
                                             <c:when test="${isCompleted}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-500/70 text-[9px] font-bold rounded uppercase tracking-wider">Done</span>
                                             </c:when>
@@ -518,6 +553,16 @@
                                     <c:if test="${isPending || isRescheduled}">
                                         <button class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                         <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
+                                    </c:if>
+                                    <%-- Customer Request: Reschedule Requested --%>
+                                    <c:if test="${isRescheduleRequested}">
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
+                                    </c:if>
+                                    <%-- Customer Request: Doctor Change Requested --%>
+                                    <c:if test="${isDoctorChangeRequested}">
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
                                     </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">
