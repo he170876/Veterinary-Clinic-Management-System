@@ -1,4 +1,4 @@
-<%-- Shared customer sidebar: include from dashboard, profile, edit-profile, pets, medical-history. Set request.setAttribute("customerCurrentPage", "dashboard"|"profile"|"edit-profile"|"pets"|"medical-history") to highlight active link. --%>
+<%-- Shared customer sidebar: include from dashboard, profile, edit-profile, pets, medical-history, appointments. Set request.setAttribute("customerCurrentPage", "dashboard"|"profile"|"edit-profile"|"pets"|"medical-history"|"appointments") to highlight active link. --%>
 <%
     String ctx = request.getContextPath();
     String currentPage = request.getAttribute("customerCurrentPage") != null ? (String) request.getAttribute("customerCurrentPage") : "";
@@ -26,7 +26,7 @@
                 <span class="material-symbols-outlined">pets</span>
                 <p class="text-sm font-medium">My Pets</p>
             </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors <%= "appointments".equals(currentPage) ? "bg-primary/10 text-primary" : "text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10" %>" href="<%= ctx %>/customer/appointments">
                 <span class="material-symbols-outlined">calendar_today</span>
                 <p class="text-sm font-medium">Appointments</p>
             </a>
