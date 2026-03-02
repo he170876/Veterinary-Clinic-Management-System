@@ -394,8 +394,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     @Override
     public boolean setGoogleUser(int userId) {
         String sql = "UPDATE Users SET is_google_user = 1 WHERE user_id = ?";
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             return ps.executeUpdate() > 0;
         } catch (SQLException ex) {
@@ -427,12 +426,14 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
             if (hasColumn(rs, "profile_picture_url")) {
                 user.setProfilePictureUrl(rs.getString("profile_picture_url"));
             }
-        } catch (SQLException ignored) { }
+        } catch (SQLException ignored) {
+        }
         try {
             if (hasColumn(rs, "is_google_user")) {
                 user.setGoogleUser(rs.getBoolean("is_google_user"));
             }
-        } catch (SQLException ignored) { }
+        } catch (SQLException ignored) {
+        }
 
         Role role = new Role();
         role.setRoleId(rs.getInt("role_id"));
@@ -449,6 +450,102 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
                 return true;
             }
         }
+        return false;
+    }
+
+    @Override
+    public boolean existsByEmailExceptId(String email, int userId) {
+        String sql = "SELECT 1 FROM Users WHERE email = ? AND user_id <> ?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+            ps.setInt(2, userId);
+
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean existsRoleById(int roleId) {
+        String sql = "SELECT 1 FROM Roles WHERE role_id = ?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, roleId);
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean existsById(int userId) {
+
+        String sql = "SELECT 1 FROM Users WHERE user_id = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // true nếu tồn tại
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean create(User user) {
+
+        String sql = """
+        INSERT INTO Users
+        (email, password, role_id, status,
+         created_at, updated_at,
+         full_name, phone, address,
+         profile_picture_url, is_google_user)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """;
+
+        LocalDateTime now = LocalDateTime.now();
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, user.getEmail());
+            ps.setString(2, user.getPasswordHash());
+            ps.setInt(3, user.getRole().getRoleId());
+            ps.setString(4, user.getStatus());
+
+            ps.setTimestamp(5, Timestamp.valueOf(now));
+            ps.setTimestamp(6, Timestamp.valueOf(now));
+
+            ps.setString(7, user.getFullName());
+            ps.setString(8, user.getPhone());
+            ps.setString(9, user.getAddress());
+
+            if (user.getProfilePictureUrl() != null) {
+                ps.setString(10, user.getProfilePictureUrl());
+            } else {
+                ps.setNull(10, Types.VARCHAR);
+            }
+
+            ps.setBoolean(11, user.isGoogleUser());
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         return false;
     }
 }

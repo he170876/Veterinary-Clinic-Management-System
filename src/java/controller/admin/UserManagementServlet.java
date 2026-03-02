@@ -14,19 +14,19 @@ import java.util.List;
 
 @WebServlet(name = "UserManagementServlet", urlPatterns = {"/admin/user-management"})
 public class UserManagementServlet extends HttpServlet {
-
+    
     private final UserDAO userDAO = new UserJdbcDAO();
     private static final String VIEW = "/WEB-INF/views/admin/user-management.jsp";
     private static final int PAGE_SIZE = 5;
-
+    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
+        
         String keyword = trim(request.getParameter("keyword"));
         String roleIdRaw = request.getParameter("filterRoleId");
-        String status = trim(request.getParameter("status"));
-
+        String status = trim(request.getParameter("filterStatus"));
+        
         Integer roleId = null;
         if (roleIdRaw != null && !roleIdRaw.isEmpty()) {
             try {
@@ -34,7 +34,7 @@ public class UserManagementServlet extends HttpServlet {
             } catch (NumberFormatException ignored) {
             }
         }
-
+        
         if (status != null && status.isEmpty()) {
             status = null;
         }
@@ -49,7 +49,7 @@ public class UserManagementServlet extends HttpServlet {
         /* ===== PAGINATION ===== */
         int currentPage = 1;
         String pageRaw = request.getParameter("page");
-
+        
         if (pageRaw != null) {
             try {
                 currentPage = Integer.parseInt(pageRaw);
@@ -59,16 +59,16 @@ public class UserManagementServlet extends HttpServlet {
             } catch (NumberFormatException ignored) {
             }
         }
-
+        
         int totalRecords = userDAO.countUsers(keyword, roleId, status);
         int totalPages = (int) Math.ceil((double) totalRecords / PAGE_SIZE);
-
+        
         if (totalPages > 0 && currentPage > totalPages) {
             currentPage = totalPages;
         }
-
+        
         int offset = (currentPage - 1) * PAGE_SIZE;
-
+        
         List<User> users = userDAO.filterUsers(
                 keyword,
                 roleId,
@@ -77,17 +77,22 @@ public class UserManagementServlet extends HttpServlet {
                 offset,
                 PAGE_SIZE
         );
-
+        
         request.setAttribute("users", users);
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("pageSize", PAGE_SIZE);
         request.setAttribute("totalUsers", totalRecords);
         request.setAttribute("sort", sort);
-
+        
         request.getRequestDispatcher(VIEW).forward(request, response);
     }
-
+    
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        doGet(req, resp);
+    }
+    
     private String trim(String s) {
         return (s == null) ? null : s.trim();
     }

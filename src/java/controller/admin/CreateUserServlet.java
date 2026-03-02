@@ -2,6 +2,8 @@ package controller.admin;
 
 import dao.UserDAO;
 import dao.impl.UserJdbcDAO;
+import model.Role;
+import model.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -10,12 +12,13 @@ import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-@WebServlet(name = "EditUserServlet", urlPatterns = {"/admin/edit-user"})
-public class EditUserServlet extends HttpServlet {
+@WebServlet(name = "CreateUserServlet", urlPatterns = {"/admin/create-user"})
+public class CreateUserServlet extends HttpServlet {
 
     private final UserDAO userDAO = new UserJdbcDAO();
 
@@ -25,59 +28,42 @@ public class EditUserServlet extends HttpServlet {
     private static final Pattern PHONE_PATTERN =
             Pattern.compile("^0[0-9]{9}$");
 
+    // Ít nhất 6 ký tự, có chữ và số
+    private static final Pattern PASSWORD_PATTERN =
+            Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d).{6,}$");
+
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         /* ================= GET PARAM ================= */
 
-        String idRaw = request.getParameter("id");
         String fullName = request.getParameter("fullName");
         String email = request.getParameter("email");
         String phone = request.getParameter("phone");
         String address = request.getParameter("address");
         String roleIdRaw = request.getParameter("roleId");
         String status = request.getParameter("status");
+        String password = request.getParameter("password");
+        String confirmPassword = request.getParameter("confirmPassword");
 
         Map<String, String> errors = new HashMap<>();
 
-        /* ================= BASIC NULL CHECK ================= */
-
-        if (idRaw == null || roleIdRaw == null) {
-            response.sendRedirect("user-management");
-            return;
-        }
-
-        int userId;
-        int roleId;
-
-        try {
-            userId = Integer.parseInt(idRaw);
-            roleId = Integer.parseInt(roleIdRaw);
-
-            if (userId <= 0 || roleId <= 0) {
-                response.sendRedirect("user-management");
-                return;
-            }
-
-        } catch (NumberFormatException e) {
-            response.sendRedirect("user-management");
-            return;
-        }
-
-        // Check user exists
-        if (!userDAO.existsById(userId)) {
-            response.sendRedirect("user-management");
-            return;
-        }
-
-        /* ================= TRIM DATA ================= */
+        /* ================= TRIM ================= */
 
         fullName = fullName != null ? fullName.trim() : "";
         email = email != null ? email.trim() : "";
         phone = phone != null ? phone.trim() : "";
         address = address != null ? address.trim() : "";
         status = status != null ? status.trim() : "";
+
+        int roleId = 0;
+
+        try {
+            roleId = Integer.parseInt(roleIdRaw);
+        } catch (Exception e) {
+            errors.put("roleId", "Invalid role selected");
+        }
 
         /* ================= VALIDATE FULL NAME ================= */
 
@@ -95,8 +81,22 @@ public class EditUserServlet extends HttpServlet {
             errors.put("email", "Email must be <= 150 characters");
         } else if (!EMAIL_PATTERN.matcher(email).matches()) {
             errors.put("email", "Invalid email format");
-        } else if (userDAO.existsByEmailExceptId(email, userId)) {
+        } else if (userDAO.existsByEmail(email)) {
             errors.put("email", "Email already exists");
+        }
+
+        /* ================= VALIDATE PASSWORD ================= */
+
+        if (password == null || password.isBlank()) {
+            errors.put("password", "Password cannot be empty");
+        } else if (!PASSWORD_PATTERN.matcher(password).matches()) {
+            errors.put("password", "Password must be at least 6 characters and contain letters and numbers");
+        }
+
+        if (confirmPassword == null || confirmPassword.isBlank()) {
+            errors.put("confirmPassword", "Please re-enter password");
+        } else if (password != null && !password.equals(confirmPassword)) {
+            errors.put("confirmPassword", "Passwords do not match");
         }
 
         /* ================= VALIDATE PHONE ================= */
@@ -117,48 +117,60 @@ public class EditUserServlet extends HttpServlet {
 
         /* ================= VALIDATE ROLE ================= */
 
-        if (!userDAO.existsRoleById(roleId)) {
+        if (roleId > 0 && !userDAO.existsRoleById(roleId)) {
             errors.put("roleId", "Invalid role selected");
         }
 
         /* ================= VALIDATE STATUS ================= */
 
-        if (!status.equals("Active") && !status.equals("Inactive") && !status.equals("Blocked")) {
-            errors.put("status", "Status must be Active or Inactive or Blocked");
+        if (!status.equals("Active") &&
+            !status.equals("Inactive") &&
+            !status.equals("Blocked")) {
+            errors.put("status", "Status must be Active, Inactive or Blocked");
         }
 
-        /* ================= IF ERROR → RETURN ================= */
+        /* ================= IF ERROR ================= */
 
         if (!errors.isEmpty()) {
 
             request.setAttribute("errors", errors);
-            request.setAttribute("userId", userId);
             request.setAttribute("fullName", fullName);
             request.setAttribute("email", email);
             request.setAttribute("phone", phone);
             request.setAttribute("address", address);
             request.setAttribute("roleId", roleId);
             request.setAttribute("status", status);
-            request.setAttribute("openEditModal", true);
+            request.setAttribute("openCreateModal", true);
 
             request.getRequestDispatcher("/admin/user-management")
                     .forward(request, response);
             return;
         }
 
-        /* ================= UPDATE USER ================= */
+        /* ================= CREATE USER ================= */
 
-        userDAO.updateUserByAdmin(
-                userId,
-                fullName,
-                email,
-                phone,
-                address,
-                roleId,
-                status
-        );
+        User user = new User();
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setAddress(address);
+        user.setStatus(status);
+        user.setPasswordHash(utils.PasswordUtil.hashPassword(password));
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
 
-        /* ================= KEEP FILTER + SORT + PAGE ================= */
+        Role role = new Role();
+        role.setRoleId(roleId);
+        user.setRole(role);
+
+        boolean success = userDAO.create(user);
+
+        if (!success) {
+            response.sendRedirect("user-management?error=createFailed");
+            return;
+        }
+
+        /* ================= REDIRECT KEEP FILTER ================= */
 
         StringBuilder redirect = new StringBuilder("user-management?");
 
@@ -174,9 +186,9 @@ public class EditUserServlet extends HttpServlet {
     private void append(StringBuilder sb, String key, String value) {
         if (value != null && !value.isBlank()) {
             sb.append(key)
-                    .append("=")
-                    .append(URLEncoder.encode(value, StandardCharsets.UTF_8))
-                    .append("&");
+              .append("=")
+              .append(URLEncoder.encode(value, StandardCharsets.UTF_8))
+              .append("&");
         }
     }
 }
