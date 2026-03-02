@@ -105,8 +105,10 @@
         <header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 backdrop-blur-sm">
             <form method="get" action="<%= ctx %>/customer/appointments" class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-slate-400">search</span>
-                <input class="bg-transparent border-none focus:ring-0 text-sm text-slate-600 dark:text-slate-300 w-64" name="q" value="${q}" placeholder="Search appointments..." type="text"/>
+                <input class="bg-transparent border-none focus:ring-0 text-sm text-slate-600 dark:text-slate-300 w-64" name="q" value="${q}" placeholder="Filter by pet name..." type="text"/>
                 <input type="hidden" name="tab" value="${tab}"/>
+                <input type="hidden" name="fromDate" value="${fromDate}"/>
+                <input type="hidden" name="toDate" value="${toDate}"/>
             </form>
             <div class="flex items-center gap-4">
                 <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
@@ -145,10 +147,29 @@
                     </div>
                 </c:if>
 
-                <div class="flex gap-4 border-b border-slate-200 dark:border-slate-800">
-                    <a href="<%= ctx %>/customer/appointments?tab=upcoming" class="px-4 py-2 border-b-2 text-sm font-semibold ${tab == 'upcoming' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}">Upcoming (${upcomingCount})</a>
-                    <a href="<%= ctx %>/customer/appointments?tab=past" class="px-4 py-2 border-b-2 text-sm font-semibold ${tab == 'past' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}">Past Visits (${pastCount})</a>
-                    <a href="<%= ctx %>/customer/appointments?tab=cancelled" class="px-4 py-2 border-b-2 text-sm font-semibold ${tab == 'cancelled' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}">Cancelled (${cancelledCount})</a>
+                <div class="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <form method="get" action="<%= ctx %>/customer/appointments" class="flex items-end gap-3">
+                        <input type="hidden" name="tab" value="${tab}"/>
+                        <div class="flex flex-col gap-1 min-w-[220px]">
+                            <label class="text-xs font-semibold text-slate-500">Search by name</label>
+                            <input type="text" name="q" value="${q}" placeholder="Pet, doctor, service..." class="rounded-lg border-slate-200 text-sm"/>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-slate-500">From date</label>
+                            <input type="date" name="fromDate" value="${fromDate}" class="rounded-lg border-slate-200 text-sm"/>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-slate-500">To date</label>
+                            <input type="date" name="toDate" value="${toDate}" class="rounded-lg border-slate-200 text-sm"/>
+                        </div>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90">Apply</button>
+                        <a href="<%= ctx %>/customer/appointments?tab=${tab}" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50">Clear</a>
+                    </form>
+                    <div class="flex gap-4">
+                        <a href="<%= ctx %>/customer/appointments?tab=upcoming&q=${q}&fromDate=${fromDate}&toDate=${toDate}&page=1" class="px-4 py-2 border-b-2 text-sm font-semibold ${tab == 'upcoming' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}">Upcoming (${upcomingCount})</a>
+                        <a href="<%= ctx %>/customer/appointments?tab=past&q=${q}&fromDate=${fromDate}&toDate=${toDate}&page=1" class="px-4 py-2 border-b-2 text-sm font-semibold ${tab == 'past' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}">Past Visits (${pastCount})</a>
+                        <a href="<%= ctx %>/customer/appointments?tab=cancelled&q=${q}&fromDate=${fromDate}&toDate=${toDate}&page=1" class="px-4 py-2 border-b-2 text-sm font-semibold ${tab == 'cancelled' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}">Cancelled (${cancelledCount})</a>
+                    </div>
                 </div>
 
                 <div class="bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
@@ -290,6 +311,42 @@
                             </c:choose>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-slate-500">
+                        Showing ${empty appointments ? 0 : appointments.size()} of ${totalFiltered} appointments
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <c:choose>
+                            <c:when test="${currentPage > 1}">
+                                <a href="<%= ctx %>/customer/appointments?tab=${tab}&q=${q}&fromDate=${fromDate}&toDate=${toDate}&page=${currentPage - 1}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50">Prev</a>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-300 cursor-not-allowed">Prev</span>
+                            </c:otherwise>
+                        </c:choose>
+
+                        <c:forEach var="i" begin="1" end="${totalPages}">
+                            <c:choose>
+                                <c:when test="${i == currentPage}">
+                                    <span class="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-bold">${i}</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <a href="<%= ctx %>/customer/appointments?tab=${tab}&q=${q}&fromDate=${fromDate}&toDate=${toDate}&page=${i}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50">${i}</a>
+                                </c:otherwise>
+                            </c:choose>
+                        </c:forEach>
+
+                        <c:choose>
+                            <c:when test="${currentPage < totalPages}">
+                                <a href="<%= ctx %>/customer/appointments?tab=${tab}&q=${q}&fromDate=${fromDate}&toDate=${toDate}&page=${currentPage + 1}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50">Next</a>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-300 cursor-not-allowed">Next</span>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                 </div>
 

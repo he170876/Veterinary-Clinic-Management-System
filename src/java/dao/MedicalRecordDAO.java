@@ -32,6 +32,14 @@ public interface MedicalRecordDAO {
      */
     Optional<MedicalRecord> getMedicalRecordById(int recordId);
 
+        /**
+         * Get a single medical record by ID and customer ownership.
+         * @param recordId The medical record ID
+         * @param customerId The owner customer ID
+         * @return Optional containing the medical record if found and owned by customer
+         */
+        Optional<MedicalRecord> getMedicalRecordByIdAndCustomer(int recordId, int customerId);
+
     /**
      * Get recent medical records for a specific pet (limited to N records).
      * @param petId The pet ID

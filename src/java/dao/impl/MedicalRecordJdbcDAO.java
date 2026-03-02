@@ -153,6 +153,49 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
     }
 
     @Override
+    public Optional<MedicalRecord> getMedicalRecordByIdAndCustomer(int recordId, int customerId) {
+        String sql = """
+            SELECT 
+                mr.record_id,
+                mr.visit_id,
+                mr.veterinarian_id,
+                u.full_name AS veterinarian_name,
+                mr.diagnosis,
+                mr.treatment,
+                mr.note,
+                v.check_in_time AS visit_date,
+                v.visit_status,
+                p.pet_id,
+                p.name AS pet_name,
+                p.species,
+                p.breed,
+                p.gender,
+                p.birth_date,
+                p.weight
+            FROM MedicalRecords mr
+            JOIN Visits v ON mr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            LEFT JOIN Users u ON mr.veterinarian_id = u.user_id
+            WHERE mr.record_id = ?
+              AND v.customer_id = ?
+            """;
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, recordId);
+            ps.setInt(2, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRowToMedicalRecord(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public List<MedicalRecord> getRecentMedicalHistory(int petId, int limit) {
         List<MedicalRecord> records = new ArrayList<>();
         String sql = """

@@ -4,7 +4,11 @@
     User user = (User) request.getAttribute("user");
     List<MedicalRecord> recentMedicalRecords = (List<MedicalRecord>) request.getAttribute("recentMedicalRecords");
     Integer petCount = (Integer) request.getAttribute("petCount");
+    Integer appointmentCount = (Integer) request.getAttribute("appointmentCount");
+    Integer medicalRecordCount = (Integer) request.getAttribute("medicalRecordCount");
     if (petCount == null) petCount = 0;
+    if (appointmentCount == null) appointmentCount = 0;
+    if (medicalRecordCount == null) medicalRecordCount = 0;
     if (recentMedicalRecords == null) recentMedicalRecords = new java.util.ArrayList<>();
     if (user == null) {
         response.sendRedirect(request.getContextPath() + "/login");
@@ -76,7 +80,7 @@
                         <span class="material-symbols-outlined text-2xl">calendar_month</span>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-900">0</p>
+                        <p class="text-2xl font-bold text-gray-900"><%= appointmentCount %></p>
                         <p class="text-sm text-gray-500">Appointments</p>
                     </div>
                 </div>
@@ -87,7 +91,7 @@
                         <span class="material-symbols-outlined text-2xl">medical_information</span>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-900">0</p>
+                        <p class="text-2xl font-bold text-gray-900"><%= medicalRecordCount %></p>
                         <p class="text-sm text-gray-500">Medical Records</p>
                     </div>
                 </div>

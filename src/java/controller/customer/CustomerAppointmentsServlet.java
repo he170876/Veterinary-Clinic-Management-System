@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,8 @@ import model.User;
 
 @WebServlet(name = "CustomerAppointmentsServlet", urlPatterns = {"/customer/appointments"})
 public class CustomerAppointmentsServlet extends HttpServlet {
+
+    private static final int PAGE_SIZE = 6;
 
     private transient CustomerDAO customerDAO;
     private transient AppointmentDAO appointmentDAO;
@@ -73,33 +76,75 @@ public class CustomerAppointmentsServlet extends HttpServlet {
             tab = "upcoming";
         }
 
+        int currentPage = 1;
+        String pageParam = request.getParameter("page");
+        if (pageParam != null && !pageParam.trim().isEmpty()) {
+            try {
+                currentPage = Integer.parseInt(pageParam.trim());
+            } catch (NumberFormatException ignored) {
+                currentPage = 1;
+            }
+        }
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+
         String q = request.getParameter("q");
         if (q == null) {
             q = "";
         }
         String query = q.trim().toLowerCase();
 
+        String fromDateParam = request.getParameter("fromDate");
+        String toDateParam = request.getParameter("toDate");
+        LocalDate fromDate = null;
+        LocalDate toDate = null;
+
+        try {
+            if (fromDateParam != null && !fromDateParam.trim().isEmpty()) {
+                fromDate = LocalDate.parse(fromDateParam.trim());
+            }
+            if (toDateParam != null && !toDateParam.trim().isEmpty()) {
+                toDate = LocalDate.parse(toDateParam.trim());
+            }
+        } catch (Exception ignored) {
+            fromDate = null;
+            toDate = null;
+        }
+
         List<Appointment> allAppointments = appointmentDAO.getAppointmentsByCustomerId(customerId);
         Set<Integer> pendingRescheduleIds = appointmentDAO.getPendingRescheduleAppointmentIdsByCustomer(customerId);
 
         LocalDateTime now = LocalDateTime.now();
-        List<Appointment> filtered = new ArrayList<>();
-
+        List<Appointment> baseFiltered = new ArrayList<>();
         for (Appointment appointment : allAppointments) {
-            if (!matchesTab(appointment, tab, now)) {
+            if (!matchesDateRange(appointment, fromDate, toDate)) {
                 continue;
             }
 
             if (!query.isEmpty()) {
                 String petName = appointment.getPet() != null && appointment.getPet().getName() != null
                         ? appointment.getPet().getName().toLowerCase() : "";
-                String doctor = appointment.getVeterinarianName() != null
+                String doctorName = appointment.getVeterinarianName() != null
                         ? appointment.getVeterinarianName().toLowerCase() : "";
-                String service = appointment.getService() != null
+                String serviceName = appointment.getService() != null
                         ? appointment.getService().toLowerCase() : "";
-                if (!petName.contains(query) && !doctor.contains(query) && !service.contains(query)) {
+
+                if (!petName.contains(query)
+                        && !doctorName.contains(query)
+                        && !serviceName.contains(query)) {
                     continue;
                 }
+            }
+
+            baseFiltered.add(appointment);
+        }
+
+        List<Appointment> filtered = new ArrayList<>();
+
+        for (Appointment appointment : baseFiltered) {
+            if (!matchesTab(appointment, tab, now)) {
+                continue;
             }
 
             filtered.add(appointment);
@@ -109,11 +154,33 @@ public class CustomerAppointmentsServlet extends HttpServlet {
         request.setAttribute("user", user);
         request.setAttribute("tab", tab);
         request.setAttribute("q", q);
-        request.setAttribute("appointments", filtered);
+        request.setAttribute("fromDate", fromDate != null ? fromDate.toString() : "");
+        request.setAttribute("toDate", toDate != null ? toDate.toString() : "");
+        int totalFiltered = filtered.size();
+        int totalPages = (int) Math.ceil((double) totalFiltered / PAGE_SIZE);
+        if (totalPages == 0) {
+            totalPages = 1;
+        }
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        int fromIndex = (currentPage - 1) * PAGE_SIZE;
+        int toIndex = Math.min(fromIndex + PAGE_SIZE, totalFiltered);
+        List<Appointment> pagedAppointments = filtered;
+        if (!filtered.isEmpty()) {
+            pagedAppointments = filtered.subList(fromIndex, toIndex);
+        }
+
+        request.setAttribute("appointments", pagedAppointments);
         request.setAttribute("pendingRescheduleIds", pendingRescheduleIds);
-        request.setAttribute("upcomingCount", countByTab(allAppointments, "upcoming", now));
-        request.setAttribute("pastCount", countByTab(allAppointments, "past", now));
-        request.setAttribute("cancelledCount", countByTab(allAppointments, "cancelled", now));
+        request.setAttribute("upcomingCount", countByTab(baseFiltered, "upcoming", now));
+        request.setAttribute("pastCount", countByTab(baseFiltered, "past", now));
+        request.setAttribute("cancelledCount", countByTab(baseFiltered, "cancelled", now));
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalFiltered", totalFiltered);
+        request.setAttribute("pageSize", PAGE_SIZE);
 
         request.getRequestDispatcher("/WEB-INF/views/customer/appointments.jsp").forward(request, response);
     }
@@ -126,6 +193,21 @@ public class CustomerAppointmentsServlet extends HttpServlet {
             }
         }
         return count;
+    }
+
+    private boolean matchesDateRange(Appointment appointment, LocalDate fromDate, LocalDate toDate) {
+        if (appointment == null || appointment.getAppointmentTime() == null) {
+            return false;
+        }
+
+        LocalDate appointmentDate = appointment.getAppointmentTime().toLocalDate();
+        if (fromDate != null && appointmentDate.isBefore(fromDate)) {
+            return false;
+        }
+        if (toDate != null && appointmentDate.isAfter(toDate)) {
+            return false;
+        }
+        return true;
     }
 
     private boolean matchesTab(Appointment appointment, String tab, LocalDateTime now) {

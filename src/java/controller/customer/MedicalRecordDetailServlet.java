@@ -74,8 +74,9 @@ public class MedicalRecordDetailServlet extends HttpServlet {
         try {
             int recordId = Integer.parseInt(recordIdParam);
             
-            // Get medical record
-            Optional<MedicalRecord> recordOpt = medicalRecordDAO.getMedicalRecordById(recordId);
+                // Get medical record with ownership check
+                Optional<MedicalRecord> recordOpt = medicalRecordDAO.getMedicalRecordByIdAndCustomer(
+                    recordId, customer.getCustomerId());
             if (recordOpt.isEmpty()) {
                 request.setAttribute("error", "Medical record not found.");
                 request.getRequestDispatcher("/WEB-INF/views/customer/medical-history.jsp")
@@ -84,10 +85,6 @@ public class MedicalRecordDetailServlet extends HttpServlet {
             }
             
             MedicalRecord record = recordOpt.get();
-            
-            // Verify ownership - check if record belongs to customer's pet
-            // This is already validated in the DAO query which joins with Visits and checks customer_id
-            // But we can add an extra check here if needed
             
             // Set attributes for JSP
             request.setAttribute("user", user);

@@ -93,6 +93,15 @@ public class MedicalHistoryServlet extends HttpServlet {
                 // Ignore invalid pet ID
             }
         }
+
+        if (petId != null) {
+            Optional<Pet> petOpt = petDAO.findById(petId);
+            if (petOpt.isEmpty()
+                    || petOpt.get().getOwner() == null
+                    || petOpt.get().getOwner().getCustomerId() != customer.getCustomerId()) {
+                petId = null;
+            }
+        }
         
         // Parse dates
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -136,7 +145,9 @@ public class MedicalHistoryServlet extends HttpServlet {
         Pet selectedPet = null;
         if (petId != null) {
             Optional<Pet> petOpt = petDAO.findById(petId);
-            if (petOpt.isPresent()) {
+            if (petOpt.isPresent()
+                    && petOpt.get().getOwner() != null
+                    && petOpt.get().getOwner().getCustomerId() == customer.getCustomerId()) {
                 selectedPet = petOpt.get();
             }
         }

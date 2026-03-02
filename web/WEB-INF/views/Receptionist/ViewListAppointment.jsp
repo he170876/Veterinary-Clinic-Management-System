@@ -606,7 +606,7 @@
                             <!-- Previous page -->
                             <c:choose>
                                 <c:when test="${currentPage > 1}">
-                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage - 1}"
+                                                <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage - 1}"
                                        class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                         <span class="material-symbols-outlined">chevron_left</span>
                                     </a>
@@ -627,7 +627,7 @@
                                         </button>
                                     </c:when>
                                     <c:otherwise>
-                                        <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${i}"
+                                                     <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${i}"
                                            class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                             ${i}
                                         </a>
@@ -638,7 +638,7 @@
                             <!-- Next page -->
                             <c:choose>
                                 <c:when test="${currentPage < totalPages}">
-                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage + 1}"
+                                                <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage + 1}"
                                        class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                         <span class="material-symbols-outlined">chevron_right</span>
                                     </a>

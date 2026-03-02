@@ -6,17 +6,22 @@ import java.net.URLEncoder;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import dao.AppointmentDAO;
 import model.Customer;
+import model.Appointment;
 import model.Pet;
 import model.User;
 import service.PetService;
 import service.impl.PetServiceImpl;
 import dao.CustomerDAO;
+import dao.MedicalRecordDAO;
 import dao.impl.CustomerJdbcDAO;
+import dao.impl.MedicalRecordJdbcDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -41,12 +46,16 @@ public class PetServlet extends HttpServlet {
 
     private PetService petService;
     private CustomerDAO customerDAO;
+    private AppointmentDAO appointmentDAO;
+    private MedicalRecordDAO medicalRecordDAO;
 
     @Override
     public void init() throws ServletException {
         System.out.println("=== PetServlet INITIALIZED ===");
         petService = new PetServiceImpl();
         customerDAO = new CustomerJdbcDAO();
+        appointmentDAO = new AppointmentDAO();
+        medicalRecordDAO = new MedicalRecordJdbcDAO();
         System.out.println("=== PetService created successfully ===");
     }
 
@@ -251,6 +260,39 @@ public class PetServlet extends HttpServlet {
         }
         
         request.setAttribute("pets", pets);
+
+        int totalPets = pets != null ? pets.size() : 0;
+        int upcomingAppointments = 0;
+        int medicalRecordCount = 0;
+
+        Customer statsCustomer = displayCustomer;
+        if (statsCustomer == null && session != null) {
+            statsCustomer = resolveCurrentCustomer(session).orElse(null);
+        }
+
+        if (statsCustomer != null) {
+            int customerId = statsCustomer.getCustomerId();
+            List<Appointment> customerAppointments = appointmentDAO.getAppointmentsByCustomerId(customerId);
+            LocalDateTime now = LocalDateTime.now();
+            for (Appointment appointment : customerAppointments) {
+                if (appointment == null) {
+                    continue;
+                }
+                String status = appointment.getStatus() != null ? appointment.getStatus().toLowerCase() : "";
+                if (status.contains("cancel")) {
+                    continue;
+                }
+                LocalDateTime appointmentTime = appointment.getAppointmentTime();
+                if (appointmentTime == null || !appointmentTime.isBefore(now)) {
+                    upcomingAppointments++;
+                }
+            }
+            medicalRecordCount = medicalRecordDAO.countMedicalRecordsWithFilter(customerId, null, null, null);
+        }
+
+        request.setAttribute("totalPets", totalPets);
+        request.setAttribute("upcomingAppointments", upcomingAppointments);
+        request.setAttribute("medicalRecordCount", medicalRecordCount);
         
         // Set customer info for header display
         if (displayCustomer != null) {

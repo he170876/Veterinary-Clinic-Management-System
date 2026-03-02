@@ -1,5 +1,6 @@
 package controller.customer;
 
+import dao.AppointmentDAO;
 import dao.CustomerDAO;
 import dao.MedicalRecordDAO;
 import dao.impl.CustomerJdbcDAO;
@@ -29,12 +30,14 @@ public class CustomerDashboardServlet extends HttpServlet {
     private transient CustomerDAO customerDAO;
     private transient PetService petService;
     private transient MedicalRecordDAO medicalRecordDAO;
+    private transient AppointmentDAO appointmentDAO;
 
     @Override
     public void init() throws ServletException {
         customerDAO = new CustomerJdbcDAO();
         petService = new PetServiceImpl();
         medicalRecordDAO = new MedicalRecordJdbcDAO();
+        appointmentDAO = new AppointmentDAO();
     }
 
     private Optional<Customer> resolveCurrentCustomer(User user) {
@@ -78,9 +81,14 @@ public class CustomerDashboardServlet extends HttpServlet {
         }
 
         int petCount = 0;
+        int appointmentCount = 0;
+        int medicalRecordCount = 0;
         Optional<Customer> customerOpt = resolveCurrentCustomer(user);
         if (customerOpt.isPresent()) {
-            petCount = petService.getPetsByCustomerId(customerOpt.get().getCustomerId()).size();
+            int customerId = customerOpt.get().getCustomerId();
+            petCount = petService.getPetsByCustomerId(customerId).size();
+            appointmentCount = appointmentDAO.getAppointmentsByCustomerId(customerId).size();
+            medicalRecordCount = medicalRecordDAO.countMedicalRecordsWithFilter(customerId, null, null, null);
         }
 
         // Get recent medical records (limit to 4)
@@ -92,6 +100,8 @@ public class CustomerDashboardServlet extends HttpServlet {
 
         request.setAttribute("user", user);
         request.setAttribute("petCount", petCount);
+        request.setAttribute("appointmentCount", appointmentCount);
+        request.setAttribute("medicalRecordCount", medicalRecordCount);
         request.setAttribute("recentMedicalRecords", recentMedicalRecords);
         request.getRequestDispatcher("/WEB-INF/views/customer/dashboard.jsp").forward(request, response);
     }

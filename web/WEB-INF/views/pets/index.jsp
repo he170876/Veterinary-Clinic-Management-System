@@ -67,7 +67,13 @@
 <%
     List<Pet> pets = (List<Pet>) request.getAttribute("pets");
     String searchQuery = (String) request.getAttribute("searchQuery");
+    Integer totalPets = (Integer) request.getAttribute("totalPets");
+    Integer upcomingAppointments = (Integer) request.getAttribute("upcomingAppointments");
+    Integer medicalRecordCount = (Integer) request.getAttribute("medicalRecordCount");
     if (searchQuery == null) searchQuery = "";
+    if (totalPets == null) totalPets = pets != null ? pets.size() : 0;
+    if (upcomingAppointments == null) upcomingAppointments = 0;
+    if (medicalRecordCount == null) medicalRecordCount = 0;
     User currentUser = (User) session.getAttribute("currentUser");
     String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
     boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
@@ -134,7 +140,7 @@
 </div>
 <div>
 <p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Total Pets</p>
-<p class="text-2xl font-extrabold"><%= pets != null ? pets.size() : 0 %></p>
+<p class="text-2xl font-extrabold"><%= totalPets %></p>
 </div>
 </div>
 <div class="bg-white dark:bg-[#2d2116] p-6 rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] flex items-center gap-5">
@@ -143,7 +149,7 @@
 </div>
 <div>
 <p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Upcoming Appointments</p>
-<p class="text-2xl font-extrabold">02</p>
+<p class="text-2xl font-extrabold"><%= upcomingAppointments %></p>
 </div>
 </div>
 <div class="bg-white dark:bg-[#2d2116] p-6 rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] flex items-center gap-5">
@@ -151,8 +157,8 @@
 <span class="material-symbols-outlined text-3xl">medical_services</span>
 </div>
 <div>
-<p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Total Visits</p>
-<p class="text-2xl font-extrabold">24</p>
+<p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Medical Records</p>
+<p class="text-2xl font-extrabold"><%= medicalRecordCount %></p>
 </div>
 </div>
 </div>
