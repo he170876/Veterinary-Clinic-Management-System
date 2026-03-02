@@ -6,7 +6,7 @@ import java.util.List;
 public interface BlogDAO {
 
     // ===== Create =====
-    boolean insert(Blog blog);
+    int insert(Blog blog);
 
     // ===== Read =====
     Blog findById(int blogId);
@@ -34,4 +34,20 @@ public interface BlogDAO {
     List<Blog> search(String keyword, String status, String sort, int offset, int limit);
 
     int countSearch(String keyword, String status);
+
+    boolean update(int blogId,
+            String title,
+            String category,
+            String slug,
+            String thumbnailUrl,
+            String metaDescription,
+            String content,
+            String status);
+
+    boolean existsById(int blogId);
+
+    boolean existsBySlugExceptId(String slug, int blogId);
+
+    boolean existsBySlug(String slug);
+
 }
