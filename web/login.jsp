@@ -1,3 +1,4 @@
+
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -14,10 +15,9 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#f14437",
-                        "primary-dark": "#d6362b",
-                        "background-light": "#fcfcfc",
-                        "background-dark": "#1a1614",
+                        "primary": "#ff7b00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
                     },
                     fontFamily: {
                         "display": ["Manrope", "sans-serif"]

@@ -24,10 +24,9 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#f14437",
-                        "primary-dark": "#d6362b",
-                        "background-light": "#fcfcfc",
-                        "background-dark": "#1a1614",
+                         "primary": "#ff7b00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
                     },
                     fontFamily: {
                         "display": ["Manrope", "sans-serif"]
@@ -111,19 +110,17 @@
                     <p class="text-xs text-gray-500">1-30 characters, letters and spaces only (any language). No leading/trailing spaces.</p>
                 </div>
 
-                <!-- Email: @gmail.com only -->
+                <!-- Email -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-sm font-semibold text-gray-700">Email Address <span class="text-red-500">*</span></label>
                     <input class="w-full h-12 rounded-lg border border-gray-200 bg-white px-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                           placeholder="yourname@gmail.com"
+                           placeholder="yourname@example.com"
                            type="email"
                            name="email"
                            value="<%= email %>"
                            maxlength="255"
-                           pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
-                           title="Email must be a Gmail address (@gmail.com)."
                            required/>
-                    <p class="text-xs text-gray-500">Only Gmail addresses (@gmail.com) are accepted. Each account must use a unique email.</p>
+                    <p class="text-xs text-gray-500">Use a valid email address. Each account must use a unique email.</p>
                 </div>
 
                 <!-- Phone: required, 10 digits starting with 0 -->
@@ -187,7 +184,7 @@
                 </div>
 
                 <!-- Submit Button -->
-                <button class="w-full h-12 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-all shadow-lg shadow-primary/20 mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
+                <button class="w-full h-12 bg-primary hover:bg-primary-dark": "#d6362b text-white font-bold rounded-lg transition-all shadow-lg shadow-primary/20 mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
                         type="submit">
                     Create Account
                     <span class="material-symbols-outlined">arrow_forward</span>
@@ -216,7 +213,7 @@
 
             <p class="text-center text-sm font-medium text-gray-500">
                 Already have an account?
-                <a class="text-primary font-bold hover:text-primary-dark ml-1" href="<%= request.getContextPath() %>/login">Sign in</a>
+                <a class="text-primary font-bold hover:text-primary-dark": "#d6362b ml-1" href="<%= request.getContextPath() %>/login">Sign in</a>
             </p>
         </div>
 

@@ -14,6 +14,7 @@ public class Appointment {
     private int veterinarianId; // keep as id for now to avoid circular model explosion
     private String veterinarianName; // for display purposes
     private String service; // service name
+    private Integer serviceId; // for saving record services
     private LocalDateTime appointmentTime;
     private String status; // Pending, Confirmed, Completed, Cancelled...
     private LocalDateTime createdAt;
@@ -67,6 +68,14 @@ public class Appointment {
 
     public void setService(String service) {
         this.service = service;
+    }
+
+    public Integer getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(Integer serviceId) {
+        this.serviceId = serviceId;
     }
 
     public LocalDateTime getAppointmentTime() {

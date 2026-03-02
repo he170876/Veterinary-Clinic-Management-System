@@ -1,5 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.User" %>
+<%@ page import="model.Appointment" %>
+<%@ page import="model.LabResultSummary" %>
+<%@ page import="java.util.List" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
 <%
     User user = (User) request.getAttribute("user");
     if (user == null) {
@@ -9,6 +13,18 @@
     String ctx = request.getContextPath();
     String roleTitle = (user.getRole() != null && user.getRole().getRoleName() != null)
         ? user.getRole().getRoleName() : "Veterinarian";
+    @SuppressWarnings("unchecked")
+    List<Appointment> todayAppointments = (List<Appointment>) request.getAttribute("todayAppointments");
+    if (todayAppointments == null) todayAppointments = java.util.Collections.emptyList();
+    int totalToday = request.getAttribute("totalToday") != null ? (Integer) request.getAttribute("totalToday") : 0;
+    int surgeriesToday = request.getAttribute("surgeriesToday") != null ? (Integer) request.getAttribute("surgeriesToday") : 0;
+    int pendingLab = request.getAttribute("pendingLab") != null ? (Integer) request.getAttribute("pendingLab") : 0;
+    int followUps = request.getAttribute("followUps") != null ? (Integer) request.getAttribute("followUps") : 0;
+    @SuppressWarnings("unchecked")
+    List<LabResultSummary> recentLabResults = (List<LabResultSummary>) request.getAttribute("recentLabResults");
+    if (recentLabResults == null) recentLabResults = java.util.Collections.emptyList();
+    DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
+    DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("MMM dd, yyyy");
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,9 +42,9 @@
           theme: {
             extend: {
               colors: {
-                "primary": "#f14337",
-                "background-light": "#f8f6f6",
-                "background-dark": "#221110",
+                        "primary": "#ff7b00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
               },
               fontFamily: {
                 "display": ["Manrope"]
@@ -41,46 +57,7 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
 <div class="flex h-screen overflow-hidden">
-<!-- Sidebar Navigation -->
-<aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
-<div class="p-6 flex items-center gap-3">
-<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
-<span class="material-symbols-outlined text-2xl">pets</span>
-</div>
-<div>
-<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Anipats</h1>
-<p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Veterinary Care</p>
-</div>
-</div>
-<nav class="flex-1 px-4 space-y-2 mt-4">
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold" href="<%= ctx %>/vet/dashboard">
-<span class="material-symbols-outlined">dashboard</span>
-<span class="text-sm">Dashboard</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="<%= ctx %>/vet/queue">
-<span class="material-symbols-outlined">group_work</span>
-<span class="text-sm font-medium">Patients Queue</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-<span class="material-symbols-outlined">clinical_notes</span>
-<span class="text-sm font-medium">Medical Records</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-<span class="material-symbols-outlined">lab_panel</span>
-<span class="text-sm font-medium">Lab Results</span>
-</a>
-</nav>
-<div class="p-4 border-t border-slate-200 dark:border-slate-800">
-<div class="flex items-center gap-3 p-2">
-<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-500 dark:text-slate-400 text-sm font-bold"<% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %> style="background-image: url('<%= ctx %><%= user.getProfilePictureUrl() %>'); background-size: cover;"<% } %>><% if (user.getProfilePictureUrl() == null || user.getProfilePictureUrl().isEmpty()) { %><%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %><% } %></div>
-<div class="flex-1 min-w-0">
-<p class="text-sm font-bold truncate"><%= user.getFullName() %></p>
-<p class="text-xs text-slate-500 truncate"><%= roleTitle %></p>
-</div>
-</div>
-<a href="<%= ctx %>/logout" class="block mt-2 text-center text-xs text-slate-500 hover:text-primary transition-colors">Sign out</a>
-</div>
-</aside>
+<%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
 <!-- Main Content Area -->
 <main class="flex-1 flex flex-col overflow-hidden">
 <!-- Top Header -->
@@ -110,28 +87,28 @@
 <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
 <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Appointments</p>
 <div class="flex items-end justify-between">
-<h3 class="text-3xl font-bold">12</h3>
-<span class="text-green-500 text-xs font-bold flex items-center bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">+4% vs yesterday</span>
+<h3 class="text-3xl font-bold"><%= totalToday %></h3>
+<span class="text-green-500 text-xs font-bold flex items-center bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">Today</span>
 </div>
 </div>
 <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
 <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Surgeries Today</p>
 <div class="flex items-end justify-between">
-<h3 class="text-3xl font-bold">03</h3>
+<h3 class="text-3xl font-bold"><%= surgeriesToday %></h3>
 <span class="text-primary text-xs font-bold flex items-center bg-primary/10 px-2 py-1 rounded-full">High Priority</span>
 </div>
 </div>
 <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
 <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Lab Results</p>
 <div class="flex items-end justify-between">
-<h3 class="text-3xl font-bold">08</h3>
+<h3 class="text-3xl font-bold"><%= pendingLab %></h3>
 <span class="text-slate-400 text-xs font-bold flex items-center">In progress</span>
 </div>
 </div>
 <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
 <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Follow-ups</p>
 <div class="flex items-end justify-between">
-<h3 class="text-3xl font-bold">05</h3>
+<h3 class="text-3xl font-bold"><%= followUps %></h3>
 <span class="text-slate-400 text-xs font-bold flex items-center">This week</span>
 </div>
 </div>
@@ -152,45 +129,36 @@
 <th class="px-6 py-4">Owner</th>
 <th class="px-6 py-4">Service</th>
 <th class="px-6 py-4">Time</th>
+<th class="px-6 py-4 text-right">Action</th>
 </tr>
 </thead>
 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<% for (Appointment ap : todayAppointments) {
+    String ownerName = ap.getCustomer() != null && ap.getCustomer().getUser() != null ? ap.getCustomer().getUser().getFullName() : "—";
+    String petName = ap.getPet() != null ? ap.getPet().getName() : "—";
+    int petId = ap.getPet() != null ? ap.getPet().getPetId() : 0;
+    String patientId = "P-" + petId;
+    String service = ap.getService() != null ? ap.getService() : "—";
+    String timeStr = ap.getAppointmentTime() != null ? ap.getAppointmentTime().format(timeFmt) : "—";
+    boolean isSurgery = service != null && service.toLowerCase().contains("surgery");
+    String serviceClass = isSurgery ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800";
+%>
 <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-<td class="px-6 py-4 text-sm font-medium text-slate-400">P-102</td>
-<td class="px-6 py-4 text-sm font-bold">Max</td>
-<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">John Doe</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-400"><%= patientId %></td>
+<td class="px-6 py-4 text-sm font-bold"><%= petName %></td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= ownerName %></td>
 <td class="px-6 py-4">
-<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-bold">Vaccination</span>
+<span class="px-3 py-1 <%= serviceClass %> rounded-full text-xs font-bold"><%= service %></span>
 </td>
-<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100">09:00 AM</td>
-</tr>
-<tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-<td class="px-6 py-4 text-sm font-medium text-slate-400">P-105</td>
-<td class="px-6 py-4 text-sm font-bold">Bella</td>
-<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Sarah Wilson</td>
-<td class="px-6 py-4">
-<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-bold">Check-up</span>
+<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100"><%= timeStr %></td>
+<td class="px-6 py-4 text-right">
+<a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" class="text-xs font-bold text-primary hover:underline">Start</a>
 </td>
-<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100">10:30 AM</td>
 </tr>
-<tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-<td class="px-6 py-4 text-sm font-medium text-slate-400">P-108</td>
-<td class="px-6 py-4 text-sm font-bold">Charlie</td>
-<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Mike Brown</td>
-<td class="px-6 py-4">
-<span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">Surgery</span>
-</td>
-<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100">01:00 PM</td>
-</tr>
-<tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-<td class="px-6 py-4 text-sm font-medium text-slate-400">P-112</td>
-<td class="px-6 py-4 text-sm font-bold">Luna</td>
-<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Emily Davis</td>
-<td class="px-6 py-4">
-<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-bold">X-Ray</span>
-</td>
-<td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100">02:30 PM</td>
-</tr>
+<% } %>
+<% if (todayAppointments.isEmpty()) { %>
+<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No appointments for today.</td></tr>
+<% } %>
 </tbody>
 </table>
 </div>
@@ -201,10 +169,10 @@
 <div class="space-y-4">
 <h2 class="text-xl font-bold">Quick Actions</h2>
 <div class="grid grid-cols-1 gap-3">
-<button class="w-full flex items-center justify-between px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+<a href="<%= ctx %>/vet/queue" class="w-full flex items-center justify-between px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 no-underline">
 <span>New Examination</span>
 <span class="material-symbols-outlined">add_circle</span>
-</button>
+</a>
 <button class="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
 <span>Schedule Revisit</span>
 <span class="material-symbols-outlined text-primary">event_repeat</span>
@@ -219,36 +187,27 @@
 <div class="space-y-4">
 <h2 class="text-xl font-bold">Recent Lab Results</h2>
 <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-800">
+<% for (LabResultSummary r : recentLabResults) {
+    String p = r.getPetName() != null ? r.getPetName() : "—";
+    String t = r.getTestName() != null ? r.getTestName() : "—";
+    String st = r.getStatus() != null ? r.getStatus() : "Normal";
+    String statusClass = "Critical".equals(st) ? "text-primary" : ("Normal".equals(st) ? "text-green-500" : "text-slate-500");
+    String dateStr = r.getResultDate() != null ? r.getResultDate().format(dateFmt) : "—";
+%>
 <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
 <div>
-<p class="text-sm font-bold">Bella</p>
-<p class="text-xs text-slate-500">Blood Profile</p>
+<p class="text-sm font-bold"><%= p %></p>
+<p class="text-xs text-slate-500"><%= t %></p>
 </div>
 <div class="text-right">
-<p class="text-xs font-bold text-primary">Critical</p>
-<p class="text-[10px] text-slate-400 uppercase">Oct 24, 2023</p>
+<p class="text-xs font-bold <%= statusClass %>"><%= st %></p>
+<p class="text-[10px] text-slate-400 uppercase"><%= dateStr %></p>
 </div>
 </div>
-<div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-<div>
-<p class="text-sm font-bold">Charlie</p>
-<p class="text-xs text-slate-500">Post-Op Screening</p>
-</div>
-<div class="text-right">
-<p class="text-xs font-bold text-green-500">Normal</p>
-<p class="text-[10px] text-slate-400 uppercase">Oct 23, 2023</p>
-</div>
-</div>
-<div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-<div>
-<p class="text-sm font-bold">Max</p>
-<p class="text-xs text-slate-500">Urinalysis</p>
-</div>
-<div class="text-right">
-<p class="text-xs font-bold text-slate-500">Pending</p>
-<p class="text-[10px] text-slate-400 uppercase">Oct 23, 2023</p>
-</div>
-</div>
+<% } %>
+<% if (recentLabResults.isEmpty()) { %>
+<div class="p-6 text-center text-slate-500 dark:text-slate-400 text-sm">No recent lab results.</div>
+<% } %>
 </div>
 <button class="w-full py-2 text-sm font-bold text-slate-400 hover:text-primary transition-colors">View All Lab Reports</button>
 </div>

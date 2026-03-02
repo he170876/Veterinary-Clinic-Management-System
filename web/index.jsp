@@ -33,9 +33,9 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#f14437",
-                        "background-light": "#f8f6f6",
-                        "background-dark": "#181111",
+                        "primary": "#ff7b00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
                         "dark-accent": "#120a0b",
                     },
                     fontFamily: {

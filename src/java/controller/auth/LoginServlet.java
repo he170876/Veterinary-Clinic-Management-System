@@ -70,9 +70,9 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
-        if (!ValidationUtil.isValidGmail(email)) {
-            LOG.log(Level.FINE, "POST /login: rejected - email not Gmail");
-            request.setAttribute("error", "Email must be a Gmail address (@gmail.com).");
+        if (!ValidationUtil.isValidEmailFormat(email)) {
+            LOG.log(Level.FINE, "POST /login: rejected - invalid email format");
+            request.setAttribute("error", "Please enter a valid email address.");
             request.getRequestDispatcher("login.jsp").forward(request, response);
             return;
         }

@@ -1,6 +1,7 @@
 package controller.staff;
 
 import dao.AppointmentDAO;
+import dao.VisitDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,7 +13,10 @@ import model.User;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Serves the Arrived Patients Queue at /staff/queue.
@@ -32,11 +36,15 @@ public class StaffPatientsQueueServlet extends HttpServlet {
 
         User user = (User) session.getAttribute("currentUser");
         AppointmentDAO dao = new AppointmentDAO();
+        VisitDAO visitDao = new VisitDAO();
         LocalDate today = LocalDate.now();
         List<Appointment> appointments = dao.getAppointmentsForDate(today);
+        Set<Integer> appointmentIdsWithVisit = appointments.isEmpty() ? Collections.emptySet()
+                : visitDao.getAppointmentIdsWithVisit(appointments.stream().map(Appointment::getAppointmentId).collect(Collectors.toSet()));
 
         request.setAttribute("user", user);
         request.setAttribute("appointments", appointments);
+        request.setAttribute("appointmentIdsWithVisit", appointmentIdsWithVisit);
         request.setAttribute("queueDate", today);
         request.getRequestDispatcher("/WEB-INF/views/staff/patients-queue.jsp").forward(request, response);
     }

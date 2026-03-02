@@ -38,7 +38,8 @@
                 <span class="material-symbols-outlined">settings</span>
                 <p class="text-sm font-medium">Settings</p>
             </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors <%= "records".equals(currentPage) ? "bg-primary/10 text-primary" : "text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10" %>"
+               href="<%= ctx %>/customer/records">
                 <span class="material-symbols-outlined">medical_services</span>
                 <p class="text-sm font-medium">Medical Records</p>
             </a>

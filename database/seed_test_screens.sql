@@ -51,9 +51,33 @@ JOIN Users u ON c.user_id = u.user_id
 CROSS JOIN (SELECT veterinarian_id FROM Veterinarians WHERE user_id = (SELECT user_id FROM Users WHERE email = 'dr.james@anipats.com')) v
 WHERE u.email = 'dev@anipats.com' AND p.name = 'Max';
 
+/* ========= ONE CHECKED-IN VISIT (for Vet Queue + Lab Dashboard) ========= */
+/* Vet queue shows only status = ''Checked-in''; receptionist creates visit with staff_id. */
+/* This inserts one visit as if receptionist had already checked in the first appointment. */
+INSERT INTO Visits (appointment_id, pet_id, customer_id, check_in_time, visit_status, staff_id, veterinarian_id)
+SELECT TOP 1 a.appointment_id, a.pet_id, a.customer_id, GETDATE(), 'Checked-in',
+       (SELECT TOP 1 receptionist_id FROM Receptionists),
+       a.veterinarian_id
+FROM Appointments a
+WHERE a.status = 'Confirmed' AND CAST(a.appointment_time AS DATE) = CAST(GETDATE() AS DATE)
+ORDER BY a.appointment_time;
+
+/* Update that appointment to Checked-in so it matches the visit */
+UPDATE a SET a.status = 'Checked-in'
+FROM Appointments a
+WHERE a.appointment_id IN (SELECT TOP 1 appointment_id FROM Visits WHERE visit_status = 'Checked-in' ORDER BY visit_id DESC);
+
+/* One Pending lab request for that visit (Lab Dashboard) */
+INSERT INTO LabTestRequests (visit_id, test_id, veterinarian_id, status)
+SELECT TOP 1 v.visit_id, (SELECT TOP 1 test_id FROM LabTests), v.veterinarian_id, 'Pending'
+FROM Visits v
+WHERE v.visit_status = 'Checked-in'
+ORDER BY v.visit_id DESC;
+
 GO
 
 PRINT 'Test screen data inserted.';
-PRINT 'Today''s appointments: 2 for Dr. Sarah Smith (Max 09:00, Luna 10:30), 2 for Dr. James Lee (Buddy 11:00, Max 14:00).';
-PRINT 'Log in as dr.smith@anipats.com or dr.james@anipats.com and open Vet Queue to see them.';
+PRINT 'Today''s appointments: 4 total (2 for Dr. Sarah Smith, 2 for Dr. James Lee).';
+PRINT 'One appointment is pre-checked-in (appears in Vet Queue). Other 3: use Staff Queue as reception@anipats.com and click Check-in.';
+PRINT 'Vet Queue: dr.smith@anipats.com or dr.james@anipats.com. Lab: lab@anipats.com.';
 GO

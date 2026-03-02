@@ -55,8 +55,8 @@ public class ForgotPasswordServlet extends HttpServlet {
             response.sendRedirect(ctx + "/forgot-password?error=" + URLEncoder.encode("Email must not contain leading or trailing spaces.", StandardCharsets.UTF_8));
             return;
         }
-        if (!ValidationUtil.isValidGmail(email)) {
-            response.sendRedirect(ctx + "/forgot-password?error=" + URLEncoder.encode("Email must be a Gmail address (@gmail.com).", StandardCharsets.UTF_8));
+        if (!ValidationUtil.isValidEmailFormat(email)) {
+            response.sendRedirect(ctx + "/forgot-password?error=" + URLEncoder.encode("Please enter a valid email address.", StandardCharsets.UTF_8));
             return;
         }
 

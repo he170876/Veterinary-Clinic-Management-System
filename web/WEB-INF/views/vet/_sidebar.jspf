@@ -1,0 +1,83 @@
+<%
+    String sidebarCtx = request.getContextPath();
+    model.User sidebarUser = (model.User) request.getAttribute("user");
+    if (sidebarUser == null && session != null) {
+        sidebarUser = (model.User) session.getAttribute("currentUser");
+    }
+    String sidebarRoleTitle = (sidebarUser != null && sidebarUser.getRole() != null && sidebarUser.getRole().getRoleName() != null)
+            ? sidebarUser.getRole().getRoleName() : "Veterinarian";
+    String currentPath = request.getRequestURI();
+    boolean onDashboard = currentPath.endsWith("/vet/dashboard");
+    boolean onQueue = currentPath.endsWith("/vet/queue") || currentPath.endsWith("/vet/examination");
+    boolean onRecords = currentPath.endsWith("/vet/records") || currentPath.endsWith("/vet/record");
+    boolean onProfile = currentPath.endsWith("/vet/profile") || currentPath.endsWith("/vet/edit-profile");
+%>
+<!-- Unified Vet Sidebar -->
+<aside id="vet-sidebar" class="hidden lg:flex w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col">
+    <div class="p-6 flex items-center gap-3">
+        <div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+            <span class="material-symbols-outlined text-2xl">pets</span>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Anipats</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Veterinary Care</p>
+        </div>
+    </div>
+    <nav class="flex-1 px-4 space-y-2 mt-4">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                  text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= onDashboard ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= sidebarCtx %>/vet/dashboard">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                  text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= onQueue ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= sidebarCtx %>/vet/queue">
+            <span class="material-symbols-outlined">group_work</span>
+            <span>Patients Queue</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                  text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= onRecords ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= sidebarCtx %>/vet/records">
+            <span class="material-symbols-outlined">calendar_today</span>
+            <span class="text-sm font-medium">Medical Records</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                  text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= onProfile ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= sidebarCtx %>/vet/profile">
+            <span class="material-symbols-outlined">person</span>
+            <span class="text-sm font-medium">My Profile</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
+            <span class="material-symbols-outlined">lab_panel</span>
+            <span class="text-sm font-medium">Lab Results</span>
+        </a>
+    </nav>
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3 p-2">
+            <div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-500 dark:text-slate-400 text-sm font-bold"<% if (sidebarUser != null && sidebarUser.getProfilePictureUrl() != null && !sidebarUser.getProfilePictureUrl().isEmpty()) { %> style="background-image: url('<%= sidebarCtx %><%= sidebarUser.getProfilePictureUrl() %>'); background-size: cover;"<% } %>><% if (sidebarUser == null || sidebarUser.getProfilePictureUrl() == null || sidebarUser.getProfilePictureUrl().isEmpty()) { %><%= (sidebarUser != null && sidebarUser.getFullName() != null && !sidebarUser.getFullName().isEmpty()) ? String.valueOf(sidebarUser.getFullName().charAt(0)) : "?" %><% } %></div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold truncate"><%= sidebarUser != null && sidebarUser.getFullName() != null ? sidebarUser.getFullName() : "" %></p>
+                <p class="text-xs text-slate-500 truncate"><%= sidebarRoleTitle %></p>
+            </div>
+        </div>
+        <a href="<%= sidebarCtx %>/logout" class="block mt-2 text-center text-xs text-slate-500 hover:text-primary transition-colors">Sign out</a>
+    </div>
+</aside>
+
+<script>
+window.addEventListener('load', function() {
+  var btn = document.getElementById('sidebar-toggle');
+  var sidebar = document.getElementById('vet-sidebar');
+  if (btn && sidebar) {
+    btn.addEventListener('click', function() {
+      if (sidebar.classList.contains('hidden')) {
+        sidebar.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('hidden');
+      }
+    });
+  }
+});
+</script>
+
