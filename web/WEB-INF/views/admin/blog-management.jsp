@@ -218,10 +218,30 @@
 
                                     <!-- Status -->
                                     <td class="px-4 py-3 text-center">
-                                        <span class="px-3 py-1 rounded-full text-xs font-bold
-                                              ${b.status=='Published'?'status-published':'status-draft'}">
-                                            ${b.status}
-                                        </span>
+
+                                        <form method="post"
+                                              action="${pageContext.request.contextPath}/admin/update-blog-status">
+
+                                            <input type="hidden" name="blogId" value="${b.blogId}" />
+
+                                            <!-- giữ filter -->
+                                            <input type="hidden" name="page" value="${currentPage}" />
+                                            <input type="hidden" name="keyword" value="${param.keyword}" />
+                                            <input type="hidden" name="status" value="${param.status}" />
+                                            <input type="hidden" name="sort" value="${sort}" />
+
+                                            <select name="newStatus"
+                                                    onchange="this.form.submit()"
+                                                    class="px-3 py-1 rounded-full text-xs font-bold border-2
+                                                    ${b.status=='Published'?'status-published':'status-draft'}">
+
+                                                <option value="Draft" ${b.status=='Draft'?'selected':''}>Draft</option>
+                                                <option value="Published" ${b.status=='Published'?'selected':''}>Published</option>
+
+                                            </select>
+
+                                        </form>
+
                                     </td>
 
                                     <!-- Created Date -->

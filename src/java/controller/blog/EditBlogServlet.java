@@ -1,4 +1,4 @@
-package controller.admin;
+package controller.blog;
 
 import dao.BlogDAO;
 import dao.impl.BlogJdbcDAO;
