@@ -14,30 +14,46 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
 
     // ================= INSERT =================
     @Override
-    public boolean insert(Blog blog) {
-        String sql = "INSERT INTO " + TABLE + " (title, content, created_at, status, "
-                + "author_user_id, updated_at, thumbnail_url, slug, category, meta_description) "
+    public int insert(Blog blog) {
+
+        String sql = "INSERT INTO " + TABLE
+                + " (title, content, created_at, status, author_user_id, "
+                + "updated_at, thumbnail_url, slug, category, meta_description) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, blog.getTitle());
             ps.setString(2, blog.getContent());
             ps.setTimestamp(3, Timestamp.valueOf(blog.getCreatedAt()));
             ps.setString(4, blog.getStatus());
             ps.setInt(5, blog.getAuthorUserId());
-            ps.setTimestamp(6, Timestamp.valueOf(blog.getUpdatedAt()));
+
+            if (blog.getUpdatedAt() != null) {
+                ps.setTimestamp(6, Timestamp.valueOf(blog.getUpdatedAt()));
+            } else {
+                ps.setTimestamp(6, null);
+            }
+
             ps.setString(7, blog.getThumbnailUrl());
             ps.setString(8, blog.getSlug());
             ps.setString(9, blog.getCategory());
             ps.setString(10, blog.getMetaDescription());
 
-            return ps.executeUpdate() > 0;
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1); // return blog_id
+                }
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
+
+        return -1;
     }
 
     // ================= FIND BY ID =================
@@ -380,5 +396,105 @@ public class BlogJdbcDAO extends BaseDAO implements BlogDAO {
         blog.setMetaDescription(rs.getString("meta_description"));
 
         return blog;
+    }
+
+    @Override
+    public boolean update(int blogId,
+            String title,
+            String category,
+            String slug,
+            String thumbnailUrl,
+            String metaDescription,
+            String content,
+            String status) {
+
+        String sql = """
+        UPDATE Blogs
+        SET title = ?,
+            category = ?,
+            slug = ?,
+            thumbnail_url = ?,
+            meta_description = ?,
+            content = ?,
+            status = ?,
+            updated_at = GETDATE()
+        WHERE blog_id = ?
+    """;
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, title);
+            ps.setString(2, category);
+            ps.setString(3, slug);
+            ps.setString(4, thumbnailUrl);
+            ps.setString(5, metaDescription);
+            ps.setString(6, content);
+            ps.setString(7, status);
+            ps.setInt(8, blogId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean existsById(int blogId) {
+
+        String sql = "SELECT 1 FROM Blogs WHERE blog_id = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, blogId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // true nếu tồn tại
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean existsBySlugExceptId(String slug, int blogId) {
+
+        String sql = "SELECT 1 FROM Blogs WHERE slug = ? AND blog_id <> ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, slug);
+            ps.setInt(2, blogId);
+
+            return ps.executeQuery().next();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean existsBySlug(String slug) {
+        String sql = "SELECT COUNT(*) FROM Blogs WHERE slug = ?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, slug);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

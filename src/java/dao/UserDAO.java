@@ -38,8 +38,17 @@ public interface UserDAO {
 
     boolean updateUserByAdmin(int userId, String fullName, String email, String phone, String address, int roleId, String status);
 
+    boolean existsByEmailExceptId(String email, int userId);
+
+    boolean existsRoleById(int roleId);
+    
+    boolean existsById(int userId);
+    
+    public boolean create(User user);
+
     /**
      * Mark user as Google sign-in (no change password).
+     *
      * @return true if one row was updated.
      */
     boolean setGoogleUser(int userId);

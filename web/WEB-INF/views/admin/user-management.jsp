@@ -72,10 +72,11 @@
                     <h2 class="text-4xl font-black">User Management</h2>
                     <p class="mt-2 text-[#896163]">Search and filter system users</p>
                 </div>
-                <a href="add-user.jsp"
-                   class="px-6 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600">
+                <button type="button"
+                        onclick="openCreateUserModal()"
+                        class="px-6 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600">
                     + Add User
-                </a>
+                </button>
             </div>
         </section>
 
@@ -102,7 +103,7 @@
                         <option value="6" ${param.filterRoleId=='6'?'selected':''}>Clinic Owner</option>
                     </select>
 
-                    <select name="status" class="rounded-xl border px-4 py-3">
+                    <select name="filterStatus" class="rounded-xl border px-4 py-3">
                         <option value="">All status</option>
                         <option value="Active" ${param.status=='Active'?'selected':''}>Active</option>
                         <option value="Inactive" ${param.status=='Inactive'?'selected':''}>Inactive</option>
@@ -128,7 +129,7 @@
                                         <!-- giữ filter -->
                                         <input type="hidden" name="keyword" value="${param.keyword}" />
                                         <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
-                                        <input type="hidden" name="status" value="${param.status}" />
+                                        <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
                                         <input type="hidden" name="page" value="1" />
 
                                         <!-- sort -->
@@ -173,7 +174,7 @@
                                             <!-- giữ filter -->
                                             <input type="hidden" name="keyword" value="${param.keyword}" />
                                             <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
-                                            <input type="hidden" name="filterStatus" value="${param.status}" />
+                                            <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
 
                                             <!-- giữ phân trang + sort -->
                                             <input type="hidden" name="page" value="${currentPage}" />
@@ -272,7 +273,7 @@
 
                         <!-- PREV -->
                         <c:if test="${currentPage > 1}">
-                            <a href="user-management?page=${currentPage-1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&status=${param.status}&sort=${sort}"
+                            <a href="user-management?page=${currentPage-1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
                                class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                 Prev
                             </a>
@@ -280,7 +281,7 @@
 
                         <!-- PAGE NUMBERS -->
                         <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="user-management?page=${i}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&status=${param.status}&sort=${sort}"
+                            <a href="user-management?page=${i}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
                                class="px-4 py-2 rounded-lg font-bold
                                ${i == currentPage ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}">
                                 ${i}
@@ -289,7 +290,7 @@
 
                         <!-- NEXT -->
                         <c:if test="${currentPage < totalPages}">
-                            <a href="user-management?page=${currentPage+1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&status=${param.status}&sort=${sort}"
+                            <a href="user-management?page=${currentPage+1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
                                class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                 Next
                             </a>
@@ -478,45 +479,75 @@
                     <!-- giữ filter + pagination -->
                     <input type="hidden" name="keyword" value="${param.keyword}" />
                     <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
-                    <input type="hidden" name="filterStatus" value="${param.status}" />
+                    <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
                     <input type="hidden" name="page" value="${currentPage}" />
                     <input type="hidden" name="sort" value="${sort}" />
 
                     <div>
                         <label class="font-semibold">Full Name</label>
                         <input id="e-name" name="fullName"
-                               class="w-full rounded-lg border px-4 py-2"/>
+                               value="${fullName}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.fullName != null ? 'border-red-500' : ''}"/>
+
+                        <c:if test="${errors.fullName != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.fullName}</p>
+                        </c:if>
                     </div>
 
                     <div>
                         <label class="font-semibold">Email</label>
                         <input id="e-email" name="email"
-                               class="w-full rounded-lg border px-4 py-2"/>
+                               value="${email}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.email != null ? 'border-red-500' : ''}"/>
+
+                        <c:if test="${errors.email != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.email}</p>
+                        </c:if>
                     </div>
 
                     <div>
                         <label class="font-semibold">Phone</label>
                         <input id="e-phone" name="phone"
-                               class="w-full rounded-lg border px-4 py-2"/>
+                               value="${phone}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.phone != null ? 'border-red-500' : ''}"/>
+
+                        <c:if test="${errors.phone != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.phone}</p>
+                        </c:if>
                     </div>
 
                     <div>
                         <label class="font-semibold">Address</label>
                         <input id="e-address" name="address"
-                               class="w-full rounded-lg border px-4 py-2"/>
+                               value="${address}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.address != null ? 'border-red-500' : ''}"/>
+
+                        <c:if test="${errors.address != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.address}</p>
+                        </c:if>
                     </div>
 
                     <div>
                         <label class="font-semibold">Role</label>
                         <select id="e-role" name="roleId"
-                                class="w-full rounded-lg border px-4 py-2">
-                            <option value="1">Customer</option>
-                            <option value="2">Veterinarian</option>
-                            <option value="3">Receptionist</option>
-                            <option value="4">Lab Staff</option>
-                            <option value="5">Admin</option>
-                            <option value="6">Clinic Owner</option>
+                                class="w-full rounded-lg border px-4 py-2
+                                ${errors.roleId != null ? 'border-red-500' : ''}">
+
+                            <option value="1" ${roleId == 1 ? 'selected' : ''}>Customer</option>
+                            <option value="2" ${roleId == 2 ? 'selected' : ''}>Veterinarian</option>
+                            <option value="3" ${roleId == 3 ? 'selected' : ''}>Receptionist</option>
+                            <option value="4" ${roleId == 4 ? 'selected' : ''}>Lab Staff</option>
+                            <option value="5" ${roleId == 5 ? 'selected' : ''}>Admin</option>
+                            <option value="6" ${roleId == 6 ? 'selected' : ''}>Clinic Owner</option>
                         </select>
+
+                        <c:if test="${errors.roleId != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.roleId}</p>
+                        </c:if>
                     </div>
 
                     <div>
@@ -527,6 +558,10 @@
                             <option value="Inactive">Inactive</option>
                             <option value="Blocked">Blocked</option>
                         </select>
+
+                        <c:if test="${errors.status != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.status}</p>
+                        </c:if>
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4">
@@ -569,6 +604,176 @@
                 modal.classList.remove('flex');
             }
         </script>
+
+        <c:if test="${openEditModal}">
+            <script>
+                const modal = document.getElementById('editUserModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            </script>
+        </c:if>
+
+        <!-- CREATE USER MODAL -->
+        <div id="createUserModal"
+             class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+            <div class="bg-white w-full max-w-xl rounded-2xl shadow-lg p-6 relative">
+
+                <h3 class="text-2xl font-black mb-4">Create User</h3>
+
+                <form action="create-user" method="post" class="space-y-4">
+
+                    <!-- giữ filter + pagination -->
+                    <input type="hidden" name="keyword" value="${param.keyword}" />
+                    <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
+                    <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
+                    <input type="hidden" name="page" value="${currentPage}" />
+                    <input type="hidden" name="sort" value="${sort}" />
+
+                    <div>
+                        <label class="font-semibold">Full Name</label>
+                        <input name="fullName"
+                               value="${fullName}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.fullName != null ? 'border-red-500' : ''}" required=""/>
+
+                        <c:if test="${errors.fullName != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.fullName}</p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Email</label>
+                        <input name="email"
+                               value="${email}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.email != null ? 'border-red-500' : ''}" required=""/>
+
+                        <c:if test="${errors.email != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.email}</p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Password</label>
+                        <input type="password" name="password"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.password != null ? 'border-red-500' : ''}" required=""/>
+
+                        <c:if test="${errors.password != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.password}</p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="block mb-1 font-medium">Re-enter Password</label>
+                        <input type="password"
+                               name="confirmPassword"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.confirmPassword != null ? 'border-red-500' : ''}"
+                               required>
+
+                        <c:if test="${errors.confirmPassword != null}">
+                            <p class="text-red-500 text-sm mt-1">
+                                ${errors.confirmPassword}
+                            </p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Phone</label>
+                        <input name="phone"
+                               value="${phone}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.phone != null ? 'border-red-500' : ''}"/>
+
+                        <c:if test="${errors.phone != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.phone}</p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Address</label>
+                        <input name="address"
+                               value="${address}"
+                               class="w-full rounded-lg border px-4 py-2
+                               ${errors.address != null ? 'border-red-500' : ''}"/>
+
+                        <c:if test="${errors.address != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.address}</p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Role</label>
+                        <select name="roleId"
+                                class="w-full rounded-lg border px-4 py-2
+                                ${errors.roleId != null ? 'border-red-500' : ''}">
+
+                            <option value="1" ${roleId == 1 ? 'selected' : ''}>Customer</option>
+                            <option value="2" ${roleId == 2 ? 'selected' : ''}>Veterinarian</option>
+                            <option value="3" ${roleId == 3 ? 'selected' : ''}>Receptionist</option>
+                            <option value="4" ${roleId == 4 ? 'selected' : ''}>Lab Staff</option>
+                            <option value="5" ${roleId == 5 ? 'selected' : ''}>Admin</option>
+                            <option value="6" ${roleId == 6 ? 'selected' : ''}>Clinic Owner</option>
+                        </select>
+
+                        <c:if test="${errors.roleId != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.roleId}</p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Status</label>
+                        <select name="status"
+                                class="w-full rounded-lg border px-4 py-2">
+                            <option value="Active" ${status == 'Active' ? 'selected' : ''}>Active</option>
+                            <option value="Inactive" ${status == 'Inactive' ? 'selected' : ''}>Inactive</option>
+                            <option value="Blocked" ${status == 'Blocked' ? 'selected' : ''}>Blocked</option>
+                        </select>
+
+                        <c:if test="${errors.status != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.status}</p>
+                        </c:if>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4">
+                        <button type="button"
+                                onclick="closeCreateUserModal()"
+                                class="px-5 py-2 bg-gray-200 rounded-lg font-bold">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                onclick="return confirm('Create this user?')"
+                                class="px-5 py-2 bg-orange-500 text-white rounded-lg font-bold">
+                            Create
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function openCreateUserModal() {
+                const modal = document.getElementById('createUserModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function closeCreateUserModal() {
+                const modal = document.getElementById('createUserModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        </script>
+
+        <c:if test="${openCreateModal}">
+            <script>
+                openCreateUserModal();
+            </script>
+        </c:if>
 
     </body>
 </html>
