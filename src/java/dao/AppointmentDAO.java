@@ -202,13 +202,32 @@ public class AppointmentDAO extends DBContext {
         return list;
     }
 
-    public boolean updateAppointmentDoctor(int appointmentId, int veterinarianId) {
+    public boolean updateAppointmentDoctor(int appointmentId, Integer veterinarianId) {
         String sql = "UPDATE appointments SET veterinarian_id = ? WHERE appointment_id = ?";
         try (
             Connection con = getConnection();
             PreparedStatement ps = con.prepareStatement(sql)
         ) {
-            ps.setInt(1, veterinarianId);
+            if (veterinarianId != null && veterinarianId > 0) {
+                ps.setInt(1, veterinarianId);
+            } else {
+                ps.setNull(1, java.sql.Types.INTEGER);
+            }
+            ps.setInt(2, appointmentId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    public boolean updateAppointmentStatus(int appointmentId, String status) {
+        String sql = "UPDATE appointments SET status = ? WHERE appointment_id = ?";
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setString(1, status);
             ps.setInt(2, appointmentId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {

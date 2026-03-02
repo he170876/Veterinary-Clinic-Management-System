@@ -1,4 +1,4 @@
-﻿<%-- 
+<%-- 
     Document   : ViewListAppointment
     Created on : Feb 3, 2026, 12:56:24 AM
     Author     : admin
@@ -170,8 +170,15 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Update the original vet id
+                        // Update the original vet id in popup
                         currentSelectElement.setAttribute('data-original-vet', newVetId);
+                        
+                        // Update doctor dropdown in the main list
+                        const mainListSelect = document.querySelector('select[data-appointment-id="' + currentAppointmentId + '"]');
+                        if (mainListSelect) {
+                            mainListSelect.value = newVetId;
+                            mainListSelect.setAttribute('data-original-vet', newVetId);
+                        }
                         
                         // Show success toast
                         showToast(data.message);
@@ -179,7 +186,7 @@
                         // Close popup
                         document.getElementById('confirmPopup').classList.remove('active');
                     } else {
-                        alert('Lá»—i: ' + data.message);
+                        alert('Lỗi: ' + data.message);
                         // Reset select
                         if (originalVetId) {
                             currentSelectElement.value = originalVetId;
@@ -188,7 +195,7 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('CÃ³ lá»—i xáº£y ra khi Ä‘á»•i bÃ¡c sá»¹');
+                    alert('Có lỗi khi đổi bác sỹ');
                     // Reset select
                     if (originalVetId) {
                         currentSelectElement.value = originalVetId;
@@ -273,8 +280,15 @@
                 document.getElementById('d-owner-address').textContent = owner.address || 'N/A';
                 document.getElementById('d-date').textContent = d.date || 'N/A';
                 document.getElementById('d-time').textContent = d.time || 'N/A';
-                document.getElementById('d-service').textContent = d.service || 'Chưa có';
-                document.getElementById('d-doctor').textContent = d.veterinarianName || 'Chưa có';
+                document.getElementById('d-service').textContent = d.service || 'N/A';
+
+                // Populate doctor select in detail panel
+                const doctorSelect = document.getElementById('d-doctor-select');
+                if (doctorSelect) {
+                    doctorSelect.setAttribute('data-appointment-id', d.appointmentId);
+                    doctorSelect.setAttribute('data-original-vet', d.veterinarianId || 0);
+                    doctorSelect.value = d.veterinarianId && d.veterinarianId > 0 ? d.veterinarianId : "0";
+                }
 
                 // Show/hide footer buttons based on status
                 const allBtns = ['d-btn-confirm','d-btn-reject','d-btn-checkin','d-btn-reschedule','d-btn-cancel','d-btn-markpaid','d-btn-invoice'];
@@ -314,6 +328,19 @@
             function closeDetail() {
                 document.getElementById('detailView').classList.add('hidden');
             }
+            
+            // Function to handle doctor change from detail panel dropdown
+            function showDoctorChangeConfirm(selectElement) {
+                const newVetId = parseInt(selectElement.value);
+                const originalVetId = parseInt(selectElement.getAttribute('data-original-vet')) || 0;
+                
+                if (newVetId === originalVetId) return;
+                
+                currentAppointmentId = selectElement.getAttribute('data-appointment-id');
+                currentSelectElement = selectElement;
+                
+                document.getElementById('confirmPopup').classList.add('active');
+            }
         </script>
     </head>
     <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex">
@@ -325,11 +352,11 @@
                 <span class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Anipat</span>
             </div>
             <nav class="flex-1 px-4 mt-4 space-y-1">
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="/Veterinary_Clinic_Management_System/Receptionist/Dashboard">
                     <span class="material-symbols-outlined">dashboard</span>
                     <span class="font-medium">Dashboard</span>
                 </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="#">
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment">
                     <span class="material-symbols-outlined">calendar_today</span>
                     <span class="font-medium">Schedule</span>
                 </a>
@@ -361,8 +388,8 @@
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                         <div class="text-right">
-                            <p class="text-sm font-semibold text-slate-800 dark:text-white">Mr. ManhLD</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Reception</p>
+                            <p class="text-sm font-semibold text-slate-800 dark:text-white"><c:out value="${not empty sessionScope.currentUser ? sessionScope.currentUser.fullName : 'User'}"/></p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400"><c:out value="${not empty sessionScope.currentUser.role ? sessionScope.currentUser.role.roleName : 'User'}"/></p>
                         </div>
                         <img alt="Doctor Portrait" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbM3tqKcwxIsoi5slYj6Kdkox1ysp7KyLPDUH241MYJyDiLgGIKJ9QfoxuwyxV7s__5dZyVili1E1pp7xhQFoF-V8TeZNJinkVaQLjApB2--PT016uBomLlR7k5ltY6L9ulS8rA6R9XrEDYfPiKRJAXNwpDWjOg_9KCYs2yO3_5n8QJ1kKKmQloVoxUx4kSNIbI7UBGluY2j-V8Oysu6VNuosQ1slgZWJMFmS4Rk4Ivn1Jv10A3YoUxgz9L5k5j8p-uVqiMJH_3EY"/>
                     </div>
@@ -408,6 +435,10 @@
                                 <span class="material-symbols-outlined text-lg">add</span>
                                 <span>New Appointment</span>
                             </button>
+                            <button class="bg-red-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                                <span class="material-symbols-outlined text-lg">emergency</span>
+                                <span>Emergency</span>
+                            </button>
                         </div>
                     </div>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
@@ -441,7 +472,7 @@
                             <c:when test="${empty list}">
                                 <div class="text-center py-12">
                                     <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700">event_busy</span>
-                                    <p class="mt-4 text-slate-500 dark:text-slate-400">KhÃ´ng cÃ³ appointment nÃ o</p>
+                                    <p class="mt-4 text-slate-500 dark:text-slate-400">Không có appointment nào</p>
                                 </div>
                             </c:when>
                             <c:otherwise>
@@ -524,14 +555,14 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">medical_services</span>
-                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'ChÆ°a cÃ³'}</span>
+                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'Chưa có'}</span>
                                 </div>
                                 <div>
                                     <select 
                                         class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                         data-original-vet="${appointment.veterinarianId}"
                                         onchange="showConfirmPopup(${appointment.appointmentId}, this, this.value)">
-                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>ChÆ°a cÃ³</option>
+                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Chưa có</option>
                                         <c:forEach var="vet" items="${veterinarians}">
                                             <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
                                                 ${vet.fullName}
@@ -746,9 +777,16 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-slate-500">Assigned Doctor</label>
-                                <div class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm">
+                                <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-sm text-primary opacity-60">stethoscope</span>
-                                    <span id="d-doctor"></span>
+                                    <select id="d-doctor-select" data-appointment-id="" data-original-vet="" 
+                                        class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
+                                        onchange="showDoctorChangeConfirm(this)">
+                                        <option value="0">Chưa có</option>
+                                        <c:forEach var="vet" items="${veterinarians}">
+                                            <option value="${vet.userId}"><c:out value="${vet.fullName}"/></option>
+                                        </c:forEach>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -777,21 +815,21 @@
                     <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">warning</span>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">XÃ¡c nháº­n Ä‘á»•i bÃ¡c sá»¹</h3>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Xác nhận đổi bác sỹ?</h3>
                 </div>
                 <p class="text-slate-600 dark:text-slate-400 mb-6">
-                    Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n Ä‘á»•i bÃ¡c sá»¹? HÃ£y cháº¯c cháº¯n ráº±ng Ä‘Ã£ thÃ´ng bÃ¡o cho khÃ¡ch hÃ ng biáº¿t.
+                    Hãy chắc chắn rằng bạn đã thông báo cho khách hàng
                 </p>
                 <div class="flex gap-3 justify-end">
                     <button 
                         onclick="closePopup()"
                         class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-medium">
-                        Há»§y
+                        Hủy
                     </button>
                     <button 
                         onclick="confirmDoctorChange()"
                         class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all font-medium">
-                        XÃ¡c nháº­n
+                        Xác nhận
                     </button>
                 </div>
             </div>
@@ -800,7 +838,7 @@
         <!-- Success Toast -->
         <div id="successToast" class="toast">
             <span class="material-symbols-outlined">check_circle</span>
-            <span id="toastMessage">Äá»•i bÃ¡c sá»¹ thÃ nh cÃ´ng!</span>
+            <span id="toastMessage">Đổi bác sỹ thành công!</span>
         </div>
 
     </body></html>

@@ -11,7 +11,7 @@ public class Appointment {
     private int appointmentId;
     private Pet pet;
     private Customer customer;
-    private int veterinarianId; // keep as id for now to avoid circular model explosion
+    private Integer veterinarianId; // keep as id for now to avoid circular model explosion
     private String veterinarianName; // for display purposes
     private String service; // service name
     private LocalDateTime appointmentTime;
@@ -45,7 +45,7 @@ public class Appointment {
         this.customer = customer;
     }
 
-    public int getVeterinarianId() {
+    public Integer getVeterinarianId() {
         return veterinarianId;
     }
 
@@ -107,4 +107,6 @@ public class Appointment {
         this.createdAt = createdAt;
     }
 }
+
+
 
