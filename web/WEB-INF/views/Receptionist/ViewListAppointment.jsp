@@ -209,6 +209,33 @@
                 setTimeout(() => { toast.classList.remove('active'); }, 3000);
             }
 
+            function processAppointmentRequest(appointmentId, requestType, decision) {
+                fetch('HandleAppointmentRequest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'appointmentId=' + encodeURIComponent(appointmentId)
+                            + '&requestType=' + encodeURIComponent(requestType)
+                            + '&decision=' + encodeURIComponent(decision)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Xử lý yêu cầu thành công');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 450);
+                    } else {
+                        alert('Lỗi: ' + (data.message || 'Không thể xử lý yêu cầu'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi xử lý yêu cầu');
+                });
+            }
+
             function openDetail(appointmentId) {
                 const panel = document.getElementById('detailView');
                 const loading = document.getElementById('detailLoading');
@@ -331,7 +358,14 @@
                 <div class="flex items-center gap-4">
                     <button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
                         <span class="material-symbols-outlined">notifications</span>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-white dark:border-slate-900"></span>
+                        <c:choose>
+                            <c:when test="${pendingCustomerRequestCount > 0}">
+                                <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">${pendingCustomerRequestCount}</span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="absolute top-2 right-2 w-2 h-2 bg-slate-300 rounded-full border-2 border-white dark:border-slate-900"></span>
+                            </c:otherwise>
+                        </c:choose>
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                         <div class="text-right">
@@ -384,6 +418,27 @@
                             </button>
                         </div>
                     </div>
+                    <c:if test="${pendingCustomerRequestCount > 0}">
+                        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-bold text-amber-700 dark:text-amber-300">Customer Requests Notifications</h3>
+                                <span class="text-xs font-semibold text-amber-700 dark:text-amber-300">${pendingCustomerRequestCount} pending</span>
+                            </div>
+                            <div class="space-y-2">
+                                <c:forEach var="req" items="${pendingCustomerRequests}">
+                                    <div class="flex items-center justify-between text-xs bg-white/70 dark:bg-slate-900/40 rounded-lg px-3 py-2 border border-amber-100 dark:border-amber-900/30">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span class="material-symbols-outlined text-sm text-amber-600">notifications_active</span>
+                                            <span class="font-semibold text-slate-700 dark:text-slate-200 truncate">
+                                                ${req.status == 'Reschedule-Requested' ? 'Reschedule Request' : 'Doctor Change Request'} - ${req.pet.name}
+                                            </span>
+                                        </div>
+                                        <span class="text-slate-500 dark:text-slate-400 whitespace-nowrap ml-2">#${req.appointmentId}</span>
+                                    </div>
+                                </c:forEach>
+                            </div>
+                        </div>
+                    </c:if>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
                         <div class="flex gap-8">
                             <a href="?status=All&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-semibold ${statusFilter == 'All' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">All (${totalCount})</a>
@@ -425,6 +480,8 @@
                             <c:set var="isPending" value="${status == 'Pending' || status == 'Scheduled'}"/>
                             <c:set var="isConfirmed" value="${status == 'Confirmed'}"/>
                             <c:set var="isRescheduled" value="${status == 'Re-Scheduled' || status == 'Rescheduled'}"/>
+                            <c:set var="isRescheduleRequested" value="${status == 'Reschedule-Requested'}"/>
+                            <c:set var="isDoctorChangeRequested" value="${status == 'Doctor-Change-Requested'}"/>
                             <c:set var="isInExamination" value="${status == 'In-Examination' || status == 'In Progress'}"/>
                             <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
                             <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
@@ -473,6 +530,12 @@
                                             <c:when test="${isRescheduled}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold rounded uppercase tracking-wider">Re-Scheduled</span>
                                             </c:when>
+                                            <c:when test="${isRescheduleRequested}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[9px] font-bold rounded uppercase tracking-wider">Reschedule Requested</span>
+                                            </c:when>
+                                            <c:when test="${isDoctorChangeRequested}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[9px] font-bold rounded uppercase tracking-wider">Doctor Change Requested</span>
+                                            </c:when>
                                             <c:when test="${isCompleted}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-500/70 text-[9px] font-bold rounded uppercase tracking-wider">Done</span>
                                             </c:when>
@@ -519,6 +582,16 @@
                                         <button class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                         <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
                                     </c:if>
+                                    <%-- Customer Request: Reschedule Requested --%>
+                                    <c:if test="${isRescheduleRequested}">
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
+                                    </c:if>
+                                    <%-- Customer Request: Doctor Change Requested --%>
+                                    <c:if test="${isDoctorChangeRequested}">
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
+                                    </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">
                                         <button class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
@@ -561,7 +634,7 @@
                             <!-- Previous page -->
                             <c:choose>
                                 <c:when test="${currentPage > 1}">
-                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage - 1}"
+                                                <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage - 1}"
                                        class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                         <span class="material-symbols-outlined">chevron_left</span>
                                     </a>
@@ -582,7 +655,7 @@
                                         </button>
                                     </c:when>
                                     <c:otherwise>
-                                        <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${i}"
+                                                     <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${i}"
                                            class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                             ${i}
                                         </a>
@@ -593,7 +666,7 @@
                             <!-- Next page -->
                             <c:choose>
                                 <c:when test="${currentPage < totalPages}">
-                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage + 1}"
+                                                <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage + 1}"
                                        class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                         <span class="material-symbols-outlined">chevron_right</span>
                                     </a>

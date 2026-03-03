@@ -12,7 +12,7 @@ public class DBContext {
             + ";encrypt=true;trustServerCertificate=true"
             + ";loginTimeout=15";
     private static final String USER = "sa";
-    private static final String PASS = "123";
+    private static final String PASS = "123456";
 
     static {
         try {

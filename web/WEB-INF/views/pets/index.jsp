@@ -67,7 +67,13 @@
 <%
     List<Pet> pets = (List<Pet>) request.getAttribute("pets");
     String searchQuery = (String) request.getAttribute("searchQuery");
+    Integer totalPets = (Integer) request.getAttribute("totalPets");
+    Integer upcomingAppointments = (Integer) request.getAttribute("upcomingAppointments");
+    Integer medicalRecordCount = (Integer) request.getAttribute("medicalRecordCount");
     if (searchQuery == null) searchQuery = "";
+    if (totalPets == null) totalPets = pets != null ? pets.size() : 0;
+    if (upcomingAppointments == null) upcomingAppointments = 0;
+    if (medicalRecordCount == null) medicalRecordCount = 0;
     User currentUser = (User) session.getAttribute("currentUser");
     String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
     boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
@@ -77,47 +83,10 @@
         response.sendRedirect(request.getContextPath() + "/pets");
         return;
     }
+    request.setAttribute("customerCurrentPage", "pets");
 %>
 <div class="flex h-screen overflow-hidden">
-<aside class="w-64 flex flex-col bg-white dark:bg-[#2d2116] border-r border-[#f5f2f0] dark:border-[#3d2f23]">
-<div class="p-6 flex items-center gap-3">
-<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
-<span class="material-symbols-outlined text-2xl">pets</span>
-</div>
-<div>
-<h1 class="text-xl font-bold text-primary leading-tight">Anipat</h1>
-<p class="text-xs text-[#8d755e] dark:text-[#a68e7a]">Pet Management</p>
-</div>
-</div>
-<nav class="flex-1 mt-4 px-3 space-y-1">
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg sidebar-active transition-colors" href="#">
-<span class="material-symbols-outlined">dashboard</span>
-<span class="text-sm font-bold">Dashboard</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] transition-colors" href="#">
-<span class="material-symbols-outlined">pets</span>
-<span class="text-sm font-semibold">My Pets</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] transition-colors" href="#">
-<span class="material-symbols-outlined">medical_information</span>
-<span class="text-sm font-semibold">Medical Records</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] transition-colors" href="#">
-<span class="material-symbols-outlined">calendar_month</span>
-<span class="text-sm font-semibold">Appointments</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] transition-colors" href="#">
-<span class="material-symbols-outlined">settings</span>
-<span class="text-sm font-semibold">Settings</span>
-</a>
-</nav>
-<div class="p-4 mt-auto border-t border-[#f5f2f0] dark:border-[#3d2f23]">
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors" href="#">
-<span class="material-symbols-outlined">logout</span>
-<span class="text-sm font-semibold">Logout</span>
-</a>
-</div>
-</aside>
+<jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <main class="flex-1 flex flex-col overflow-y-auto">
 <header class="flex items-center justify-between bg-white dark:bg-[#2d2116] border-b border-[#f5f2f0] dark:border-[#3d2f23] px-8 py-4 sticky top-0 z-10">
 <div class="flex items-center gap-4 flex-1">
@@ -171,7 +140,7 @@
 </div>
 <div>
 <p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Total Pets</p>
-<p class="text-2xl font-extrabold"><%= pets != null ? pets.size() : 0 %></p>
+<p class="text-2xl font-extrabold"><%= totalPets %></p>
 </div>
 </div>
 <div class="bg-white dark:bg-[#2d2116] p-6 rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] flex items-center gap-5">
@@ -180,7 +149,7 @@
 </div>
 <div>
 <p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Upcoming Appointments</p>
-<p class="text-2xl font-extrabold">02</p>
+<p class="text-2xl font-extrabold"><%= upcomingAppointments %></p>
 </div>
 </div>
 <div class="bg-white dark:bg-[#2d2116] p-6 rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] flex items-center gap-5">
@@ -188,8 +157,8 @@
 <span class="material-symbols-outlined text-3xl">medical_services</span>
 </div>
 <div>
-<p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Total Visits</p>
-<p class="text-2xl font-extrabold">24</p>
+<p class="text-sm font-medium text-[#8d755e] dark:text-[#a68e7a]">Medical Records</p>
+<p class="text-2xl font-extrabold"><%= medicalRecordCount %></p>
 </div>
 </div>
 </div>
