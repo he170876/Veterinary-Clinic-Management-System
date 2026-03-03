@@ -18,6 +18,7 @@ public class Appointment {
     private LocalDateTime appointmentTime;
     private String status; // Pending, Confirmed, Completed, Cancelled...
     private LocalDateTime createdAt;
+    private String notes;
 
     public Appointment() {
     }
@@ -115,7 +116,12 @@ public class Appointment {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
 }
-
-
-

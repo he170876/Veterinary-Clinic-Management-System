@@ -34,7 +34,7 @@ import java.util.Set;
 public class RoleBasedAccessFilter implements Filter {
 
     private static final Set<String> CUSTOMER_ROLES = set("Customer");
-    private static final Set<String> OWNER_ROLES = set("ClinicOwner");
+    private static final Set<String> OWNER_ROLES = set("Admin","ClinicOwner");
     private static final Set<String> VET_ROLES = set("Veterinarian");
     private static final Set<String> RECEPTIONIST_ROLES = set("Receptionist");
     private static final Set<String> LAB_ROLES = set("LabStaff","lab");

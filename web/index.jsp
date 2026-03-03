@@ -4,6 +4,8 @@ Anipats landing page - VCMS (Tailwind design)
 --%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="service.ImageService"%>
+<%@page import="dao.ServiceDAO"%>
+<%@page import="dao.impl.ServiceJdbcDAO"%>
 <%@page import="service.impl.ImageServiceImpl"%>
 <%@page import="model.Image"%>
 <%@page import="java.util.List"%>
@@ -41,41 +43,50 @@ Anipats landing page - VCMS (Tailwind design)
         bannerImage = bannerImages.get(0);
     }
     pageContext.setAttribute("bannerImage", bannerImage);
+    
+    // Load services for the booking form
+    ServiceDAO serviceDAO = new ServiceJdbcDAO();
+    List<model.Service> services = serviceDAO.findAll(); // findAll() gets non-deleted services
+    request.setAttribute("services", services);
+    
+    // --- DEBUGGING ---
+    System.out.println("DEBUG index.jsp: So luong dich vu tai duoc: " + (services != null ? services.size() : "null"));
+    // --- END DEBUGGING ---
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Anipats - Professional Veterinary Medical Center</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#ff7b00",
-                        "background-light": "#f8f7f5",
-                        "background-dark": "#23190f",
-                        "dark-accent": "#120a0b",
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <title>Anipats - Professional Veterinary Medical Center</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "primary": "#ff7b00",
+                            "background-light": "#f8f7f5",
+                            "background-dark": "#23190f",
+                            "dark-accent": "#120a0b",
+                        },
+                        fontFamily: {
+                            "display": ["Manrope", "sans-serif"]
+                        },
+                        borderRadius: {
+                            "DEFAULT": "0.5rem",
+                            "lg": "1rem",
+                            "xl": "1.5rem",
+                            "full": "9999px"
+                        },
                     },
-                    fontFamily: {
-                        "display": ["Manrope", "sans-serif"]
-                    },
-                    borderRadius: {
-                        "DEFAULT": "0.5rem",
-                        "lg": "1rem",
-                        "xl": "1.5rem",
-                        "full": "9999px"
-                    },
-                },
-            }
-        };
-    </script>
+                }
+            };
+        </script>
         <style type="text/tailwindcss">
             .material-symbols-outlined {
                 font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -98,6 +109,17 @@ Anipats landing page - VCMS (Tailwind design)
         <div class="fixed top-20 right-6 z-[9999] max-w-sm bg-green-500 text-white px-4 py-3 rounded-xl shadow-xl flex items-center justify-between gap-4" role="alert">
             <span class="font-semibold">Thank you!</span> Your appointment request has been received.
             <button type="button" onclick="this.parentElement.remove()" class="shrink-0 p-1 hover:bg-white/20 rounded" aria-label="Close">&times;</button>
+        </div>
+        <% } %>
+        <% if ("2".equals(booked)) { %>
+        <div class="fixed top-20 right-6 z-[9999] max-w-md bg-blue-500 text-white px-4 py-3 rounded-xl shadow-xl" role="alert">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="font-bold">Booking received & Account created!</p>
+                    <p class="text-sm mt-1">To manage your appointment, please set a password for your new account. Use the <a href="<%= ctx %>/forgot-password" class="font-bold underline hover:text-blue-200">Forgot Password</a> link with your email to get started.</p>
+                </div>
+                <button type="button" onclick="this.parentElement.parentElement.remove()" class="shrink-0 p-1 -mr-1 -mt-1 hover:bg-white/20 rounded" aria-label="Close">&times;</button>
+            </div>
         </div>
         <% } %>
         <% if ("1".equals(bookErr)) { %>
