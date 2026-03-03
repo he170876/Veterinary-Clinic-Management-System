@@ -541,6 +541,7 @@ public class AppointmentDAO extends DBContext {
     /** Creates a new appointment (e.g. for schedule revisit). Returns the new appointment_id or 0 on failure. */
     public int create(int petId, int customerId, int veterinarianId, LocalDateTime appointmentTime, String status, Integer serviceId) {
         String sql = "INSERT INTO appointments (pet_id, customer_id, veterinarian_id, appointment_time, status, service_id) OUTPUT INSERTED.appointment_id VALUES (?, ?, ?, ?, ?, ?)";
+
         try (
             Connection con = getConnection();
             PreparedStatement ps = con.prepareStatement(sql)
@@ -559,6 +560,23 @@ public class AppointmentDAO extends DBContext {
         }
 
         return 0;
+    }
+
+    public boolean rescheduleAppointment(int appointmentId, java.util.Date newDate, java.sql.Time newTime) {
+        String sql = "UPDATE appointments SET appointment_time = ?, status = 'Re-Scheduled' WHERE appointment_id = ?";
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            // Combine date and time into a timestamp
+            java.sql.Timestamp timestamp = new java.sql.Timestamp(newDate.getTime() + newTime.getTime());
+            ps.setTimestamp(1, timestamp);
+            ps.setInt(2, appointmentId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public List<Appointment> getAppointmentsByCustomerId(int customerId) {
@@ -1096,7 +1114,6 @@ public class AppointmentDAO extends DBContext {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return false;
     }
 }

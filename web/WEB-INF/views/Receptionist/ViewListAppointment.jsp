@@ -133,6 +133,7 @@
             let currentAppointmentId = null;
             let currentSelectElement = null;
             let originalVetId = null;
+            let currentDetailAppointmentId = null;
             
             function showConfirmPopup(appointmentId, selectElement, newVetId) {
                 currentAppointmentId = appointmentId;
@@ -273,6 +274,8 @@
             }
 
             function populateDetail(d) {
+                currentDetailAppointmentId = d.appointmentId;
+                
                 const pet = d.pet || {};
                 const owner = d.owner || {};
                 const photoEl = document.getElementById('d-pet-photo');
@@ -324,7 +327,7 @@
                 const isPending   = s === 'pending' || s === 'scheduled';
                 const isRescheduled = s === 're-scheduled' || s === 'rescheduled';
                 const isConfirmed = s === 'confirmed';
-                const isCheckedIn = s === 'checked-in';
+                const isCheckedIn = s === 'checked-in' || s === 'Checked-in' || s === 'checked in';
                 const isWaiting   = s === 'waiting-for-payment' || s === 'waiting for payment';
                 const isDone      = s === 'completed' || s === 'done';
 
@@ -368,6 +371,95 @@
                 
                 document.getElementById('confirmPopup').classList.add('active');
             }
+
+            // Appointment action functions
+            function updateStatus(appointmentId, newStatus, button) {
+                if (button) {
+                    button.disabled = true;
+                    button.textContent = '...';
+                }
+                
+                fetch('UpdateAppointmentStatus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'appointmentId=' + appointmentId + '&status=' + newStatus
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message);
+                        setTimeout(() => { location.reload(); }, 1500);
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                        if (button) button.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi khi cập nhật trạng thái');
+                    if (button) button.disabled = false;
+                });
+            }
+
+            function confirmAppointment(appointmentId, button) {
+                updateStatus(appointmentId, 'Confirmed', button);
+            }
+
+            function rejectAppointment(appointmentId, button) {
+                if (!confirm('Bạn có chắc chắn muốn từ chối lịch hẹn này?')) {
+                    return;
+                }
+                updateStatus(appointmentId, 'Rejected', button);
+            }
+
+            function checkInAppointment(appointmentId, button) {
+                updateStatus(appointmentId, 'Checked-in', button);
+            }
+
+            function rescheduleAppointment(appointmentId) {
+                const newDate = prompt('Nhập ngày mới (yyyy-MM-dd):');
+                if (!newDate) return;
+                const newTime = prompt('Nhập giờ mới (HH:mm):');
+                if (!newTime) return;
+                
+                fetch('RescheduleAppointment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'appointmentId=' + appointmentId + '&newDate=' + newDate + '&newTime=' + newTime
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message);
+                        setTimeout(() => { location.reload(); }, 1500);
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi khi đổi lịch');
+                });
+            }
+
+            function cancelAppointment(appointmentId, button) {
+                if (!confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) {
+                    return;
+                }
+                updateStatus(appointmentId, 'Canceled', button);
+            }
+
+            function markAsPaid(appointmentId, button) {
+                updateStatus(appointmentId, 'Completed', button);
+            }
+
+            function viewInvoice(appointmentId) {
+                window.open('ViewInvoice?appointmentId=' + appointmentId, '_blank');
+            }
         </script>
     </head>
     <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex">
@@ -386,14 +478,6 @@
                 <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment">
                     <span class="material-symbols-outlined">calendar_today</span>
                     <span class="font-medium">Schedule</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-                    <span class="material-symbols-outlined">group</span>
-                    <span class="font-medium">Patients</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-                    <span class="material-symbols-outlined">folder</span>
-                    <span class="font-medium">Records</span>
                 </a>
                 <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
                     <span class="material-symbols-outlined">settings</span>
@@ -636,8 +720,8 @@
                                 <div class="flex items-center justify-end gap-2 pr-2">
                                     <%-- Pending / Re-Scheduled: Confirm + Reject --%>
                                     <c:if test="${isPending || isRescheduled}">
-                                        <button class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
+                                        <button onclick="confirmAppointment(${appointment.appointmentId}, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
+                                        <button onclick="rejectAppointment(${appointment.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
                                     </c:if>
                                     <%-- Customer Request: Reschedule Requested --%>
                                     <c:if test="${isRescheduleRequested}">
@@ -651,21 +735,21 @@
                                     </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">
-                                        <button class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                        <button onclick="checkInAppointment(${appointment.appointmentId}, this)" class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
+                                        <button onclick="rescheduleAppointment(${appointment.appointmentId})" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
+                                        <button onclick="cancelAppointment(${appointment.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Checked-in: Cancel only --%>
                                     <c:if test="${isCheckedIn}">
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                        <button onclick="cancelAppointment(${appointment.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Waiting for Payment: Mark as Paid --%>
                                     <c:if test="${isWaitingForPayment}">
-                                        <button class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
+                                        <button onclick="markAsPaid(${appointment.appointmentId}, this)" class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
                                     </c:if>
                                     <%-- Done: View Invoice --%>
                                     <c:if test="${isCompleted}">
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
+                                        <button onclick="viewInvoice(${appointment.appointmentId})" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
                                     </c:if>
                                     <%-- In-Examination and Canceled: no action buttons --%>
                                     <button onclick="openDetail(${appointment.appointmentId})" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
@@ -867,16 +951,16 @@
                 </div>
                 <div id="detailFooter" class="hidden p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-end gap-2 flex-wrap">
                     <!-- Pending / Re-Scheduled -->
-                    <button id="d-btn-confirm"     class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl shadow shadow-primary/20 hover:opacity-90 transition-all">Confirm</button>
-                    <button id="d-btn-reject"      class="hidden px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">Reject</button>
+                    <button id="d-btn-confirm"     class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl shadow shadow-primary/20 hover:opacity-90 transition-all" onclick="confirmAppointment(currentDetailAppointmentId, this)">Confirm</button>
+                    <button id="d-btn-reject"      class="hidden px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" onclick="rejectAppointment(currentDetailAppointmentId, this)">Reject</button>
                     <!-- Confirmed -->
-                    <button id="d-btn-checkin"     class="hidden px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all">Check-in</button>
-                    <button id="d-btn-reschedule"  class="hidden px-4 py-2 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-sm font-semibold rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
-                    <button id="d-btn-cancel"      class="hidden px-4 py-2 border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 text-sm font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                    <button id="d-btn-checkin"     class="hidden px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all" onclick="checkInAppointment(currentDetailAppointmentId, this)">Check-in</button>
+                    <button id="d-btn-reschedule"  class="hidden px-4 py-2 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-sm font-semibold rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all" onclick="rescheduleAppointment(currentDetailAppointmentId)">Re-Schedule</button>
+                    <button id="d-btn-cancel"      class="hidden px-4 py-2 border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 text-sm font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" onclick="cancelAppointment(currentDetailAppointmentId, this)">Cancel</button>
                     <!-- Waiting for Payment -->
-                    <button id="d-btn-markpaid"    class="hidden px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all">Mark as Paid</button>
+                    <button id="d-btn-markpaid"    class="hidden px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all" onclick="markAsPaid(currentDetailAppointmentId, this)">Mark as Paid</button>
                     <!-- Done -->
-                    <button id="d-btn-invoice"     class="hidden px-4 py-2 border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 text-sm font-semibold rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
+                    <button id="d-btn-invoice"     class="hidden px-4 py-2 border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 text-sm font-semibold rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 transition-all" onclick="viewInvoice(currentDetailAppointmentId)">View Invoice</button>
                 </div>
             </div>
         </div>
