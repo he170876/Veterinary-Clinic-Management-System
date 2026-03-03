@@ -538,22 +538,6 @@ public class AppointmentDAO extends DBContext {
         return false;
     }
 
-    /** Updates the status of an appointment (e.g. Completed, Cancelled). */
-    public boolean updateAppointmentStatus(int appointmentId, String status) {
-        String sql = "UPDATE appointments SET status = ? WHERE appointment_id = ?";
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)
-        ) {
-            ps.setString(1, status);
-            ps.setInt(2, appointmentId);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
     /** Creates a new appointment (e.g. for schedule revisit). Returns the new appointment_id or 0 on failure. */
     public int create(int petId, int customerId, int veterinarianId, LocalDateTime appointmentTime, String status, Integer serviceId) {
         String sql = "INSERT INTO appointments (pet_id, customer_id, veterinarian_id, appointment_time, status, service_id) OUTPUT INSERTED.appointment_id VALUES (?, ?, ?, ?, ?, ?)";
