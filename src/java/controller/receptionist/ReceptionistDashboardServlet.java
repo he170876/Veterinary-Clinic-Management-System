@@ -85,7 +85,7 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         request.setAttribute("recentAppointments", recentAppointments);
         request.setAttribute("veterinarians", veterinarians);
         
-        request.getRequestDispatcher("/WEB-INF/views/Receptionist/Dashboard.jsp")
+        request.getRequestDispatcher("/WEB-INF/views/Receptionist/dashboard.jsp")
                 .forward(request, response);
     }
 }
