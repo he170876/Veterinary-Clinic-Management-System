@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 /**
  * Domain model representing a Medical Record, mapped to the MedicalRecords table.
- * Contains medical history information for a pet from a specific visit.
  */
 public class MedicalRecord {
 
@@ -18,13 +17,14 @@ public class MedicalRecord {
     private String note;
     private LocalDateTime visitDate;
     private String visitStatus;
+    private LocalDateTime createdAt;
 
     public MedicalRecord() {
     }
 
-    public MedicalRecord(int recordId, int visitId, Pet pet, int veterinarianId, 
-                        String veterinarianName, String diagnosis, String treatment, 
-                        String note, LocalDateTime visitDate, String visitStatus) {
+    public MedicalRecord(int recordId, int visitId, Pet pet, int veterinarianId,
+            String veterinarianName, String diagnosis, String treatment,
+            String note, LocalDateTime visitDate, String visitStatus) {
         this.recordId = recordId;
         this.visitId = visitId;
         this.pet = pet;
@@ -37,7 +37,6 @@ public class MedicalRecord {
         this.visitStatus = visitStatus;
     }
 
-    // Getters and Setters
     public int getRecordId() {
         return recordId;
     }
@@ -116,6 +115,14 @@ public class MedicalRecord {
 
     public void setVisitStatus(String visitStatus) {
         this.visitStatus = visitStatus;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     @Override

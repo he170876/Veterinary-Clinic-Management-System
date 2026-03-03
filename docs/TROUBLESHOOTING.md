@@ -4,6 +4,72 @@ Common issues and how to fix them.
 
 ---
 
+## 0. Database setup: "Access is denied" or "CREATE DATABASE failed"
+
+**Symptom:** Running `database/script.sql` fails with:
+- `Msg 5123: CREATE FILE encountered operating system error 5(Access is denied.)`  
+- `CREATE DATABASE failed. Some file names listed could not be created.`
+
+**Cause:** The script was generated with explicit file paths under `C:\Program Files\...`. The account running the script (or the SQL Server service) may not have permission to create files there.
+
+**Fix (already applied in this project):** The script was updated to create the database **without** explicit paths, so SQL Server uses its default data directory (where it has access):
+
+```sql
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'VetClinicManagement')
+BEGIN
+    CREATE DATABASE [VetClinicManagement]
+END
+```
+
+If you still see "Access is denied" when creating the database, run **SQL Server Management Studio (or sqlcmd) as Administrator**, or create the database manually in SSMS (right‑click Databases → New Database → name: `VetClinicManagement`) and then run only the rest of `script.sql` (from `USE [VetClinicManagement]` and the `CREATE TABLE` statements).
+
+---
+
+### "Database does not exist" then "There is already an object named '...'"
+
+**Symptom:** First run fails at CREATE DATABASE; later you create the database manually or fix permissions. When you run the full script again, you get "Database 'VetClinicManagement' does not exist" in one run, and in another run "There is already an object named 'Appointments'" (and similar for every table).
+
+**Cause:** The database didn’t exist on the first run; after you create it and re-run the script, the script tries to create tables that already exist.
+
+**Fix:**
+
+- **Clean start:** In SSMS, run:
+  ```sql
+  USE master;
+  GO
+  DROP DATABASE IF EXISTS [VetClinicManagement];
+  GO
+  ```
+  Then run the full `script.sql` again, followed by `seed_data.sql` and `seed_test_screens.sql`.
+
+- **Keep existing data:** Do **not** run the CREATE TABLE part again. Run only:
+  - `seed_data.sql` (if the database is empty and you need base data), or  
+  - `seed_test_screens.sql` (if you already ran `seed_data.sql` and only need today’s appointments and a pending lab request).
+
+---
+
+## 0b. "The requested resource [/Veterinary_Clinic_Management_System] is not available"
+
+**Symptom:** Browser or Postman shows a **404** or "Status Report – The requested resource [...] is not available. The origin server did not find a current representation for the target resource."
+
+**What to check:**
+
+1. **Use the full URL including context path**  
+   The app is deployed at:
+   - **`http://localhost:9999/Veterinary_Clinic_Management_System/`**
+   - Login: **`http://localhost:9999/Veterinary_Clinic_Management_System/login`**
+   Replace `9999` with your Tomcat port if different (e.g. 8080, 8084).
+
+2. **App failed to start**  
+   If the context path is correct but you still get "not available", the app may have failed to start. Check:
+   - **Tomcat console / IDE run output** for `ServletException`, `ClassNotFoundException`, or database errors.
+   - **Tomcat `logs/catalina.out`** (or `localhost*.log`) for stack traces during deployment.
+
+3. **Context path**  
+   The app is deployed at **`/Veterinary_Clinic_Management_System`**. Use **`http://localhost:9999/Veterinary_Clinic_Management_System/`** or **`http://localhost:9999/Veterinary_Clinic_Management_System/login`**. (Root path `/` is not used because Tomcat often already has an app there, which causes "Application already exists at path [/]" on deploy.)
+
+---
+
 ## 1. Forgot password: no email received
 
 **Symptom:** You click "Send Reset Link" and see the success message, but the reset email never arrives.
@@ -69,9 +135,9 @@ Then **restart Tomcat**.
 
 - That Gmail is already in use. Use **Login** or **Forgot password**, or register with another Gmail.
 
-### "Email must be a Gmail address (@gmail.com)"
+### "Email must be a Gmail address (@gmail.com)" (or "Please enter a valid email address.")
 
-- Only **@gmail.com** addresses are allowed for registration and login. No other domains.
+- The app accepts **any valid email** (e.g. `dr.smith@anipats.com`, `dev@anipats.com`, or `user@gmail.com`). Use your account email and password (seed accounts: password `dev123`).
 
 ### "Phone number is required"
 

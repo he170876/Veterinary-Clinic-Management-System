@@ -33,9 +33,9 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#f14337",
-                        "background-light": "#f8f6f6",
-                        "background-dark": "#221110",
+                        "primary": "#ff7b00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
                     },
                     fontFamily: {
                         "display": ["Manrope"]
@@ -53,50 +53,7 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
 <div class="flex h-screen overflow-hidden">
-<!-- Sidebar - Vet/Doctor nav -->
-<aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
-<div class="p-6 flex items-center gap-3">
-<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
-<span class="material-symbols-outlined text-2xl">pets</span>
-</div>
-<div>
-<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Anipats</h1>
-<p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Veterinary Care</p>
-</div>
-</div>
-<nav class="flex-1 px-4 space-y-2 mt-4">
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="<%= ctx %>/vet/dashboard">
-<span class="material-symbols-outlined">dashboard</span>
-<span class="text-sm font-medium">Dashboard</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold" href="<%= ctx %>/vet/queue">
-<span class="material-symbols-outlined">group_work</span>
-<span class="text-sm">Patients Queue</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-<span class="material-symbols-outlined">calendar_today</span>
-<span class="text-sm font-medium">My Schedule</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-<span class="material-symbols-outlined">clinical_notes</span>
-<span class="text-sm font-medium">Medical Records</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-<span class="material-symbols-outlined">lab_panel</span>
-<span class="text-sm font-medium">Lab Results</span>
-</a>
-</nav>
-<div class="p-4 border-t border-slate-200 dark:border-slate-800">
-<div class="flex items-center gap-3 p-2">
-<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-500 dark:text-slate-400 text-sm font-bold"<% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %> style="background-image: url('<%= ctx %><%= user.getProfilePictureUrl() %>'); background-size: cover;"<% } %>><% if (user.getProfilePictureUrl() == null || user.getProfilePictureUrl().isEmpty()) { %><%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %><% } %></div>
-<div class="flex-1 min-w-0">
-<p class="text-sm font-bold truncate"><%= user.getFullName() %></p>
-<p class="text-xs text-slate-500 truncate"><%= roleTitle %></p>
-</div>
-</div>
-<a href="<%= ctx %>/logout" class="block mt-2 text-center text-xs text-slate-500 hover:text-primary transition-colors">Sign out</a>
-</div>
-</aside>
+<%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
 <!-- Main Content -->
 <main class="flex-1 flex flex-col overflow-hidden">
 <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8">
@@ -130,6 +87,28 @@
 </div>
 </header>
 <div class="flex-1 overflow-y-auto p-8">
+<%
+    String examError = request.getParameter("error");
+    String completed = request.getParameter("completed");
+    String revisit = request.getParameter("revisit");
+    if ("notfound".equals(examError)) {
+%>
+<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Could not open examination: appointment not found.</div>
+<% } else if ("notassigned".equals(examError)) { %>
+<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">This appointment is not assigned to you.</div>
+<% } else if ("1".equals(completed)) { %>
+<div class="mb-4 rounded-lg border border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700 px-4 py-3 text-sm text-green-800 dark:text-green-200">Examination completed. Visit and appointment have been marked as completed.</div>
+<% } else if ("ok".equals(revisit)) { %>
+<div class="mb-4 rounded-lg border border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700 px-4 py-3 text-sm text-green-800 dark:text-green-200">Follow-up appointment scheduled successfully.</div>
+<% } else if ("error".equals(revisit)) { %>
+<div class="mb-4 rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 px-4 py-3 text-sm text-red-800 dark:text-red-200">Could not create follow-up appointment. Please try again.</div>
+<% } else if ("missing".equals(revisit) || "invalid".equals(revisit)) { %>
+<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Please provide a valid date and time for the follow-up appointment.</div>
+<% } else if ("unauthorized".equals(revisit)) { %>
+<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">You can only schedule follow-ups for your own patients.</div>
+<% } else if ("notcheckedin".equals(request.getParameter("error"))) { %>
+<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Patient must be checked in by receptionist first. They will appear here after check-in.</div>
+<% } %>
 <div class="mb-6 flex justify-between items-end">
 <div>
 <h3 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Checked-in Today</h3>
@@ -198,7 +177,7 @@
     if (appointments.isEmpty()) {
 %>
 <tr>
-<td colspan="9" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No appointments for today.</td>
+<td colspan="9" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No checked-in patients for today. Patients appear here after receptionist checks them in.</td>
 </tr>
 <%
     }

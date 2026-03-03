@@ -84,9 +84,9 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        // Email: must be @gmail.com
-        if (!ValidationUtil.isValidGmail(email)) {
-            request.setAttribute("error", "Email must be a Gmail address (@gmail.com).");
+        // Email: valid format (any domain)
+        if (!ValidationUtil.isValidEmailFormat(email)) {
+            request.setAttribute("error", "Please enter a valid email address.");
             preserveFormData(request, fullName, email, phone);
             request.getRequestDispatcher("register.jsp").forward(request, response);
             return;

@@ -32,13 +32,13 @@ public interface MedicalRecordDAO {
      */
     Optional<MedicalRecord> getMedicalRecordById(int recordId);
 
-        /**
-         * Get a single medical record by ID and customer ownership.
-         * @param recordId The medical record ID
-         * @param customerId The owner customer ID
-         * @return Optional containing the medical record if found and owned by customer
-         */
-        Optional<MedicalRecord> getMedicalRecordByIdAndCustomer(int recordId, int customerId);
+    /**
+     * Get a single medical record by ID and customer ownership.
+     * @param recordId The medical record ID
+     * @param customerId The owner customer ID
+     * @return Optional containing the medical record if found and owned by customer
+     */
+    Optional<MedicalRecord> getMedicalRecordByIdAndCustomer(int recordId, int customerId);
 
     /**
      * Get recent medical records for a specific pet (limited to N records).
@@ -55,7 +55,7 @@ public interface MedicalRecordDAO {
      * @return List of recent medical records
      */
     List<MedicalRecord> getRecentMedicalHistoryByCustomer(int customerId, int limit);
-    
+
     /**
      * Get medical records for a customer with pagination and date filtering.
      * @param customerId The customer ID
@@ -66,9 +66,9 @@ public interface MedicalRecordDAO {
      * @param limit Number of records per page
      * @return List of medical records
      */
-    List<MedicalRecord> getMedicalRecordsWithFilter(int customerId, Integer petId, 
+    List<MedicalRecord> getMedicalRecordsWithFilter(int customerId, Integer petId,
             LocalDateTime startDate, LocalDateTime endDate, int offset, int limit);
-    
+
     /**
      * Count total medical records for a customer with filters.
      * @param customerId The customer ID
@@ -77,6 +77,6 @@ public interface MedicalRecordDAO {
      * @param endDate Optional end date filter
      * @return Total count of records
      */
-    int countMedicalRecordsWithFilter(int customerId, Integer petId, 
+    int countMedicalRecordsWithFilter(int customerId, Integer petId,
             LocalDateTime startDate, LocalDateTime endDate);
 }

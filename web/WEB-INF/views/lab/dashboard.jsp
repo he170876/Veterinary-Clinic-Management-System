@@ -1,5 +1,8 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.User" %>
+<%@ page import="model.LabTestRequest" %>
+<%@ page import="java.util.List" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
 <%
     User user = (User) request.getAttribute("user");
     if (user == null) {
@@ -8,6 +11,12 @@
     }
     String ctx = request.getContextPath();
     String techId = user.getUserId() + "-T";
+    @SuppressWarnings("unchecked")
+    List<LabTestRequest> pendingRequests =
+            (List<LabTestRequest>) request.getAttribute("pendingRequests");
+    if (pendingRequests == null) pendingRequests = java.util.Collections.emptyList();
+    DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
+    DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("MMM dd, yyyy");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -24,11 +33,9 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#f14437",
-                        "background-light": "#fcfcfc",
-                        "background-dark": "#121212",
-                        "neutral-light": "#f3f0ef",
-                        "neutral-dark": "#1e1e1e",
+                        "primary": "#ff7b00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
                     },
                     fontFamily: { "display": ["Manrope", "sans-serif"] },
                     borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "9999px" },
@@ -91,7 +98,7 @@
 <div class="flex items-center gap-8">
 <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Lab Queue</h2>
 <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
-<span>Total: 4</span>
+<span>Total: <%= pendingRequests.size() %></span>
 <span class="w-px h-3 bg-slate-200"></span>
 <span class="text-primary font-bold">FIFO Processing</span>
 </div>
@@ -127,81 +134,50 @@
 <th class="table-header">Doctor</th>
 <th class="table-header">Test Type</th>
 <th class="table-header text-right px-8">Actions</th>
-</tr>
-</thead>
 <tbody class="divide-y divide-slate-100 dark:divide-slate-800" id="labQueueBody">
-<tr class="lab-row hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors" data-id="V-7422" data-name="Bella">
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white">#V-7422</div>
-<div class="text-[11px] text-slate-400">Bella (Feline)</div>
-</td>
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white uppercase tracking-tighter">08:15 AM</div>
-<div class="text-[10px] text-slate-400">Oct 24, 2023</div>
-</td>
-<td class="table-cell">Dr. Emily Smith</td>
-<td class="table-cell font-medium">Cytology - Needle Aspirate</td>
-<td class="table-cell text-right px-8">
-<button type="button" class="btn-action-primary ml-auto" data-select="V-7422">
-<span class="material-symbols-outlined text-sm">upload_file</span>
-                                    Upload Results
-                                </button>
-</td>
+<% if (pendingRequests.isEmpty()) { %>
+<tr>
+    <td class="table-cell text-center text-slate-500 dark:text-slate-400 text-sm" colspan="5">
+        No pending lab requests.
+    </td>
 </tr>
-<tr class="lab-row hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors" data-id="V-8812" data-name="Max">
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white">#V-8812</div>
-<div class="text-[11px] text-slate-400">Max (Canine)</div>
-</td>
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white uppercase tracking-tighter">09:30 AM</div>
-<div class="text-[10px] text-slate-400">Oct 24, 2023</div>
-</td>
-<td class="table-cell">Dr. Marcus Thorne</td>
-<td class="table-cell font-medium">Blood Chemistry Profile</td>
-<td class="table-cell text-right px-8">
-<button type="button" class="btn-action-primary ml-auto" data-select="V-8812">
-<span class="material-symbols-outlined text-sm">upload_file</span>
-                                    Upload Results
-                                </button>
-</td>
+<% } else {
+       for (LabTestRequest r : pendingRequests) {
+           String petName = r.getPetName() != null ? r.getPetName() : "—";
+           String species = r.getSpecies() != null ? r.getSpecies() : "";
+           String patientLabel = petName + (species.isEmpty() ? "" : " (" + species + ")");
+           String doctorName = r.getVeterinarianName() != null ? r.getVeterinarianName() : "—";
+           String testName = r.getTestName() != null ? r.getTestName() : "—";
+           String timeStr = r.getRequestTime() != null ? r.getRequestTime().format(timeFmt) : "—";
+           String dateStr = r.getRequestTime() != null ? r.getRequestTime().format(dateFmt) : "—";
+%>
+<tr class="lab-row hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+    data-request-id="<%= r.getRequestId() %>"
+    data-visit-id="<%= r.getVisitId() %>"
+    data-pet-name="<%= petName %>"
+    data-test-name="<%= testName %>"
+    data-doctor-name="<%= doctorName %>">
+    <td class="table-cell">
+        <div class="font-bold text-slate-900 dark:text-white">#V-<%= r.getVisitId() %></div>
+        <div class="text-[11px] text-slate-400"><%= patientLabel %></div>
+    </td>
+    <td class="table-cell">
+        <div class="font-bold text-slate-900 dark:text-white uppercase tracking-tighter"><%= timeStr %></div>
+        <div class="text-[10px] text-slate-400"><%= dateStr %></div>
+    </td>
+    <td class="table-cell"><%= doctorName %></td>
+    <td class="table-cell font-medium"><%= testName %></td>
+    <td class="table-cell text-right px-8">
+        <button type="button"
+                class="btn-action-primary ml-auto select-request"
+                data-request-id="<%= r.getRequestId() %>">
+            <span class="material-symbols-outlined text-sm">upload_file</span>
+            Upload Results
+        </button>
+    </td>
 </tr>
-<tr class="lab-row hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors" data-id="V-9104" data-name="Luna">
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white">#V-9104</div>
-<div class="text-[11px] text-slate-400">Luna (Feline)</div>
-</td>
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white uppercase tracking-tighter">10:45 AM</div>
-<div class="text-[10px] text-slate-400">Oct 24, 2023</div>
-</td>
-<td class="table-cell">Dr. Sarah Chen</td>
-<td class="table-cell font-medium">T4/TSH Comprehensive</td>
-<td class="table-cell text-right px-8">
-<button type="button" class="btn-action-primary ml-auto" data-select="V-9104">
-<span class="material-symbols-outlined text-sm">upload_file</span>
-                                    Upload Results
-                                </button>
-</td>
-</tr>
-<tr class="lab-row hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors" data-id="V-9902" data-name="Charlie">
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white">#V-9902</div>
-<div class="text-[11px] text-slate-400">Charlie (Canine)</div>
-</td>
-<td class="table-cell">
-<div class="font-bold text-slate-900 dark:text-white uppercase tracking-tighter">11:20 AM</div>
-<div class="text-[10px] text-slate-400">Oct 24, 2023</div>
-</td>
-<td class="table-cell">Dr. Emily Smith</td>
-<td class="table-cell font-medium">Fecal Parasite Screen</td>
-<td class="table-cell text-right px-8">
-<button type="button" class="btn-action-primary ml-auto" data-select="V-9902">
-<span class="material-symbols-outlined text-sm">upload_file</span>
-                                    Upload Results
-                                </button>
-</td>
-</tr>
+<%     }
+   } %>
 </tbody>
 </table>
 <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 flex justify-center">
@@ -214,7 +190,11 @@
 <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Result Entry</h3>
 <p class="text-[11px] text-slate-500 uppercase">Inputting data for: <span class="text-primary font-bold" id="resultEntryId">#V-7422</span></p>
 </div>
-<div class="space-y-6">
+<form id="lab-result-form"
+      action="<%= ctx %>/lab/result"
+      method="post"
+      class="space-y-6">
+    <input type="hidden" name="requestId" id="requestIdInput" value=""/>
 <div class="space-y-2">
 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Test Subject Summary</label>
 <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50">
@@ -232,18 +212,28 @@
 </div>
 <div class="space-y-2">
 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quantitative Findings</label>
-<input class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm py-2 px-3 rounded focus:ring-primary focus:border-primary" placeholder="Value (e.g. 14.5 mg/dL)" type="text"/>
+<input name="resultValue"
+       class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm py-2 px-3 rounded focus:ring-primary focus:border-primary"
+       placeholder="Value (e.g. 14.5 mg/dL)"
+       type="text"/>
 </div>
 <div class="space-y-2">
 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Clinical Observations</label>
-<textarea class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm py-3 px-3 rounded focus:ring-primary focus:border-primary resize-none" placeholder="Document abnormal morphologies or specific diagnostic markers identified during analysis..." rows="6"></textarea>
+<textarea name="resultNote"
+          class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm py-3 px-3 rounded focus:ring-primary focus:border-primary resize-none"
+          placeholder="Document abnormal morphologies or specific diagnostic markers identified during analysis..."
+          rows="6"></textarea>
 </div>
 <div class="space-y-2">
 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lab Technician Notes (Internal)</label>
-<textarea class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm py-3 px-3 rounded focus:ring-primary focus:border-primary resize-none" placeholder="Reagent batches, equipment calibration notes..." rows="3"></textarea>
+<textarea name="techNotes"
+          class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm py-3 px-3 rounded focus:ring-primary focus:border-primary resize-none"
+          placeholder="Reagent batches, equipment calibration notes..."
+          rows="3"></textarea>
 </div>
 <div class="pt-4 flex flex-col gap-3">
-<button type="button" class="w-full bg-primary text-white font-bold py-3 text-xs uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-primary/10 rounded">
+<button type="submit"
+        class="w-full bg-primary text-white font-bold py-3 text-xs uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-primary/10 rounded">
                             Submit Result to Doctor
                         </button>
 <button type="button" class="w-full border border-slate-200 dark:border-slate-800 text-slate-400 font-bold py-2 text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded">
@@ -256,7 +246,7 @@
                             Digitally signed as Tech <%= techId %>
                         </div>
 </div>
-</div>
+</form>
 </aside>
 </div>
 </main>
@@ -269,8 +259,8 @@
         filter.addEventListener('input', function() {
             var q = (this.value || '').toLowerCase();
             rows.forEach(function(row) {
-                var id = (row.getAttribute('data-id') || '').toLowerCase();
-                var name = (row.getAttribute('data-name') || '').toLowerCase();
+                var id = (row.getAttribute('data-request-id') || '').toLowerCase();
+                var name = (row.getAttribute('data-pet-name') || '').toLowerCase();
                 var show = !q || id.indexOf(q) >= 0 || name.indexOf(q) >= 0;
                 row.style.display = show ? '' : 'none';
             });
@@ -279,14 +269,22 @@
     var resultEntryId = document.getElementById('resultEntryId');
     var resultEntryTest = document.getElementById('resultEntryTest');
     var resultEntryDoctor = document.getElementById('resultEntryDoctor');
-    var testLabels = { 'V-7422': 'Cytology - Needle', 'V-8812': 'Blood Chemistry Profile', 'V-9104': 'T4/TSH Comprehensive', 'V-9902': 'Fecal Parasite Screen' };
-    var doctorLabels = { 'V-7422': 'Dr. E. Smith', 'V-8812': 'Dr. M. Thorne', 'V-9104': 'Dr. S. Chen', 'V-9902': 'Dr. E. Smith' };
-    document.querySelectorAll('.btn-action-primary[data-select]').forEach(function(btn) {
+    var requestIdInput = document.getElementById('requestIdInput');
+
+    document.querySelectorAll('.select-request').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            var id = this.getAttribute('data-select');
-            if (resultEntryId) resultEntryId.textContent = '#' + id;
-            if (resultEntryTest) resultEntryTest.textContent = testLabels[id] || '';
-            if (resultEntryDoctor) resultEntryDoctor.textContent = doctorLabels[id] || '';
+            var row = this.closest('.lab-row');
+            if (!row) return;
+
+            var requestId = row.getAttribute('data-request-id') || '';
+            var visitId = row.getAttribute('data-visit-id') || '';
+            var testName = row.getAttribute('data-test-name') || '';
+            var doctorName = row.getAttribute('data-doctor-name') || '';
+
+            if (requestIdInput) requestIdInput.value = requestId;
+            if (resultEntryId) resultEntryId.textContent = visitId ? '#V-' + visitId : ('#' + requestId);
+            if (resultEntryTest) resultEntryTest.textContent = testName;
+            if (resultEntryDoctor) resultEntryDoctor.textContent = doctorName;
         });
     });
 })();
