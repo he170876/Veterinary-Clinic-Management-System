@@ -235,4 +235,21 @@ public class AppointmentDAO extends DBContext {
         }
         return false;
     }
+
+    public boolean rescheduleAppointment(int appointmentId, java.util.Date newDate, java.sql.Time newTime) {
+        String sql = "UPDATE appointments SET appointment_time = ?, status = 'Re-Scheduled' WHERE appointment_id = ?";
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            // Combine date and time into a timestamp
+            java.sql.Timestamp timestamp = new java.sql.Timestamp(newDate.getTime() + newTime.getTime());
+            ps.setTimestamp(1, timestamp);
+            ps.setInt(2, appointmentId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
