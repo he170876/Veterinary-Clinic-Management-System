@@ -75,6 +75,10 @@
         <filter-name>RoleBasedAccessFilter</filter-name>
         <url-pattern>/lab/*</url-pattern>
     </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleBasedAccessFilter</filter-name>
+        <url-pattern>/Receptionist/*</url-pattern>
+    </filter-mapping>
 
     <!-- ======================= -->
     <!-- Authentication Servlets -->

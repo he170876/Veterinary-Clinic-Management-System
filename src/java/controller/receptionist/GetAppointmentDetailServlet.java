@@ -23,6 +23,7 @@ public class GetAppointmentDetailServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("application/json;charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
         PrintWriter out = response.getWriter();
 
         String idParam = request.getParameter("appointmentId");
@@ -34,7 +35,7 @@ public class GetAppointmentDetailServlet extends HttpServlet {
         int appointmentId;
         try {
             appointmentId = Integer.parseInt(idParam);
-        } catch (NumberFormatException e) {
+        }catch (NumberFormatException e) {
             out.print("{\"success\":false,\"message\":\"Invalid appointmentId\"}");
             return;
         }
@@ -62,11 +63,11 @@ public class GetAppointmentDetailServlet extends HttpServlet {
             int years = period.getYears();
             int months = period.getMonths();
             if (years > 0 && months > 0) {
-                petAge = years + " Year" + (years > 1 ? "s" : "") + " " + months + " Month" + (months > 1 ? "s" : "");
+                petAge = years + " year" + (years > 1 ? "s" : "") + " " + months + " month" + (months > 1 ? "s" : "");
             } else if (years > 0) {
-                petAge = years + " Year" + (years > 1 ? "s" : "");
+                petAge = years + " year" + (years > 1 ? "s" : "");
             }else {
-                petAge = months + " Month" + (months > 1 ? "s" : "");
+                petAge = months + " month" + (months > 1 ? "s" : "");
             }
         }
 
