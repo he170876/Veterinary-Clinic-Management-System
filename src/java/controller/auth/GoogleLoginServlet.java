@@ -319,6 +319,7 @@ public class GoogleLoginServlet extends HttpServlet {
             case 5:  // Admin
                                 response.sendRedirect(ctx + "/admin/dashboard");
                 break;
+                response.sendRedirect(ctx + "/owner/dashboard");
             case 6:  // ClinicOwner
                 response.sendRedirect(ctx + "/owner/dashboard");
                 break;
