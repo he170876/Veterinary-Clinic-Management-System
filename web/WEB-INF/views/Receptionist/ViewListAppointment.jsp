@@ -358,7 +358,14 @@
                 <div class="flex items-center gap-4">
                     <button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
                         <span class="material-symbols-outlined">notifications</span>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-white dark:border-slate-900"></span>
+                        <c:choose>
+                            <c:when test="${pendingCustomerRequestCount > 0}">
+                                <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">${pendingCustomerRequestCount}</span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="absolute top-2 right-2 w-2 h-2 bg-slate-300 rounded-full border-2 border-white dark:border-slate-900"></span>
+                            </c:otherwise>
+                        </c:choose>
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                         <div class="text-right">
@@ -411,6 +418,27 @@
                             </button>
                         </div>
                     </div>
+                    <c:if test="${pendingCustomerRequestCount > 0}">
+                        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-bold text-amber-700 dark:text-amber-300">Customer Requests Notifications</h3>
+                                <span class="text-xs font-semibold text-amber-700 dark:text-amber-300">${pendingCustomerRequestCount} pending</span>
+                            </div>
+                            <div class="space-y-2">
+                                <c:forEach var="req" items="${pendingCustomerRequests}">
+                                    <div class="flex items-center justify-between text-xs bg-white/70 dark:bg-slate-900/40 rounded-lg px-3 py-2 border border-amber-100 dark:border-amber-900/30">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span class="material-symbols-outlined text-sm text-amber-600">notifications_active</span>
+                                            <span class="font-semibold text-slate-700 dark:text-slate-200 truncate">
+                                                ${req.status == 'Reschedule-Requested' ? 'Reschedule Request' : 'Doctor Change Request'} - ${req.pet.name}
+                                            </span>
+                                        </div>
+                                        <span class="text-slate-500 dark:text-slate-400 whitespace-nowrap ml-2">#${req.appointmentId}</span>
+                                    </div>
+                                </c:forEach>
+                            </div>
+                        </div>
+                    </c:if>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
                         <div class="flex gap-8">
                             <a href="?status=All&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-semibold ${statusFilter == 'All' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">All (${totalCount})</a>

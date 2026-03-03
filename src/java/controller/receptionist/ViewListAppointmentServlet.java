@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import model.Appointment;
 import model.User;
@@ -191,6 +192,20 @@ public class ViewListAppointmentServlet extends HttpServlet {
         int canceledCount = (int) dateFiltered.stream()
                 .filter(a -> a.getStatus() != null && ("Canceled".equalsIgnoreCase(a.getStatus()) || "Cancelled".equalsIgnoreCase(a.getStatus())))
                 .count();
+
+        List<Appointment> pendingCustomerRequests = allAppointments.stream()
+            .filter(a -> a.getStatus() != null
+                && ("Reschedule-Requested".equalsIgnoreCase(a.getStatus())
+                || "Doctor-Change-Requested".equalsIgnoreCase(a.getStatus())))
+            .sorted(Comparator.comparing(Appointment::getAppointmentTime,
+                Comparator.nullsLast(Comparator.reverseOrder())))
+            .limit(5)
+            .collect(java.util.stream.Collectors.toList());
+        int pendingCustomerRequestCount = (int) allAppointments.stream()
+            .filter(a -> a.getStatus() != null
+                && ("Reschedule-Requested".equalsIgnoreCase(a.getStatus())
+                || "Doctor-Change-Requested".equalsIgnoreCase(a.getStatus())))
+            .count();
         
         // Pagination: 4 appointments per page
         int pageSize = 4;
@@ -250,6 +265,8 @@ public class ViewListAppointmentServlet extends HttpServlet {
         request.setAttribute("doneCount", doneCount);
         request.setAttribute("waitingForPaymentCount", waitingForPaymentCount);
         request.setAttribute("canceledCount", canceledCount);
+        request.setAttribute("pendingCustomerRequestCount", pendingCustomerRequestCount);
+        request.setAttribute("pendingCustomerRequests", pendingCustomerRequests);
         
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/ViewListAppointment.jsp")
                 .forward(request, response);
