@@ -2,7 +2,7 @@ package controller.vet;
 
 import dao.AppointmentDAO;
 import dao.InvoiceDAO;
-import dao.MedicalRecordDAO;
+import dao.VetMedicalRecordDAO;
 import dao.VisitDAO;
 import dao.LabTestRequestDAO;
 import jakarta.servlet.ServletException;
@@ -84,7 +84,7 @@ public class VetExaminationServlet extends HttpServlet {
         List<RecordServiceLine> recordServices = List.of();
         List<Prescription> prescriptions = List.of();
         if (visit != null) {
-            MedicalRecordDAO recordDao = new MedicalRecordDAO();
+            VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
             record = recordDao.getByVisitId(visit.getVisitId());
             if (record != null) {
                 recordServices = recordDao.getServicesForRecord(record.getRecordId());
@@ -176,7 +176,7 @@ public class VetExaminationServlet extends HttpServlet {
         if (treatment == null) treatment = "";
         if (note == null) note = "";
 
-        MedicalRecordDAO recordDao = new MedicalRecordDAO();
+        VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         MedicalRecord record = recordDao.getByVisitId(visit.getVisitId());
         if (record == null) {
             record = recordDao.create(visit.getVisitId(), visit.getVeterinarianId(), diagnosis, treatment, note);

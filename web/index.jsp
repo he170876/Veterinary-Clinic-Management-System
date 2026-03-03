@@ -74,7 +74,8 @@ Anipats landing page - VCMS (Tailwind design)
                     },
                 },
             }
-        </script>
+        };
+    </script>
         <style type="text/tailwindcss">
             .material-symbols-outlined {
                 font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;

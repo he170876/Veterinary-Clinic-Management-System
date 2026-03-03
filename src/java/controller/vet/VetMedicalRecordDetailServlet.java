@@ -2,7 +2,7 @@ package controller.vet;
 
 import dao.AppointmentDAO;
 import dao.CustomerDAO;
-import dao.MedicalRecordDAO;
+import dao.VetMedicalRecordDAO;
 import dao.VisitDAO;
 import dao.impl.CustomerJdbcDAO;
 import dao.impl.PetJdbcDAO;
@@ -61,7 +61,7 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
             return;
         }
 
-        MedicalRecordDAO recordDao = new MedicalRecordDAO();
+        VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         MedicalRecord record = recordDao.getByRecordId(recordId);
         if (record == null || record.getVeterinarianId() != veterinarianId) {
             response.sendRedirect(request.getContextPath() + "/vet/records");
