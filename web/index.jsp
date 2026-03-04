@@ -497,6 +497,10 @@ Anipats landing page - VCMS (Tailwind design)
                 document.body.style.overflow = '';
             }
         }
+        var autoOpenBooking = '${param.openBooking}' === '1';
+        if (autoOpenBooking) {
+            showModal('bookAppointmentModal');
+        }
         document.querySelectorAll('[data-toggle="modal"][data-target="#bookAppointmentModal"]').forEach(function(btn) {
             btn.addEventListener('click', function() { showModal('bookAppointmentModal'); });
         });

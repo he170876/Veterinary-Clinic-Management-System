@@ -126,9 +126,15 @@
 
         <div class="flex-1 overflow-y-auto p-8">
             <div class="max-w-6xl mx-auto flex flex-col gap-8">
-                <div class="flex flex-col gap-1">
-                    <h2 class="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">My Appointments</h2>
-                    <p class="text-slate-500 dark:text-slate-400">Track and manage your scheduled consultations for your furry friends.</p>
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div class="flex flex-col gap-1">
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">My Appointments</h2>
+                        <p class="text-slate-500 dark:text-slate-400">Track and manage your scheduled consultations for your furry friends.</p>
+                    </div>
+                    <a href="<%= ctx %>/index.jsp?openBooking=1" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shadow-sm">
+                        <span class="material-symbols-outlined text-base">event_available</span>
+                        Book Appointment
+                    </a>
                 </div>
 
                 <c:if test="${param.requested == '1'}">
@@ -256,9 +262,12 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-5 text-right">
-                                                <c:choose>
-                                                    <c:when test="${canRequest}">
-                                                        <div class="flex flex-col items-end gap-1">
+                                                <div class="flex flex-col items-end gap-1">
+                                                    <a href="<%= ctx %>/customer/appointments/detail?id=${appointment.appointmentId}" class="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 font-bold text-sm underline-offset-4 hover:underline">
+                                                        View Detail
+                                                    </a>
+                                                    <c:choose>
+                                                        <c:when test="${canRequest}">
                                                             <button
                                                                     type="button"
                                                                     class="text-primary hover:text-primary/80 font-bold text-sm underline-offset-4 hover:underline"
@@ -281,10 +290,8 @@
                                                                     Request Doctor Change
                                                                 </button>
                                                             </c:if>
-                                                        </div>
-                                                    </c:when>
-                                                    <c:when test="${hasPendingRequest}">
-                                                        <div class="flex flex-col items-end gap-1">
+                                                        </c:when>
+                                                        <c:when test="${hasPendingRequest}">
                                                             <span class="text-amber-600 font-bold text-sm">Waiting approval</span>
                                                             <c:if test="${canDoctorChangeRequest}">
                                                                 <button
@@ -298,12 +305,12 @@
                                                                     Request Doctor Change
                                                                 </button>
                                                             </c:if>
-                                                        </div>
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="text-slate-400 font-bold text-sm">Not available</span>
-                                                    </c:otherwise>
-                                                </c:choose>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="text-slate-400 font-bold text-sm">Not available</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
                                             </td>
                                         </tr>
                                     </c:forEach>

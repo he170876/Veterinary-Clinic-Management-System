@@ -107,7 +107,7 @@
                 </div>
                 <span class="font-semibold text-gray-700">Add Pet</span>
             </a>
-            <a href="#" class="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all">
+            <a href="<%= ctx %>/index.jsp?openBooking=1" class="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all">
                 <div class="size-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">event</span>
                 </div>
