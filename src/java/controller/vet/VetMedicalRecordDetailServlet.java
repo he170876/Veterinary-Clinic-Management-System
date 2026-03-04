@@ -27,6 +27,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Read‑only view for a single medical record (Examination Report).
+ * <ul>
+ *   <li>Nhận <code>recordId</code> từ query string.</li>
+ *   <li>Xác thực bác sĩ hiện tại là chủ của record (so sánh với <code>record.veterinarianId</code>).</li>
+ *   <li>Load Visit, Pet, Customer, danh sách dịch vụ {@link RecordServiceLine} và toa thuốc {@link Prescription}.</li>
+ *   <li>Tính thời lượng khám (từ check-in/check-out), thời điểm kết thúc và tổng chi phí từ các dịch vụ.</li>
+ *   <li>Gửi toàn bộ sang <code>vet/medical-record-view.jsp</code> để render report giống file thiết kế (PDF‑style).</li>
+ * </ul>
+ */
 @WebServlet(name = "VetMedicalRecordDetailServlet", urlPatterns = {"/vet/record"})
 public class VetMedicalRecordDetailServlet extends HttpServlet {
 

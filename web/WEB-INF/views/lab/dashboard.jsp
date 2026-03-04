@@ -108,6 +108,7 @@
 <span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">search</span>
 <input class="bg-transparent border-none text-xs focus:ring-0 w-48 pl-7" placeholder="Filter by ID or Name..." type="text" id="filterQueue"/>
 </div>
+<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
 <div class="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
 <span class="text-[10px] font-bold text-slate-500 uppercase">Tech ID: <%= techId %></span>
 <span class="text-[10px] text-slate-400"><%= user.getFullName() %></span>

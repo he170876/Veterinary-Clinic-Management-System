@@ -1,4 +1,4 @@
-﻿<%-- 
+<%-- 
     Document   : ViewListAppointment
     Created on : Feb 3, 2026, 12:56:24 AM
     Author     : admin
@@ -329,10 +329,7 @@
                     <input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder-slate-500 dark:placeholder-slate-400" placeholder="Search patients, owners or records..." type="text"/>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
-                        <span class="material-symbols-outlined">notifications</span>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-white dark:border-slate-900"></span>
-                    </button>
+                    <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                         <div class="text-right">
                             <p class="text-sm font-semibold text-slate-800 dark:text-white">Mr. ManhLD</p>

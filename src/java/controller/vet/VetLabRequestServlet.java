@@ -2,6 +2,7 @@ package controller.vet;
 
 import dao.AppointmentDAO;
 import dao.LabTestRequestDAO;
+import dao.NotificationDAO;
 import dao.VisitDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -73,6 +74,14 @@ public class VetLabRequestServlet extends HttpServlet {
 
         LabTestRequestDAO labDao = new LabTestRequestDAO();
         labDao.createRequest(visit.getVisitId(), testId, visit.getVeterinarianId());
+
+        // Notify Lab Technician(s) that a new lab request was created
+        NotificationDAO ndao = new NotificationDAO();
+        ndao.createForRole(
+                "LabStaff",
+                "New lab request",
+                "A new lab request was created for visit #" + visit.getVisitId() + " (testId=" + testId + ")."
+        );
 
         response.sendRedirect(request.getContextPath() + "/vet/examination?id=" + appointmentId);
     }

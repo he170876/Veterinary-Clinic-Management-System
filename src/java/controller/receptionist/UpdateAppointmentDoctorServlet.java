@@ -1,6 +1,7 @@
 package controller.receptionist;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -24,6 +25,16 @@ public class UpdateAppointmentDoctorServlet extends HttpServlet {
             boolean success = dao.updateAppointmentDoctor(appointmentId, veterinarianId);
             
             if (success) {
+                // Notify assigned veterinarian (system notification)
+                int vetUserId = dao.getUserIdByVeterinarianId(veterinarianId);
+                if (vetUserId > 0) {
+                    NotificationDAO ndao = new NotificationDAO();
+                    ndao.create(
+                            vetUserId,
+                            "Appointment assigned",
+                            "You have been assigned to appointment #" + appointmentId + "."
+                    );
+                }
                 response.getWriter().write("{\"success\": true, \"message\": \"Đổi bác sỹ thành công!\"}");
             }else {
                 response.getWriter().write("{\"success\": false, \"message\": \"Không thể đổi bác sỹ\"}");

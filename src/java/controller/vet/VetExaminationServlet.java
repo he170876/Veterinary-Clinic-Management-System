@@ -3,6 +3,7 @@ package controller.vet;
 import dao.AppointmentDAO;
 import dao.InvoiceDAO;
 import dao.MedicalRecordDAO;
+import dao.NotificationDAO;
 import dao.VisitDAO;
 import dao.LabTestRequestDAO;
 import jakarta.servlet.ServletException;
@@ -23,10 +24,20 @@ import service.ServiceService;
 import service.impl.ServiceServiceImpl;
 
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Vet examination: GET loads (or creates) visit, medical record, services; POST saves diagnosis, treatment, services, prescription.
+ * Vet examination flow:
+ * <ul>
+ *   <li><b>GET /vet/examination?id=appointmentId</b> – đảm bảo appointment thuộc đúng bác sĩ,
+ *       kiểm tra đã được receptionist check‑in (có Visit), chuyển trạng thái Visit sang
+ *       "In-Examination" nếu cần, load MedicalRecord, services, prescriptions và các LabRequests /
+ *       LabResults để hiển thị trên màn hình.</li>
+ *   <li><b>POST /vet/examination</b> – lưu chẩn đoán, treatment, ghi lại các dịch vụ đã dùng và toa thuốc.
+ *       Khi action = "complete" thì đánh dấu Visit/Appointment là đã khám xong và sinh Invoice từ
+ *       các dịch vụ trong MedicalRecordServices.</li>
+ * </ul>
  */
 @WebServlet(name = "VetExaminationServlet", urlPatterns = {"/vet/examination"})
 public class VetExaminationServlet extends HttpServlet {
@@ -55,6 +66,10 @@ public class VetExaminationServlet extends HttpServlet {
         }
 
         User user = (User) session.getAttribute("currentUser");
+        // Load latest notifications (top 3) for dropdown
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 3));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         AppointmentDAO appDao = new AppointmentDAO();
         Appointment ap = appDao.getAppointmentDetail(appointmentId);
 
@@ -246,6 +261,14 @@ public class VetExaminationServlet extends HttpServlet {
                     }
                 }
             }
+
+            // Notify receptionist for billing (even if UI is status-driven)
+            NotificationDAO ndao = new NotificationDAO();
+            ndao.createForRole(
+                    "Receptionist",
+                    "Billing confirmation needed",
+                    "Appointment #" + appointmentId + " has been completed by the veterinarian. Please confirm payment."
+            );
             response.sendRedirect(request.getContextPath() + "/vet/queue?completed=1");
             return;
         }

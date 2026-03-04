@@ -18,6 +18,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Customer-facing list of completed medical records.
+ * <ul>
+ *   <li>Map <code>currentUser</code> sang {@link Customer} bằng {@link CustomerDAO#findByUserId(int)}.</li>
+ *   <li>Lấy danh sách {@link model.MedicalRecordSummary} bằng
+ *       {@link MedicalRecordDAO#getRecordsForCustomer(int)} – chỉ những visit có appointment
+ *       trạng thái <code>Done</code> hoặc <code>Completed</code> (tức đã thanh toán/xác nhận).</li>
+ *   <li>Đặt <code>customerCurrentPage = "records"</code> để sidebar highlight đúng.</li>
+ *   <li>Forward sang <code>customer/records.jsp</code>, nơi khách hàng xem lịch sử khám cho tất cả pets của họ.</li>
+ * </ul>
+ */
 @WebServlet(name = "CustomerMedicalRecordsServlet", urlPatterns = {"/customer/records"})
 public class CustomerMedicalRecordsServlet extends HttpServlet {
 

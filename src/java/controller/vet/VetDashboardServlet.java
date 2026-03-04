@@ -2,6 +2,7 @@ package controller.vet;
 
 import dao.AppointmentDAO;
 import dao.LabTestRequestDAO;
+import dao.NotificationDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -13,6 +14,7 @@ import model.LabResultSummary;
 import model.User;
 
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,6 +47,9 @@ public class VetDashboardServlet extends HttpServlet {
         List<LabResultSummary> recentLabResults = vetId > 0 ? labDao.getRecentResultsForVeterinarian(vetId, 5) : Collections.emptyList();
 
         request.setAttribute("user", user);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("todayAppointments", todayAppointments);
         request.setAttribute("totalToday", totalToday);
         request.setAttribute("surgeriesToday", surgeriesToday);
