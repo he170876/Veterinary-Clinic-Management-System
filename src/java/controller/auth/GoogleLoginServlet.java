@@ -317,9 +317,8 @@ public class GoogleLoginServlet extends HttpServlet {
         String ctx = request.getContextPath();
         switch (roleId) {
             case 5:  // Admin
-                                response.sendRedirect(ctx + "/admin/dashboard");
+                response.sendRedirect(ctx + "/admin/dashboard");
                 break;
-                response.sendRedirect(ctx + "/owner/dashboard");
             case 6:  // ClinicOwner
                 response.sendRedirect(ctx + "/owner/dashboard");
                 break;

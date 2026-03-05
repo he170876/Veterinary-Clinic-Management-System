@@ -58,10 +58,6 @@
                 <span class="font-medium">Schedule</span>
             </a>
             <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors" href="#">
-                <span class="material-symbols-outlined">folder</span>
-                <span class="font-medium">Records</span>
-            </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors" href="#">
                 <span class="material-symbols-outlined">settings</span>
                 <span class="font-medium">Settings</span>
             </a>
@@ -128,7 +124,6 @@
                         <div>
                             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Appointments</p>
                             <p class="text-4xl font-bold text-slate-800 mt-2">${totalAppointments}</p>
-                            <p class="text-sm text-green-600 mt-2 font-medium">+12% from yesterday</p>
                         </div>
                         <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                             <span class="material-symbols-outlined text-orange-500 text-2xl">calendar_month</span>
@@ -142,14 +137,6 @@
                         <div>
                             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Normal Appointments</p>
                             <p class="text-4xl font-bold text-slate-800 mt-2">${normalAppointments}</p>
-                            <p class="text-sm text-slate-500 mt-2">
-                                <c:choose>
-                                    <c:when test="${totalAppointments > 0}">
-                                        <fmt:formatNumber value="${(normalAppointments * 100) / totalAppointments}" pattern="#"/>% of total volume
-                                    </c:when>
-                                    <c:otherwise>0% of total volume</c:otherwise>
-                                </c:choose>
-                            </p>
                         </div>
                         <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                             <span class="material-symbols-outlined text-primary text-2xl">add_circle</span>
@@ -163,7 +150,6 @@
                         <div>
                             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Emergency Cases</p>
                             <p class="text-4xl font-bold text-slate-800 mt-2">${emergencyCases}</p>
-                            <p class="text-sm text-slate-500 mt-2">Active: ${emergencyActive} | Resolved: ${emergencyResolved}</p>
                         </div>
                         <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                             <span class="material-symbols-outlined text-red-500 text-2xl">warning</span>
@@ -175,7 +161,7 @@
             <!-- Recent Appointments Table -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-slate-800">Recent Appointments & Live Status</h2>
+                    <h2 class="text-lg font-bold text-slate-800">Today Appointments & Live Status</h2>
                     <a href="${pageContext.request.contextPath}/Receptionist/ViewListAppointment" class="text-primary text-sm font-semibold hover:underline">View All Schedule</a>
                 </div>
                 
@@ -211,7 +197,12 @@
                                         <c:set var="isInExam" value="${status == 'In-Examination' || status == 'In Progress'}"/>
                                         <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
                                         <c:set var="isCanceled" value="${status == 'Canceled' || status == 'Cancelled'}"/>
-                                        <tr class="hover:bg-slate-50 transition-colors">
+                                        <c:set var="isRescheduled" value="${status == 'Re-Scheduled' || status == 'Rescheduled'}"/>
+                                        <c:set var="isRescheduleRequested" value="${status == 'Reschedule-Requested'}"/>
+                                        <c:set var="isDoctorChangeRequested" value="${status == 'Doctor-Change-Requested'}"/>
+                                        <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
+                                        <c:set var="canChangeDoctor" value="${isPending || isConfirmed || isRescheduled || isCheckedIn}"/>
+                                        <tr class="hover:bg-slate-50 transition-colors" data-appointment-id="${apt.appointmentId}">
                                             <td class="px-6 py-4">
                                                 <div class="flex items-center gap-3">
                                                     <c:choose>
@@ -234,9 +225,9 @@
                                                 <p class="text-sm text-slate-700">${apt.customer.user.fullName}</p>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="material-symbols-outlined text-primary text-base">schedule</span>
-                                                    <span class="text-sm text-slate-600">${apt.formattedTime}</span>
+                                                <div class="flex flex-col items-start">
+                                                    <span class="text-sm font-semibold text-slate-700">${apt.formattedTime}</span>
+                                                    <span class="text-xs text-slate-500">${apt.formattedDate}</span>
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4">
@@ -245,7 +236,25 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <p class="text-sm text-slate-600">${not empty apt.veterinarianName ? apt.veterinarianName : 'Not assigned'}</p>
+                                                <c:choose>
+                                                    <c:when test="${canChangeDoctor}">
+                                                        <select class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                            style="width: 140px;"
+                                                            data-appointment-id="${apt.appointmentId}"
+                                                            data-original-vet="${apt.veterinarianId}"
+                                                            onchange="showConfirmPopup(${apt.appointmentId}, this, this.value)">
+                                                            <option value="0" ${empty apt.veterinarianName ? 'selected' : ''}>Chưa có</option>
+                                                            <c:forEach var="vet" items="${veterinarians}">
+                                                                <option value="${vet.userId}" ${vet.userId == apt.veterinarianId ? 'selected' : ''}>
+                                                                    ${vet.fullName}
+                                                                </option>
+                                                            </c:forEach>
+                                                        </select>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <p class="text-sm text-slate-600">${not empty apt.veterinarianName ? apt.veterinarianName : 'Not assigned'}</p>
+                                                    </c:otherwise>
+                                                </c:choose>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <c:choose>
@@ -273,9 +282,43 @@
                                                 </c:choose>
                                             </td>
                                             <td class="px-6 py-4 text-right">
-                                                <button onclick="openDetail(${apt.appointmentId})" class="px-3 py-1.5 bg-primary/10 text-primary text-xs font-semibold rounded-lg hover:bg-primary hover:text-white transition-all">
-                                                    Details
-                                                </button>
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <%-- Pending / Re-Scheduled: Confirm + Reject --%>
+                                                    <c:if test="${isPending || isRescheduled}">
+                                                        <button onclick="confirmAppointment(${apt.appointmentId}, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
+                                                        <button onclick="rejectAppointment(${apt.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">Reject</button>
+                                                    </c:if>
+                                                    <%-- Customer Request: Reschedule Requested --%>
+                                                    <c:if test="${isRescheduleRequested}">
+                                                        <button onclick="processAppointmentRequest(${apt.appointmentId}, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                                        <button onclick="processAppointmentRequest(${apt.appointmentId}, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition-all">Reject Request</button>
+                                                    </c:if>
+                                                    <%-- Customer Request: Doctor Change Requested --%>
+                                                    <c:if test="${isDoctorChangeRequested}">
+                                                        <button onclick="processAppointmentRequest(${apt.appointmentId}, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                                        <button onclick="processAppointmentRequest(${apt.appointmentId}, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 transition-all">Reject Request</button>
+                                                    </c:if>
+                                                    <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
+                                                    <c:if test="${isConfirmed}">
+                                                        <button onclick="checkInAppointment(${apt.appointmentId}, this)" class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
+                                                        <button onclick="rescheduleAppointment(${apt.appointmentId})" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all">Re-Schedule</button>
+                                                        <button onclick="cancelAppointment(${apt.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 hover:bg-red-50 transition-all">Cancel</button>
+                                                    </c:if>
+                                                    <%-- Checked-in: Cancel only --%>
+                                                    <c:if test="${isCheckedIn}">
+                                                        <button onclick="cancelAppointment(${apt.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 hover:bg-red-50 transition-all">Cancel</button>
+                                                    </c:if>
+                                                    <%-- Waiting for Payment: Mark as Paid --%>
+                                                    <c:if test="${isWaitingForPayment}">
+                                                        <button onclick="markAsPaid(${apt.appointmentId}, this)" class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
+                                                    </c:if>
+                                                    <%-- Done: View Invoice --%>
+                                                    <c:if test="${isCompleted}">
+                                                        <button onclick="viewInvoice(${apt.appointmentId})" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 text-green-600 hover:bg-green-50 transition-all">View Invoice</button>
+                                                    </c:if>
+                                                    <%-- In-Examination and Canceled: Details button only --%>
+                                                    <button onclick="openDetail(${apt.appointmentId})" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
+                                                </div>
                                             </td>
                                         </tr>
                                     </c:forEach>
@@ -382,7 +425,7 @@
                                 <span class="material-symbols-outlined text-sm text-primary opacity-60">stethoscope</span>
                                 <select id="d-doctor-select" data-appointment-id="" data-original-vet="" 
                                     class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
-                                    onchange="showDoctorChangeConfirm(this)">
+                                    onchange="handleDoctorChange(this)">
                                     <option value="0">Chưa có</option>
                                     <!-- Veterinarians loaded from server -->
                                     <c:forEach var="vet" items="${veterinarians}">
@@ -395,18 +438,29 @@
                 </section>
             </div>
             
-            <div id="detailFooter" class="hidden p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
-                <button id="d-btn-confirm" class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl">Confirm</button>
-                <button id="d-btn-reject" class="hidden px-4 py-2 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl">Reject</button>
-                <button id="d-btn-checkin" class="hidden px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl">Check-in</button>
-                <button id="d-btn-cancel" class="hidden px-4 py-2 border border-red-200 text-red-500 text-sm font-semibold rounded-xl">Cancel</button>
-                <button id="d-btn-invoice" class="hidden px-4 py-2 border border-green-200 text-green-600 text-sm font-semibold rounded-xl">View Invoice</button>
+            <div id="detailFooter" class="hidden p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2 flex-wrap">
+                <!-- Pending / Re-Scheduled -->
+                <button id="d-btn-confirm" class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl shadow shadow-primary/20 hover:opacity-90 transition-all" onclick="confirmAppointment(currentDetailAppointmentId, this)">Confirm</button>
+                <button id="d-btn-reject" class="hidden px-4 py-2 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-100 transition-all" onclick="rejectAppointment(currentDetailAppointmentId, this)">Reject</button>
+                <!-- Confirmed -->
+                <button id="d-btn-checkin" class="hidden px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all" onclick="checkInAppointment(currentDetailAppointmentId, this)">Check-in</button>
+                <button id="d-btn-reschedule" class="hidden px-4 py-2 border border-indigo-200 text-indigo-600 text-sm font-semibold rounded-xl hover:bg-indigo-50 transition-all" onclick="rescheduleAppointment(currentDetailAppointmentId)">Re-Schedule</button>
+                <button id="d-btn-cancel" class="hidden px-4 py-2 border border-red-200 text-red-500 text-sm font-semibold rounded-xl hover:bg-red-50 transition-all" onclick="cancelAppointment(currentDetailAppointmentId, this)">Cancel</button>
+                <!-- Waiting for Payment -->
+                <button id="d-btn-markpaid" class="hidden px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all" onclick="markAsPaid(currentDetailAppointmentId, this)">Mark as Paid</button>
+                <!-- Done -->
+                <button id="d-btn-invoice" class="hidden px-4 py-2 border border-green-200 text-green-600 text-sm font-semibold rounded-xl hover:bg-green-50 transition-all" onclick="viewInvoice(currentDetailAppointmentId)">View Invoice</button>
             </div>
         </div>
     </div>
 
     <script>
+        let currentDetailAppointmentId = null;
+
         function openDetail(appointmentId) {
+            console.log('openDetail called with appointmentId:', appointmentId);
+            currentDetailAppointmentId = appointmentId;
+            console.log('currentDetailAppointmentId set to:', currentDetailAppointmentId);
             const panel = document.getElementById('detailView');
             const loading = document.getElementById('detailLoading');
             const content = document.getElementById('detailContent');
@@ -419,6 +473,7 @@
             fetch('GetAppointmentDetail?appointmentId=' + appointmentId)
                 .then(r => r.json())
                 .then(data => {
+                    console.log('API Response:', data);
                     if (!data.success) {
                         alert('Error: ' + data.message);
                         panel.classList.add('hidden');
@@ -437,6 +492,7 @@
         }
 
         function populateDetail(d) {
+            currentDetailAppointmentId = d.appointmentId;
             const pet = d.pet || {};
             const owner = d.owner || {};
             
@@ -468,74 +524,135 @@
             document.getElementById('d-date').textContent = d.date || 'N/A';
             document.getElementById('d-time').textContent = d.time || 'N/A';
             document.getElementById('d-service').textContent = d.service || 'N/A';
-            
+
             // Populate doctor select
             const doctorSelect = document.getElementById('d-doctor-select');
             doctorSelect.setAttribute('data-appointment-id', d.appointmentId);
             doctorSelect.setAttribute('data-original-vet', d.veterinarianId || 0);
             doctorSelect.value = d.veterinarianId && d.veterinarianId > 0 ? d.veterinarianId : "0";
+
+            // Show/hide action buttons based on status
+            const status = (d.status || '').toLowerCase();
+            const isPending = status === 'pending' || status === 'scheduled';
+            const isRescheduled = status === 're-scheduled' || status === 'rescheduled';
+            const isConfirmed = status === 'confirmed';
+            const isCheckedIn = status === 'checked-in' || status === 'Checked-in' || status === 'checked in';
+            const isWaiting = status === 'waiting-for-payment' || status === 'waiting for payment';
+            const isDone = status === 'completed' || status === 'done';
+
+            // Hide all buttons first
+            document.getElementById('d-btn-confirm').classList.add('hidden');
+            document.getElementById('d-btn-reject').classList.add('hidden');
+            document.getElementById('d-btn-checkin').classList.add('hidden');
+            document.getElementById('d-btn-reschedule').classList.add('hidden');
+            document.getElementById('d-btn-cancel').classList.add('hidden');
+            document.getElementById('d-btn-markpaid').classList.add('hidden');
+            document.getElementById('d-btn-invoice').classList.add('hidden');
+
+            // Show buttons based on status
+            if (isPending || isRescheduled) {
+                document.getElementById('d-btn-confirm').classList.remove('hidden');
+                document.getElementById('d-btn-reject').classList.remove('hidden');
+            }
+            if (isConfirmed) {
+                document.getElementById('d-btn-checkin').classList.remove('hidden');
+                document.getElementById('d-btn-reschedule').classList.remove('hidden');
+                document.getElementById('d-btn-cancel').classList.remove('hidden');
+            }
+            if (isCheckedIn) {
+                document.getElementById('d-btn-cancel').classList.remove('hidden');
+            }
+            if (isWaiting) {
+                document.getElementById('d-btn-markpaid').classList.remove('hidden');
+            }
+            if (isDone) {
+                document.getElementById('d-btn-invoice').classList.remove('hidden');
+            }
+
+            // Show footer only if there are visible buttons
+            const hasButtons = isPending || isRescheduled || isConfirmed || isCheckedIn || isWaiting || isDone;
+            document.getElementById('detailFooter').classList.toggle('hidden', !hasButtons);
         }
 
         function closeDetail() {
             document.getElementById('detailView').classList.add('hidden');
         }
         
-        let currentDoctorAppointmentId = null;
-        let currentDoctorSelect = null;
-        let originalDoctorId = null;
+        let currentAppointmentId = null;
+        let currentSelectElement = null;
+        let originalVetId = null;
         
-        function showDoctorChangeConfirm(selectElement) { const newVetId = parseInt(selectElement.value);
-            originalDoctorId = parseInt(selectElement.getAttribute('data-original-vet')) || 0;
-            
-            // If same value, do nothing
-            if (newVetId === originalDoctorId) return;
-            
-            currentDoctorAppointmentId = selectElement.getAttribute('data-appointment-id');
-            currentDoctorSelect = selectElement;
-            
-            // Show confirmation popup
-            document.getElementById('confirmPopup').classList.add('active');
+        function handleDoctorChange(selectElement) {
+            const appointmentId = selectElement.getAttribute('data-appointment-id');
+            if (!appointmentId) {
+                return;
+            }
+            showConfirmPopup(appointmentId, selectElement, selectElement.value);
         }
         
-        function closeDoctorPopup() {
-            // Reset select to original value
-            if (currentDoctorSelect && originalDoctorId !== null) {
-                currentDoctorSelect.value = originalDoctorId > 0 ? originalDoctorId : "0";
+        function showConfirmPopup(appointmentId, selectElement, newVetId) {
+            const originalVetIdValue = parseInt(selectElement.getAttribute('data-original-vet')) || 0;
+            const selectedVetId = parseInt(selectElement.value) || 0;
+            
+            // If same value, do nothing
+            if (selectedVetId === originalVetIdValue) {
+                return;
             }
-            document.getElementById('confirmPopup').classList.remove('active');
-            currentDoctorAppointmentId = null;
-            currentDoctorSelect = null;
-            originalDoctorId = null;
+
+            currentAppointmentId = appointmentId;
+            currentSelectElement = selectElement;
+            originalVetId = originalVetIdValue;
+            
+            // Show popup
+            document.getElementById('confirmPopup').style.display = 'flex';
+        }
+        
+        function closePopup() {
+            // Reset select to original value
+            if (currentSelectElement && originalVetId !== null) {
+                currentSelectElement.value = originalVetId > 0 ? originalVetId : "0";
+            }
+            document.getElementById('confirmPopup').style.display = 'none';
+            currentAppointmentId = null;
+            currentSelectElement = null;
+            originalVetId = null;
         }
         
         function confirmDoctorChange() {
-            if (!currentDoctorAppointmentId || !currentDoctorSelect) return;
+            if (!currentAppointmentId || !currentSelectElement) return;
             
-            const newVetId = parseInt(currentDoctorSelect.value);
+            const newVetId = currentSelectElement.value;
             
             fetch('UpdateAppointmentDoctor', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'appointmentId=' + currentDoctorAppointmentId + '&veterinarianId=' + newVetId
+                body: 'appointmentId=' + currentAppointmentId + '&veterinarianId=' + newVetId
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update the original vet id
-                    currentDoctorSelect.setAttribute('data-original-vet', newVetId);
-                    
+                    // Update the original vet id in detail panel
+                    currentSelectElement.setAttribute('data-original-vet', newVetId);
+
+                    // Update doctor in the main list table
+                    const doctorCell = document.querySelector('tr[data-appointment-id="' + currentAppointmentId + '"] .doctor-name');
+                    if (doctorCell) {
+                        const selectedOption = currentSelectElement.options[currentSelectElement.selectedIndex];
+                        doctorCell.textContent = selectedOption.text;
+                    }
+
                     // Show success toast
                     showToast(data.message);
-                    
+
                     // Close popup
-                    document.getElementById('confirmPopup').classList.remove('active');
+                    document.getElementById('confirmPopup').style.display = 'none';
                 } else {
                     alert('Lỗi: ' + data.message);
                     // Reset select
-                    if (originalDoctorId !== null) {
-                        currentDoctorSelect.value = originalDoctorId > 0 ? originalDoctorId : "0";
+                    if (originalVetId !== null) {
+                        currentSelectElement.value = originalVetId > 0 ? originalVetId : "0";
                     }
                 }
             })
@@ -543,14 +660,14 @@
                 console.error('Error:', error);
                 alert('Có lỗi xảy ra khi đổi bác sỹ');
                 // Reset select
-                if (originalDoctorId !== null) {
-                    currentDoctorSelect.value = originalDoctorId > 0 ? originalDoctorId : "0";
+                if (originalVetId !== null) {
+                    currentSelectElement.value = originalVetId > 0 ? originalVetId : "0";
                 }
             })
             .finally(() => {
-                currentDoctorAppointmentId = null;
-                currentDoctorSelect = null;
-                originalDoctorId = null;
+                currentAppointmentId = null;
+                currentSelectElement = null;
+                originalVetId = null;
             });
         }
         
@@ -558,16 +675,163 @@
             const toast = document.getElementById('successToast');
             const toastMessage = document.getElementById('toastMessage');
             toastMessage.textContent = message;
-            toast.classList.add('active');
-            
+            toast.style.display = 'flex';
+
             setTimeout(() => {
-                toast.classList.remove('active');
+                toast.style.display = 'none';
             }, 3000);
+        }
+
+        // Appointment action functions
+        function updateStatus(appointmentId, newStatus, button) {
+            if (button) {
+                button.disabled = true;
+                button.textContent = '...';
+            }
+
+            fetch('UpdateAppointmentStatus', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'appointmentId=' + appointmentId + '&status=' + newStatus
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message);
+                    setTimeout(() => { location.reload(); }, 1500);
+                } else {
+                    alert('Error: ' + data.message);
+                    if (button) button.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating status');
+                if (button) button.disabled = false;
+            });
+        }
+
+        function confirmAppointment(appointmentId, button) {
+            updateStatus(appointmentId, 'Confirmed', button);
+        }
+
+        function rejectAppointment(appointmentId, button) {
+            currentRejectAppointmentId = appointmentId;
+            currentRejectButton = button;
+            document.getElementById('rejectPopup').style.display = 'flex';
+        }
+        
+        function closeRejectPopup() {
+            document.getElementById('rejectPopup').style.display = 'none';
+            currentRejectAppointmentId = null;
+            currentRejectButton = null;
+        }
+        
+        function confirmReject() {
+            if (!currentRejectAppointmentId) return;
+            const appointmentId = currentRejectAppointmentId;
+            const button = currentRejectButton;
+            closeRejectPopup();
+            updateStatus(appointmentId, 'Rejected', button);
+        }
+
+        function checkInAppointment(appointmentId, button) {
+            updateStatus(appointmentId, 'Checked-in', button);
+        }
+
+        function rescheduleAppointment(appointmentId) {
+            const newDate = prompt('Enter new date (yyyy-MM-dd):');
+            if (!newDate) return;
+            const newTime = prompt('Enter new time (HH:mm):');
+            if (!newTime) return;
+
+            fetch('RescheduleAppointment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'appointmentId=' + appointmentId + '&newDate=' + newDate + '&newTime=' + newTime
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message);
+                    setTimeout(() => { location.reload(); }, 1500);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error rescheduling');
+            });
+        }
+
+        let currentCancelAppointmentId = null;
+        let currentCancelButton = null;
+        let currentRejectAppointmentId = null;
+        let currentRejectButton = null;
+        
+        function cancelAppointment(appointmentId, button) {
+            currentCancelAppointmentId = appointmentId;
+            currentCancelButton = button;
+            document.getElementById('cancelPopup').style.display = 'flex';
+        }
+        
+        function closeCancelPopup() {
+            document.getElementById('cancelPopup').style.display = 'none';
+            currentCancelAppointmentId = null;
+            currentCancelButton = null;
+        }
+        
+        function confirmCancel() {
+            if (!currentCancelAppointmentId) return;
+            const appointmentId = currentCancelAppointmentId;
+            const button = currentCancelButton;
+            closeCancelPopup();
+            updateStatus(appointmentId, 'Canceled', button);
+        }
+
+        function markAsPaid(appointmentId, button) {
+            updateStatus(appointmentId, 'Completed', button);
+        }
+
+        function viewInvoice(appointmentId) {
+            window.open('ViewInvoice?appointmentId=' + appointmentId, '_blank');
+        }
+
+        function processAppointmentRequest(appointmentId, requestType, decision) {
+            fetch('HandleAppointmentRequest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'appointmentId=' + encodeURIComponent(appointmentId)
+                        + '&requestType=' + encodeURIComponent(requestType)
+                        + '&decision=' + encodeURIComponent(decision)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Request processed successfully');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 450);
+                } else {
+                    alert('Error: ' + (data.message || 'Cannot process request'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error processing request');
+            });
         }
     </script>
 
     <!-- Confirmation Popup -->
-    <div id="confirmPopup" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center">
+    <div id="confirmPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center" style="display: none;">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
             <div class="flex items-center gap-4 mb-4">
                 <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
@@ -577,16 +841,50 @@
             </div>
             <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn đổi bác sỹ? Hãy chắc chắn rằng đã thông báo cho khách hàng biết.</p>
             <div class="flex gap-3 justify-end">
-                <button onclick="closeDoctorPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Hủy</button>
+                <button onclick="closePopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Hủy</button>
                 <button onclick="confirmDoctorChange()" class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 font-medium transition-all">Xác nhận</button>
             </div>
         </div>
     </div>
 
     <!-- Success Toast -->
-    <div id="successToast" class="hidden fixed top-6 right-6 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 z-[2000] animate-slide-in">
+    <div id="successToast" class="fixed top-6 right-6 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 z-[2000] animate-slide-in" style="display: none;">
         <span class="material-symbols-outlined">check_circle</span>
         <span id="toastMessage">Thành công!</span>
+    </div>
+
+    <!-- Cancel Confirmation Popup -->
+    <div id="cancelPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center" style="display: none;">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-red-600 text-2xl">warning</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Xác nhận hủy lịch hẹn</h3>
+            </div>
+            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn hủy lịch hẹn này?</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeCancelPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Hủy</button>
+                <button onclick="confirmCancel()" class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 font-medium transition-all">Xác nhận hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Confirmation Popup -->
+    <div id="rejectPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center" style="display: none;">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-red-600 text-2xl">warning</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Xác nhận từ chối lịch hẹn</h3>
+            </div>
+            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn từ chối lịch hẹn này?</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeRejectPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Hủy</button>
+                <button onclick="confirmReject()" class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 font-medium transition-all">Xác nhận từ chối</button>
+            </div>
+        </div>
     </div>
 
     <style>
