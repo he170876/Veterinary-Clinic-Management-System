@@ -6,17 +6,22 @@ import java.net.URLEncoder;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import dao.AppointmentDAO;
 import model.Customer;
+import model.Appointment;
 import model.Pet;
 import model.User;
 import service.PetService;
 import service.impl.PetServiceImpl;
 import dao.CustomerDAO;
+import dao.MedicalRecordDAO;
 import dao.impl.CustomerJdbcDAO;
+import dao.impl.MedicalRecordJdbcDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -41,12 +46,16 @@ public class PetServlet extends HttpServlet {
 
     private PetService petService;
     private CustomerDAO customerDAO;
+    private AppointmentDAO appointmentDAO;
+    private MedicalRecordDAO medicalRecordDAO;
 
     @Override
     public void init() throws ServletException {
         System.out.println("=== PetServlet INITIALIZED ===");
         petService = new PetServiceImpl();
         customerDAO = new CustomerJdbcDAO();
+        appointmentDAO = new AppointmentDAO();
+        medicalRecordDAO = new MedicalRecordJdbcDAO();
         System.out.println("=== PetService created successfully ===");
     }
 
@@ -251,6 +260,39 @@ public class PetServlet extends HttpServlet {
         }
         
         request.setAttribute("pets", pets);
+
+        int totalPets = pets != null ? pets.size() : 0;
+        int upcomingAppointments = 0;
+        int medicalRecordCount = 0;
+
+        Customer statsCustomer = displayCustomer;
+        if (statsCustomer == null && session != null) {
+            statsCustomer = resolveCurrentCustomer(session).orElse(null);
+        }
+
+        if (statsCustomer != null) {
+            int customerId = statsCustomer.getCustomerId();
+            List<Appointment> customerAppointments = appointmentDAO.getAppointmentsByCustomerId(customerId);
+            LocalDateTime now = LocalDateTime.now();
+            for (Appointment appointment : customerAppointments) {
+                if (appointment == null) {
+                    continue;
+                }
+                String status = appointment.getStatus() != null ? appointment.getStatus().toLowerCase() : "";
+                if (status.contains("cancel")) {
+                    continue;
+                }
+                LocalDateTime appointmentTime = appointment.getAppointmentTime();
+                if (appointmentTime == null || !appointmentTime.isBefore(now)) {
+                    upcomingAppointments++;
+                }
+            }
+            medicalRecordCount = medicalRecordDAO.countMedicalRecordsWithFilter(customerId, null, null, null);
+        }
+
+        request.setAttribute("totalPets", totalPets);
+        request.setAttribute("upcomingAppointments", upcomingAppointments);
+        request.setAttribute("medicalRecordCount", medicalRecordCount);
         
         // Set customer info for header display
         if (displayCustomer != null) {
@@ -260,7 +302,7 @@ public class PetServlet extends HttpServlet {
             request.setAttribute("user", currentUser);
         }
         
-        request.getRequestDispatcher("/WEB-INF/views/pets/index.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/customer/pets/index.jsp").forward(request, response);
     }
 
     private void listDeletedPets(HttpServletRequest request, HttpServletResponse response)
@@ -291,7 +333,7 @@ public class PetServlet extends HttpServlet {
         System.out.println("Total deleted pets retrieved: " + (deletedPets != null ? deletedPets.size() : "null"));
         
         request.setAttribute("deletedPets", deletedPets);
-        request.getRequestDispatcher("/WEB-INF/views/pets/trash.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/customer/pets/trash.jsp").forward(request, response);
     }
 
     private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
@@ -300,7 +342,7 @@ public class PetServlet extends HttpServlet {
         User currentUser = getCurrentUser(session);
         request.setAttribute("user", currentUser);
         resolveCurrentCustomer(session).ifPresent(customer -> request.setAttribute("customer", customer));
-        request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/customer/pets/create.jsp").forward(request, response);
     }
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
@@ -320,7 +362,7 @@ public class PetServlet extends HttpServlet {
                 }
             }
             request.setAttribute("pet", pet.get());
-            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/edit.jsp").forward(request, response);
         } else {
             response.sendRedirect("pets?error=Pet not found");
         }
@@ -343,7 +385,7 @@ public class PetServlet extends HttpServlet {
                 }
             }
             request.setAttribute("pet", pet.get());
-            request.getRequestDispatcher("/WEB-INF/views/pets/details.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/details.jsp").forward(request, response);
         } else {
             response.sendRedirect("pets?error=Pet not found");
         }
@@ -365,7 +407,7 @@ public class PetServlet extends HttpServlet {
             } else {
                 if (isCustomerUser(currentUser)) {
                     request.setAttribute("error", "Customer profile not found");
-                    request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
+                    request.getRequestDispatcher("/WEB-INF/views/customer/pets/create.jsp").forward(request, response);
                     return;
                 }
                 // For admin/staff creating pet for a customer
@@ -374,7 +416,7 @@ public class PetServlet extends HttpServlet {
                     customerId = Integer.parseInt(customerIdParam);
                 } else {
                     request.setAttribute("error", "Customer ID is required");
-                    request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
+                    request.getRequestDispatcher("/WEB-INF/views/customer/pets/create.jsp").forward(request, response);
                     return;
                 }
             }
@@ -389,7 +431,7 @@ public class PetServlet extends HttpServlet {
                         System.err.println("❌ Access denied: Customer " + customer.getCustomerId() + 
                                          " trying to create pet for customer " + paramCustomerId);
                         request.setAttribute("error", "You can only create pets for your own account");
-                        request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
+                        request.getRequestDispatcher("/WEB-INF/views/customer/pets/create.jsp").forward(request, response);
                         return;
                     }
                 }
@@ -440,17 +482,17 @@ public class PetServlet extends HttpServlet {
             System.err.println("❌ Format error: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Invalid input format: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/create.jsp").forward(request, response);
         } catch (IllegalArgumentException e) {
             System.err.println("❌ Validation error: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/create.jsp").forward(request, response);
         } catch (Exception e) {
             System.err.println("❌ Unexpected error in createPet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Error creating pet: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/pets/create.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/create.jsp").forward(request, response);
         }
     }
 
@@ -472,7 +514,7 @@ public class PetServlet extends HttpServlet {
             } else {
                 if (isCustomerUser(currentUser)) {
                     request.setAttribute("error", "Customer profile not found");
-                    request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
+                    request.getRequestDispatcher("/WEB-INF/views/customer/pets/edit.jsp").forward(request, response);
                     return;
                 }
                 String customerIdParam = request.getParameter("customer_id");
@@ -485,7 +527,7 @@ public class PetServlet extends HttpServlet {
             Optional<Pet> petOpt = petService.getPetById(petId);
             if (!petOpt.isPresent()) {
                 request.setAttribute("error", "Pet not found");
-                request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/customer/pets/edit.jsp").forward(request, response);
                 return;
             }
             
@@ -549,17 +591,17 @@ public class PetServlet extends HttpServlet {
             System.err.println("❌ Format error in updatePet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Invalid input format: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/edit.jsp").forward(request, response);
         } catch (IllegalArgumentException e) {
             System.err.println("❌ Validation error in updatePet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/edit.jsp").forward(request, response);
         } catch (Exception e) {
             System.err.println("❌ Unexpected error in updatePet: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Error updating pet: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/pets/edit.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/customer/pets/edit.jsp").forward(request, response);
         }
     }
 
@@ -818,7 +860,7 @@ public class PetServlet extends HttpServlet {
         request.setAttribute("searchQuery", searchQuery);
         request.setAttribute("user", currentUser);
         
-        request.getRequestDispatcher("/WEB-INF/views/pets/index.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/customer/pets/index.jsp").forward(request, response);
     }
     
     /**

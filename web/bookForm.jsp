@@ -1,7 +1,8 @@
 <%--
-    Document   : bookForm.jsp
-    Booking form fragment - included in index.jsp modal.
+Document   : bookForm.jsp
+Booking form fragment - included in index.jsp modal.
 --%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%
     String ctx = request.getContextPath();
@@ -57,15 +58,14 @@
             </div>
             <div class="form-group">
                 <label for="service">Select Service *</label>
-                <select class="form-control form-select" id="service" name="service" required>
+                <select class="form-control form-select" id="serviceId" name="serviceId" required>
+                    <!-- DEBUG: bien 'services' co rong khong? ${empty services} -->
                     <option value="">Choose a service</option>
-                    <option value="Health Checkups">Health Checkups</option>
-                    <option value="Vaccinations">Vaccinations</option>
-                    <option value="Pet Boarding">Pet Boarding</option>
-                    <option value="Healthy Meals">Healthy Meals</option>
-                    <option value="Pet Spa & Grooming">Pet Spa & Grooming</option>
-                    <option value="Dental Care">Dental Care</option>
-                    <option value="Emergency Services">Emergency Services</option>
+                    <c:if test="${not empty services}">
+                        <c:forEach var="service" items="${services}">
+                            <option value="${service.serviceId}">${service.name}</option>
+                        </c:forEach>
+                    </c:if>
                 </select>
             </div>
         </div>
@@ -108,11 +108,11 @@
     </form>
 </div>
 <script>
-(function() {
-    var dateEl = document.getElementById('appointmentDate');
-    if (dateEl) {
-        var today = new Date().toISOString().split('T')[0];
-        dateEl.setAttribute('min', today);
-    }
-})();
+    (function() {
+        var dateEl = document.getElementById('appointmentDate');
+        if (dateEl) {
+            var today = new Date().toISOString().split('T')[0];
+            dateEl.setAttribute('min', today);
+        }
+    })();
 </script>

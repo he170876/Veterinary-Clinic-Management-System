@@ -40,8 +40,19 @@ public class UploadServlet extends HttpServlet {
         }
 
         if (!Files.exists(requested) || !Files.isRegularFile(requested)) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
+            String legacyAbsolute = getServletContext().getRealPath(pathInfo);
+            if (legacyAbsolute != null) {
+                Path legacyPath = Paths.get(legacyAbsolute).normalize();
+                if (Files.exists(legacyPath) && Files.isRegularFile(legacyPath)) {
+                    requested = legacyPath;
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+            } else {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
         }
 
         String mime = getServletContext().getMimeType(requested.getFileName().toString());

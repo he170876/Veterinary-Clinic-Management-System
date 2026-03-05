@@ -37,7 +37,7 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#f14337",
+                        "primary": "#ff7b00",
                         "background-light": "#f8f6f6",
                         "background-dark": "#221110",
                     },
@@ -77,10 +77,8 @@
                     <a class="text-[#181111] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="<%= ctx %>/index.jsp">Home</a>
                     <a class="text-[#181111] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="#">Support</a>
                 </div>
-                <div class="flex gap-2">
-                    <button type="button" class="size-10 flex items-center justify-center rounded-xl bg-background-light dark:bg-white/5 text-[#181111] dark:text-white hover:bg-background-light/80">
-                        <span class="material-symbols-outlined">notifications</span>
-                    </button>
+                <div class="flex gap-2 items-center">
+                    <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                     <button type="button" class="size-10 flex items-center justify-center rounded-xl bg-background-light dark:bg-white/5 text-[#181111] dark:text-white hover:bg-background-light/80">
                         <span class="material-symbols-outlined">settings</span>
                     </button>

@@ -99,62 +99,10 @@
     model.User currentUser = (model.User) session.getAttribute("currentUser");
     String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
     boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
+    request.setAttribute("customerCurrentPage", "pets");
 %>
 <div class="flex h-screen overflow-hidden">
-<!-- Sidebar -->
-<aside class="w-64 bg-white dark:bg-zinc-900 border-r border-[#e5e7eb] dark:border-zinc-800 flex flex-col justify-between p-4 shrink-0">
-<div class="flex flex-col gap-8">
-<div class="flex items-center gap-3 px-2">
-<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
-<span class="material-symbols-outlined">pets</span>
-</div>
-<div>
-<h1 class="text-lg font-bold leading-none">Anipat</h1>
-<p class="text-[#8d755e] text-xs font-medium">Pet Management</p>
-</div>
-</div>
-<nav class="flex flex-col gap-1">
-<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8d755e] hover:bg-background-light dark:hover:bg-zinc-800 transition-colors" href="#">
-<span class="material-symbols-outlined">dashboard</span>
-<span class="text-sm font-medium">Dashboard</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary transition-colors" href="#">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">potted_plant</span>
-<span class="text-sm font-bold">My Pets</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8d755e] hover:bg-background-light dark:hover:bg-zinc-800 transition-colors" href="#">
-<span class="material-symbols-outlined">description</span>
-<span class="text-sm font-medium">Medical Records</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8d755e] hover:bg-background-light dark:hover:bg-zinc-800 transition-colors" href="#">
-<span class="material-symbols-outlined">notifications</span>
-<span class="text-sm font-medium">Reminders</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8d755e] hover:bg-background-light dark:hover:bg-zinc-800 transition-colors" href="#">
-<span class="material-symbols-outlined">settings</span>
-<span class="text-sm font-medium">Settings</span>
-</a>
-</nav>
-</div>
-<div class="flex flex-col gap-4">
-<!-- Quick Stats -->
-<div class="p-3 bg-background-light dark:bg-zinc-800 rounded-xl space-y-3">
-<p class="text-xs font-bold text-[#8d755e] uppercase tracking-wider">Quick Stats</p>
-<div class="flex justify-between items-center">
-<span class="text-sm">Total Visits</span>
-<span class="text-sm font-bold text-primary">12</span>
-</div>
-<div class="flex justify-between items-center">
-<span class="text-sm">Vaccinations</span>
-<span class="text-sm font-bold text-primary">8</span>
-</div>
-</div>
-<a class="w-full bg-primary text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2" href="<%= request.getContextPath() %>/pets?action=create">
-<span class="material-symbols-outlined text-sm">add</span>
-                    Add New Pet
-                </a>
-</div>
-</aside>
+<jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <!-- Main Content -->
 <main class="flex-1 overflow-y-auto">
 <!-- Header Section -->
@@ -235,6 +183,24 @@
 </div>
 <!-- Right Column: Health Overview -->
 <div class="lg:col-span-8 space-y-6">
+<!-- Medical History Link Button -->
+<div class="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/5 dark:to-transparent p-4 rounded-xl border border-primary/20 dark:border-primary/10">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined">history</span>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-[#181410] dark:text-white">Medical Records Available</p>
+                <p class="text-xs text-[#8d755e] dark:text-gray-400">View detailed medical history and records</p>
+            </div>
+        </div>
+        <a href="<%= request.getContextPath() %>/customer/medical-history?petId=<%= petId %>" class="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+            View History
+        </a>
+    </div>
+</div>
+
 <!-- Status & Last Visit Section -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 <!-- Last Visit Card -->

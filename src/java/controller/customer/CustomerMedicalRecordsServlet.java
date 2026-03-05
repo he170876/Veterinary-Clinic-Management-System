@@ -1,7 +1,7 @@
 package controller.customer;
 
 import dao.CustomerDAO;
-import dao.MedicalRecordDAO;
+import dao.VetMedicalRecordDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -59,7 +59,7 @@ public class CustomerMedicalRecordsServlet extends HttpServlet {
         }
 
         Customer customer = customerOpt.get();
-        MedicalRecordDAO recordDao = new MedicalRecordDAO();
+        VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         List<MedicalRecordSummary> records = recordDao.getRecordsForCustomer(customer.getCustomerId());
 
         request.setAttribute("user", user);

@@ -31,6 +31,7 @@
     model.User currentUser = (model.User) session.getAttribute("currentUser");
     String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
     boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
+    request.setAttribute("customerCurrentPage", "pets");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
@@ -69,48 +70,7 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-[#181410] dark:text-[#f5f2f0]">
 <div class="flex h-screen overflow-hidden">
-<aside class="w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark hidden md:flex flex-col justify-between p-4">
-<div class="flex flex-col gap-8">
-<div class="flex items-center gap-3 px-2">
-<div class="bg-primary rounded-lg p-1 text-white">
-<span class="material-symbols-outlined text-3xl">pets</span>
-</div>
-<div class="flex flex-col">
-<h1 class="text-[#181410] dark:text-white text-lg font-bold leading-tight">Anipat</h1>
-<p class="text-gray-500 text-xs font-normal">Pet Management</p>
-</div>
-</div>
-<nav class="flex flex-col gap-2">
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">dashboard</span>
-<span class="text-sm font-medium">Dashboard</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg" href="#">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">pets</span>
-<span class="text-sm font-medium">My Pets</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">medical_services</span>
-<span class="text-sm font-medium">Medical Records</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">calendar_today</span>
-<span class="text-sm font-medium">Appointments</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
-<span class="material-symbols-outlined">settings</span>
-<span class="text-sm font-medium">Settings</span>
-</a>
-</nav>
-</div>
-<div class="flex items-center gap-3 border-t border-gray-100 dark:border-gray-800 pt-4">
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBXhRsQJeIz2VKovQHFowMmfBSk4sborRYzGHWJ0ECnMQnI3cE4sl_v664Iv5PwaWAeDwE-h28eApQ6kkQeuAvUJqVroKmXc018Yzk3gTxHnxQwSu4tj3N6VAkV8miu0zEOWHdRXTkcnwEOS_rmek-k97Yh2VXTrkDDJi4Yvqy94jUMp5mjrKxsyvOO9llh82gr4_TQ0OHk8MyVwAeTGdAaY8FIg33_-AkZBC1l7tvMGzZaMQhB8kJKwzfERsKgo9n8y0iueunWvA");'></div>
-<div class="flex flex-col overflow-hidden">
-<p class="text-sm font-bold truncate">Alex Johnson</p>
-<p class="text-xs text-gray-500 truncate">Pro Account</p>
-</div>
-</div>
-</aside>
+<jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <main class="flex-1 flex flex-col overflow-y-auto">
 <header class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark px-8 py-4 sticky top-0 z-10">
 <div class="flex-1 max-w-xl">
@@ -125,10 +85,7 @@
 Quay lại trang đầu
 </a>
 <% } %>
-<button class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 relative">
-<span class="material-symbols-outlined">notifications</span>
-<span class="absolute top-2 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white dark:border-background-dark"></span>
-</button>
+<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
 <button class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
 <span class="material-symbols-outlined">help_outline</span>
 </button>

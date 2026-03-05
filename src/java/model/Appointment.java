@@ -11,13 +11,14 @@ public class Appointment {
     private int appointmentId;
     private Pet pet;
     private Customer customer;
-    private int veterinarianId; // keep as id for now to avoid circular model explosion
+    private Integer veterinarianId; // keep as id for now to avoid circular model explosion
     private String veterinarianName; // for display purposes
     private String service; // service name
     private Integer serviceId; // for saving record services
     private LocalDateTime appointmentTime;
     private String status; // Pending, Confirmed, Completed, Cancelled...
     private LocalDateTime createdAt;
+    private String notes;
 
     public Appointment() {
     }
@@ -46,7 +47,7 @@ public class Appointment {
         this.customer = customer;
     }
 
-    public int getVeterinarianId() {
+    public Integer getVeterinarianId() {
         return veterinarianId;
     }
 
@@ -115,5 +116,12 @@ public class Appointment {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-}
 
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+}

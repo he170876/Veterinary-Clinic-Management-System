@@ -21,6 +21,7 @@ import java.util.Set;
  * RBAC: allows access to role-scoped paths only when the current user has the required role.
  * - /customer/*  → Customer (and Admin/ClinicOwner for future)
  * - /owner/*     → Admin, ClinicOwner
+ * - /admin/*     → Admin
  * - /vet/*       → Veterinarian
  * - /staff/*     → Receptionist
  * - /lab/*       → LabStaff
@@ -28,15 +29,15 @@ import java.util.Set;
  */
 @WebFilter(
     filterName = "RoleBasedAccessFilter",
-    urlPatterns = { "/customer/*", "/owner/*", "/vet/*", "/staff/*", "/lab/*" }
+    urlPatterns = { "/customer/*", "/owner/*", "/vet/*", "/staff/*", "/lab/*", "/Receptionist/*" }
 )
 public class RoleBasedAccessFilter implements Filter {
 
-    private static final Set<String> CUSTOMER_ROLES = set("Customer", "Admin", "ClinicOwner");
+    private static final Set<String> CUSTOMER_ROLES = set("Customer");
     private static final Set<String> OWNER_ROLES = set("Admin", "ClinicOwner");
     private static final Set<String> VET_ROLES = set("Veterinarian");
-    private static final Set<String> STAFF_ROLES = set("Receptionist");
-    private static final Set<String> LAB_ROLES = set("LabStaff");
+    private static final Set<String> RECEPTIONIST_ROLES = set("Receptionist");
+    private static final Set<String> LAB_ROLES = set("LabStaff","lab");
 
     private static Set<String> set(String... roles) {
         return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(roles)));
@@ -73,7 +74,7 @@ public class RoleBasedAccessFilter implements Filter {
         if (path.startsWith("/customer/")) return CUSTOMER_ROLES;
         if (path.startsWith("/owner/")) return OWNER_ROLES;
         if (path.startsWith("/vet/")) return VET_ROLES;
-        if (path.startsWith("/staff/")) return STAFF_ROLES;
+        if (path.startsWith("/Receptionist/")) return RECEPTIONIST_ROLES;
         if (path.startsWith("/lab/")) return LAB_ROLES;
         return null;
     }

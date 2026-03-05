@@ -133,6 +133,7 @@
             let currentAppointmentId = null;
             let currentSelectElement = null;
             let originalVetId = null;
+            let currentDetailAppointmentId = null;
             
             function showConfirmPopup(appointmentId, selectElement, newVetId) {
                 currentAppointmentId = appointmentId;
@@ -170,8 +171,15 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Update the original vet id
+                        // Update the original vet id in popup
                         currentSelectElement.setAttribute('data-original-vet', newVetId);
+                        
+                        // Update doctor dropdown in the main list
+                        const mainListSelect = document.querySelector('select[data-appointment-id="' + currentAppointmentId + '"]');
+                        if (mainListSelect) {
+                            mainListSelect.value = newVetId;
+                            mainListSelect.setAttribute('data-original-vet', newVetId);
+                        }
                         
                         // Show success toast
                         showToast(data.message);
@@ -179,7 +187,7 @@
                         // Close popup
                         document.getElementById('confirmPopup').classList.remove('active');
                     } else {
-                        alert('Lá»—i: ' + data.message);
+                        alert('Error: ' + data.message);
                         // Reset select
                         if (originalVetId) {
                             currentSelectElement.value = originalVetId;
@@ -188,7 +196,7 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('CÃ³ lá»—i xáº£y ra khi Ä‘á»•i bÃ¡c sá»¹');
+                    alert('An error occurred while changing the doctor');
                     // Reset select
                     if (originalVetId) {
                         currentSelectElement.value = originalVetId;
@@ -209,6 +217,33 @@
                 setTimeout(() => { toast.classList.remove('active'); }, 3000);
             }
 
+            function processAppointmentRequest(appointmentId, requestType, decision) {
+                fetch('HandleAppointmentRequest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'appointmentId=' + encodeURIComponent(appointmentId)
+                            + '&requestType=' + encodeURIComponent(requestType)
+                            + '&decision=' + encodeURIComponent(decision)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Request processed successfully');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 450);
+                    } else {
+                        alert('Error: ' + (data.message || 'Unable to process the request'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while processing the request');
+                });
+            }
+
             function openDetail(appointmentId) {
                 const panel = document.getElementById('detailView');
                 const loading = document.getElementById('detailLoading');
@@ -222,7 +257,7 @@
                     .then(r => r.json())
                     .then(data => {
                         if (!data.success) {
-                            alert('Lỗi: ' + data.message);
+                            alert('Error: ' + data.message);
                             panel.classList.add('hidden');
                             return;
                         }
@@ -233,12 +268,14 @@
                     })
                     .catch(err => {
                         console.error(err);
-                        alert('Có lỗi xảy ra khi tải thông tin');
+                        alert('An error occurred while loading appointment details');
                         panel.classList.add('hidden');
                     });
             }
 
             function populateDetail(d) {
+                currentDetailAppointmentId = d.appointmentId;
+                
                 const pet = d.pet || {};
                 const owner = d.owner || {};
                 const photoEl = document.getElementById('d-pet-photo');
@@ -273,15 +310,155 @@
                 document.getElementById('d-owner-address').textContent = owner.address || 'N/A';
                 document.getElementById('d-date').textContent = d.date || 'N/A';
                 document.getElementById('d-time').textContent = d.time || 'N/A';
-                document.getElementById('d-service').textContent = d.service || 'Chưa có';
-                document.getElementById('d-doctor').textContent = d.veterinarianName || 'Chưa có';
-                const isPending = s === 'pending' || s === 'scheduled';
-                document.getElementById('d-btn-confirm').classList.toggle('hidden', !isPending);
-                document.getElementById('d-btn-reject').classList.toggle('hidden', !isPending);
+                document.getElementById('d-service').textContent = d.service || 'N/A';
+
+                // Populate doctor select in detail panel
+                const doctorSelect = document.getElementById('d-doctor-select');
+                if (doctorSelect) {
+                    doctorSelect.setAttribute('data-appointment-id', d.appointmentId);
+                    doctorSelect.setAttribute('data-original-vet', d.veterinarianId || 0);
+                    doctorSelect.value = d.veterinarianId && d.veterinarianId > 0 ? d.veterinarianId : "0";
+                }
+
+                // Show/hide footer buttons based on status
+                const allBtns = ['d-btn-confirm','d-btn-reject','d-btn-checkin','d-btn-reschedule','d-btn-cancel','d-btn-markpaid','d-btn-invoice'];
+                allBtns.forEach(id => document.getElementById(id).classList.add('hidden'));
+
+                const isPending   = s === 'pending' || s === 'scheduled';
+                const isRescheduled = s === 're-scheduled' || s === 'rescheduled';
+                const isConfirmed = s === 'confirmed';
+                const isCheckedIn = s === 'checked-in' || s === 'Checked-in' || s === 'checked in';
+                const isWaiting   = s === 'waiting-for-payment' || s === 'waiting for payment';
+                const isDone      = s === 'completed' || s === 'done';
+
+                if (isPending || isRescheduled) {
+                    document.getElementById('d-btn-confirm').classList.remove('hidden');
+                    document.getElementById('d-btn-reject').classList.remove('hidden');
+                }
+                if (isConfirmed) {
+                    document.getElementById('d-btn-checkin').classList.remove('hidden');
+                    document.getElementById('d-btn-reschedule').classList.remove('hidden');
+                    document.getElementById('d-btn-cancel').classList.remove('hidden');
+                }
+                if (isCheckedIn) {
+                    document.getElementById('d-btn-cancel').classList.remove('hidden');
+                }
+                if (isWaiting) {
+                    document.getElementById('d-btn-markpaid').classList.remove('hidden');
+                }
+                if (isDone) {
+                    document.getElementById('d-btn-invoice').classList.remove('hidden');
+                }
+
+                // Show footer only if there are visible buttons
+                const hasButtons = isPending || isRescheduled || isConfirmed || isCheckedIn || isWaiting || isDone;
+                document.getElementById('detailFooter').classList.toggle('hidden', !hasButtons);
             }
 
             function closeDetail() {
                 document.getElementById('detailView').classList.add('hidden');
+            }
+            
+            // Function to handle doctor change from detail panel dropdown
+            function showDoctorChangeConfirm(selectElement) {
+                const newVetId = parseInt(selectElement.value);
+                const originalVetId = parseInt(selectElement.getAttribute('data-original-vet')) || 0;
+                
+                if (newVetId === originalVetId) return;
+                
+                currentAppointmentId = selectElement.getAttribute('data-appointment-id');
+                currentSelectElement = selectElement;
+                
+                document.getElementById('confirmPopup').classList.add('active');
+            }
+
+            // Appointment action functions
+            function updateStatus(appointmentId, newStatus, button) {
+                if (button) {
+                    button.disabled = true;
+                    button.textContent = '...';
+                }
+                
+                fetch('UpdateAppointmentStatus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'appointmentId=' + appointmentId + '&status=' + newStatus
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message);
+                        setTimeout(() => { location.reload(); }, 1500);
+                    } else {
+                        alert('Error: ' + data.message);
+                        if (button) button.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating status');
+                    if (button) button.disabled = false;
+                });
+            }
+
+            function confirmAppointment(appointmentId, button) {
+                updateStatus(appointmentId, 'Confirmed', button);
+            }
+
+            function rejectAppointment(appointmentId, button) {
+                if (!confirm('Are you sure you want to reject this appointment?')) {
+                    return;
+                }
+                updateStatus(appointmentId, 'Rejected', button);
+            }
+
+            function checkInAppointment(appointmentId, button) {
+                updateStatus(appointmentId, 'Checked-in', button);
+            }
+
+            function rescheduleAppointment(appointmentId) {
+                const newDate = prompt('Enter new date (yyyy-MM-dd):');
+                if (!newDate) return;
+                const newTime = prompt('Enter new time (HH:mm):');
+                if (!newTime) return;
+                
+                fetch('RescheduleAppointment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'appointmentId=' + appointmentId + '&newDate=' + newDate + '&newTime=' + newTime
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message);
+                        setTimeout(() => { location.reload(); }, 1500);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while rescheduling the appointment');
+                });
+            }
+
+            function cancelAppointment(appointmentId, button) {
+                if (!confirm('Are you sure you want to cancel this appointment?')) {
+                    return;
+                }
+                updateStatus(appointmentId, 'Canceled', button);
+            }
+
+            function markAsPaid(appointmentId, button) {
+                updateStatus(appointmentId, 'Completed', button);
+            }
+
+            function viewInvoice(appointmentId) {
+                window.open('ViewInvoice?appointmentId=' + appointmentId, '_blank');
             }
         </script>
     </head>
@@ -294,33 +471,20 @@
                 <span class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Anipat</span>
             </div>
             <nav class="flex-1 px-4 mt-4 space-y-1">
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="/Veterinary_Clinic_Management_System/Receptionist/Dashboard">
                     <span class="material-symbols-outlined">dashboard</span>
                     <span class="font-medium">Dashboard</span>
                 </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="#">
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment">
                     <span class="material-symbols-outlined">calendar_today</span>
                     <span class="font-medium">Schedule</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-                    <span class="material-symbols-outlined">group</span>
-                    <span class="font-medium">Patients</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-                    <span class="material-symbols-outlined">folder</span>
-                    <span class="font-medium">Records</span>
                 </a>
                 <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
                     <span class="material-symbols-outlined">settings</span>
                     <span class="font-medium">Settings</span>
                 </a>
             </nav>
-            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-                <button class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-300" onclick="toggleDarkMode()">
-                    <span class="material-symbols-outlined text-sm">dark_mode</span>
-                    <span class="text-sm font-medium">Switch Mode</span>
-                </button>
-            </div>
+
         </aside>
         <main class="flex-1 flex flex-col min-h-screen">
             <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 sticky top-0 z-10">
@@ -332,8 +496,8 @@
                     <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                         <div class="text-right">
-                            <p class="text-sm font-semibold text-slate-800 dark:text-white">Mr. ManhLD</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Reception</p>
+                            <p class="text-sm font-semibold text-slate-800 dark:text-white"><c:out value="${not empty sessionScope.currentUser ? sessionScope.currentUser.fullName : 'User'}"/></p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400"><c:out value="${not empty sessionScope.currentUser.role ? sessionScope.currentUser.role.roleName : 'User'}"/></p>
                         </div>
                         <img alt="Doctor Portrait" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbM3tqKcwxIsoi5slYj6Kdkox1ysp7KyLPDUH241MYJyDiLgGIKJ9QfoxuwyxV7s__5dZyVili1E1pp7xhQFoF-V8TeZNJinkVaQLjApB2--PT016uBomLlR7k5ltY6L9ulS8rA6R9XrEDYfPiKRJAXNwpDWjOg_9KCYs2yO3_5n8QJ1kKKmQloVoxUx4kSNIbI7UBGluY2j-V8Oysu6VNuosQ1slgZWJMFmS4Rk4Ivn1Jv10A3YoUxgz9L5k5j8p-uVqiMJH_3EY"/>
                     </div>
@@ -379,6 +543,10 @@
                                 <span class="material-symbols-outlined text-lg">add</span>
                                 <span>New Appointment</span>
                             </button>
+                            <button class="bg-red-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                                <span class="material-symbols-outlined text-lg">emergency</span>
+                                <span>Emergency</span>
+                            </button>
                         </div>
                     </div>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
@@ -412,7 +580,7 @@
                             <c:when test="${empty list}">
                                 <div class="text-center py-12">
                                     <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700">event_busy</span>
-                                    <p class="mt-4 text-slate-500 dark:text-slate-400">KhÃ´ng cÃ³ appointment nÃ o</p>
+                                    <p class="mt-4 text-slate-500 dark:text-slate-400">No appointments found</p>
                                 </div>
                             </c:when>
                             <c:otherwise>
@@ -422,6 +590,8 @@
                             <c:set var="isPending" value="${status == 'Pending' || status == 'Scheduled'}"/>
                             <c:set var="isConfirmed" value="${status == 'Confirmed'}"/>
                             <c:set var="isRescheduled" value="${status == 'Re-Scheduled' || status == 'Rescheduled'}"/>
+                            <c:set var="isRescheduleRequested" value="${status == 'Reschedule-Requested'}"/>
+                            <c:set var="isDoctorChangeRequested" value="${status == 'Doctor-Change-Requested'}"/>
                             <c:set var="isInExamination" value="${status == 'In-Examination' || status == 'In Progress'}"/>
                             <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
                             <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
@@ -470,6 +640,12 @@
                                             <c:when test="${isRescheduled}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold rounded uppercase tracking-wider">Re-Scheduled</span>
                                             </c:when>
+                                            <c:when test="${isRescheduleRequested}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[9px] font-bold rounded uppercase tracking-wider">Reschedule Requested</span>
+                                            </c:when>
+                                            <c:when test="${isDoctorChangeRequested}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[9px] font-bold rounded uppercase tracking-wider">Doctor Change Requested</span>
+                                            </c:when>
                                             <c:when test="${isCompleted}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-500/70 text-[9px] font-bold rounded uppercase tracking-wider">Done</span>
                                             </c:when>
@@ -487,7 +663,7 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60">person</span>
-                                    <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'ChÆ°a cÃ³'}</span>
+                                    <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'N/A'}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">schedule</span>
@@ -495,14 +671,15 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">medical_services</span>
-                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'ChÆ°a cÃ³'}</span>
+                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'N/A'}</span>
                                 </div>
                                 <div>
                                     <select 
                                         class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                        data-appointment-id="${appointment.appointmentId}"
                                         data-original-vet="${appointment.veterinarianId}"
-                                        onchange="showConfirmPopup(${appointment.appointmentId}, this, this.value)">
-                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>ChÆ°a cÃ³</option>
+                                        onchange="showConfirmPopup(this.dataset.appointmentId, this, this.value)">
+                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Unassigned</option>
                                         <c:forEach var="vet" items="${veterinarians}">
                                             <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
                                                 ${vet.fullName}
@@ -513,29 +690,39 @@
                                 <div class="flex items-center justify-end gap-2 pr-2">
                                     <%-- Pending / Re-Scheduled: Confirm + Reject --%>
                                     <c:if test="${isPending || isRescheduled}">
-                                        <button class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="confirmAppointment(this.dataset.appointmentId, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="rejectAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
+                                    </c:if>
+                                    <%-- Customer Request: Reschedule Requested --%>
+                                    <c:if test="${isRescheduleRequested}">
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
+                                    </c:if>
+                                    <%-- Customer Request: Doctor Change Requested --%>
+                                    <c:if test="${isDoctorChangeRequested}">
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
                                     </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">
-                                        <button class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="checkInAppointment(this.dataset.appointmentId, this)" class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="rescheduleAppointment(this.dataset.appointmentId)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="cancelAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Checked-in: Cancel only --%>
                                     <c:if test="${isCheckedIn}">
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="cancelAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Waiting for Payment: Mark as Paid --%>
                                     <c:if test="${isWaitingForPayment}">
-                                        <button class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="markAsPaid(this.dataset.appointmentId, this)" class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
                                     </c:if>
                                     <%-- Done: View Invoice --%>
                                     <c:if test="${isCompleted}">
-                                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="viewInvoice(this.dataset.appointmentId)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
                                     </c:if>
                                     <%-- In-Examination and Canceled: no action buttons --%>
-                                    <button onclick="openDetail(${appointment.appointmentId})" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
+                                    <button data-appointment-id="${appointment.appointmentId}" onclick="openDetail(this.dataset.appointmentId)" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
                                 </div>
                             </div>
                         </c:forEach>
@@ -558,7 +745,7 @@
                             <!-- Previous page -->
                             <c:choose>
                                 <c:when test="${currentPage > 1}">
-                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage - 1}"
+                                                <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage - 1}"
                                        class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                         <span class="material-symbols-outlined">chevron_left</span>
                                     </a>
@@ -579,7 +766,7 @@
                                         </button>
                                     </c:when>
                                     <c:otherwise>
-                                        <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${i}"
+                                                     <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${i}"
                                            class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                             ${i}
                                         </a>
@@ -590,7 +777,7 @@
                             <!-- Next page -->
                             <c:choose>
                                 <c:when test="${currentPage < totalPages}">
-                                    <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage + 1}"
+                                                <a href="?status=${statusFilter}&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;page=${currentPage + 1}"
                                        class="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
                                         <span class="material-symbols-outlined">chevron_right</span>
                                     </a>
@@ -717,19 +904,33 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-slate-500">Assigned Doctor</label>
-                                <div class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm">
+                                <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-sm text-primary opacity-60">stethoscope</span>
-                                    <span id="d-doctor"></span>
+                                    <select id="d-doctor-select" data-appointment-id="" data-original-vet="" 
+                                        class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
+                                        onchange="showDoctorChangeConfirm(this)">
+                                        <option value="0">Unassigned</option>
+                                        <c:forEach var="vet" items="${veterinarians}">
+                                            <option value="${vet.userId}"><c:out value="${vet.fullName}"/></option>
+                                        </c:forEach>
+                                    </select>
                                 </div>
                             </div>
                         </div>
                     </section>
                 </div>
-                <div id="detailFooter" class="hidden p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between gap-3">
-                    <div class="flex gap-2">
-                        <button id="d-btn-confirm" class="hidden px-5 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Confirm Visit</button>
-                        <button id="d-btn-reject" class="hidden px-5 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">Reject</button>
-                    </div>
+                <div id="detailFooter" class="hidden p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-end gap-2 flex-wrap">
+                    <!-- Pending / Re-Scheduled -->
+                    <button id="d-btn-confirm"     class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl shadow shadow-primary/20 hover:opacity-90 transition-all" onclick="confirmAppointment(currentDetailAppointmentId, this)">Confirm</button>
+                    <button id="d-btn-reject"      class="hidden px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" onclick="rejectAppointment(currentDetailAppointmentId, this)">Reject</button>
+                    <!-- Confirmed -->
+                    <button id="d-btn-checkin"     class="hidden px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all" onclick="checkInAppointment(currentDetailAppointmentId, this)">Check-in</button>
+                    <button id="d-btn-reschedule"  class="hidden px-4 py-2 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-sm font-semibold rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all" onclick="rescheduleAppointment(currentDetailAppointmentId)">Re-Schedule</button>
+                    <button id="d-btn-cancel"      class="hidden px-4 py-2 border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 text-sm font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" onclick="cancelAppointment(currentDetailAppointmentId, this)">Cancel</button>
+                    <!-- Waiting for Payment -->
+                    <button id="d-btn-markpaid"    class="hidden px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all" onclick="markAsPaid(currentDetailAppointmentId, this)">Mark as Paid</button>
+                    <!-- Done -->
+                    <button id="d-btn-invoice"     class="hidden px-4 py-2 border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 text-sm font-semibold rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 transition-all" onclick="viewInvoice(currentDetailAppointmentId)">View Invoice</button>
                 </div>
             </div>
         </div>
@@ -741,21 +942,21 @@
                     <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">warning</span>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">XÃ¡c nháº­n Ä‘á»•i bÃ¡c sá»¹</h3>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Confirm doctor change?</h3>
                 </div>
                 <p class="text-slate-600 dark:text-slate-400 mb-6">
-                    Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n Ä‘á»•i bÃ¡c sá»¹? HÃ£y cháº¯c cháº¯n ráº±ng Ä‘Ã£ thÃ´ng bÃ¡o cho khÃ¡ch hÃ ng biáº¿t.
+                    Please make sure the customer has been informed.
                 </p>
                 <div class="flex gap-3 justify-end">
                     <button 
                         onclick="closePopup()"
                         class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-medium">
-                        Há»§y
+                        Cancel
                     </button>
                     <button 
                         onclick="confirmDoctorChange()"
                         class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all font-medium">
-                        XÃ¡c nháº­n
+                        Confirm
                     </button>
                 </div>
             </div>
@@ -764,7 +965,7 @@
         <!-- Success Toast -->
         <div id="successToast" class="toast">
             <span class="material-symbols-outlined">check_circle</span>
-            <span id="toastMessage">Äá»•i bÃ¡c sá»¹ thÃ nh cÃ´ng!</span>
+            <span id="toastMessage">Doctor changed successfully!</span>
         </div>
 
     </body></html>

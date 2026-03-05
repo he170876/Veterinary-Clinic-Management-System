@@ -1,7 +1,7 @@
 package controller.vet;
 
 import dao.AppointmentDAO;
-import dao.MedicalRecordDAO;
+import dao.VetMedicalRecordDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -43,7 +43,7 @@ public class VetMedicalRecordsServlet extends HttpServlet {
             return;
         }
 
-        MedicalRecordDAO recordDao = new MedicalRecordDAO();
+        VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         List<MedicalRecordSummary> records = recordDao.getRecentRecordsByVeterinarian(veterinarianId, 100);
 
         request.setAttribute("user", user);
