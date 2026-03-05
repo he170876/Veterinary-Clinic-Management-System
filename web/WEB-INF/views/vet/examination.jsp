@@ -182,7 +182,11 @@
 <span class="material-symbols-outlined text-primary">medical_information</span>
                             Diagnosis &amp; Observation
                         </h4>
-<textarea name="diagnosis" class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-primary focus:border-primary placeholder:text-slate-400 p-4" placeholder="Describe symptoms, physical exam findings, and preliminary diagnosis..." rows="6"><%= diagnosisText %></textarea>
+<textarea id="diagnosis-textarea" name="diagnosis" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-primary focus:border-primary placeholder:text-slate-400 p-4 transition-colors" placeholder="Describe symptoms, physical exam findings, and preliminary diagnosis..." rows="6"><%= diagnosisText %></textarea>
+<p id="diagnosis-error" class="hidden mt-1.5 text-xs text-red-500 font-semibold flex items-center gap-1">
+    <span class="material-symbols-outlined text-sm">error</span>
+    Diagnosis &amp; Observation is required to complete the examination.
+</p>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -253,14 +257,14 @@
 %>
 <div class="prescription-row flex flex-wrap items-center gap-2">
 <input name="medication_name" class="flex-1 min-w-[120px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Medication name" type="text" value="<%= m %>"/>
-<input name="dosage" class="w-24 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Dose" type="text" value="<%= d %>"/>
+<input name="dosage" class="dosage-field w-24 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Dose" type="text" value="<%= d %>"/>
 <input name="duration" class="flex-1 min-w-[100px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Frequency" type="text" value="<%= du %>"/>
 <button type="button" class="prescription-remove p-2 text-slate-400 hover:text-primary" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
 </div>
 <% } %>
 <div class="prescription-row flex flex-wrap items-center gap-2">
 <input name="medication_name" class="flex-1 min-w-[120px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Medication name" type="text"/>
-<input name="dosage" class="w-24 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Dose" type="text"/>
+<input name="dosage" class="dosage-field w-24 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Dose" type="text"/>
 <input name="duration" class="flex-1 min-w-[100px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Frequency" type="text"/>
 <button type="button" class="prescription-remove p-2 text-slate-400 hover:text-primary" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
 </div>
@@ -304,9 +308,10 @@
 </div>
 <div class="space-y-3">
 <hr class="border-slate-100 dark:border-slate-800 my-4"/>
-<button type="submit" form="examination-form" name="action" value="complete" class="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 py-4 rounded-xl font-bold text-lg hover:scale-[1.02] transition-transform shadow-lg shadow-slate-900/10">
+<button type="button" id="complete-exam-btn" class="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 py-4 rounded-xl font-bold text-lg hover:scale-[1.02] transition-transform shadow-lg shadow-slate-900/10">
                                 Complete Examination
                             </button>
+<p id="complete-error" class="hidden text-center text-xs text-red-500 font-semibold mt-1"></p>
 <p class="text-center text-[10px] text-slate-400 italic">Completing will finalize the medical record and generate billing charges.</p>
 </div>
     </div>
@@ -320,12 +325,20 @@
     @SuppressWarnings("unchecked")
     java.util.List<LabTestRequest> labRequests = (java.util.List<LabTestRequest>) request.getAttribute("labRequests");
     if (labRequests == null) labRequests = java.util.Collections.emptyList();
+    int pendingLabCount = 0;
+    for (LabTestRequest _lr : labRequests) {
+        if (visit != null && _lr.getVisitId() == visit.getVisitId()
+                && !"Completed".equalsIgnoreCase(_lr.getStatus() != null ? _lr.getStatus() : "")) {
+            pendingLabCount++;
+        }
+    }
     if (labRequests.isEmpty()) {
 %>
 <li class="text-slate-500 dark:text-slate-400">No lab requests have been created for this visit.</li>
 <%
     } else {
         for (LabTestRequest lr : labRequests) {
+            if (visit == null || lr.getVisitId() != visit.getVisitId()) continue;
             String testName = lr.getTestName() != null ? lr.getTestName() : "—";
             String status = lr.getStatus() != null ? lr.getStatus() : "Pending";
             String statusLabel = status.toUpperCase();
@@ -378,54 +391,6 @@
     }
 %>
         </ul>
-    </div>
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm text-primary">science</span>
-            Recent Lab Results
-        </h4>
-        <%
-            if (recentLabResults.isEmpty()) {
-        %>
-        <p class="text-xs text-slate-500 dark:text-slate-400">No lab results available for this patient in the last 14 days.</p>
-        <%
-            } else {
-        %>
-        <ul class="space-y-3 text-xs">
-            <%
-                for (LabResultSummary res : recentLabResults) {
-                    String testName = res.getTestName() != null ? res.getTestName() : "—";
-                    String value = res.getResultValue() != null ? res.getResultValue() : "";
-                    String note = res.getResultNote() != null ? res.getResultNote() : "";
-                    String when = res.getResultDate() != null ? res.getResultDate().format(labResultFmt) : "";
-            %>
-            <li class="flex flex-col gap-1 p-3 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-sm font-bold text-slate-900 dark:text-white"><%= testName %></p>
-                        <p class="text-[10px] text-slate-500"><%= when %></p>
-                    </div>
-                </div>
-                <%
-                    if (!value.isEmpty()) {
-                %>
-                <p class="text-xs text-slate-700 dark:text-slate-200"><span class="font-semibold">Value:</span> <%= value %></p>
-                <%
-                    }
-                    if (!note.isEmpty()) {
-                %>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-3"><%= note %></p>
-                <%
-                    }
-                %>
-            </li>
-            <%
-                }
-            %>
-        </ul>
-        <%
-            }
-        %>
     </div>
 </div>
 </div>
@@ -656,12 +621,27 @@
     });
     var addMedBtn = document.getElementById('add-medication-btn');
     var prescriptionsList = document.getElementById('prescriptions-list');
+
+    /* delegated dosage input restriction — works for static + dynamic rows */
+    if (prescriptionsList) {
+        prescriptionsList.addEventListener('input', function(e) {
+            var el = e.target;
+            if (!el.classList.contains('dosage-field')) return;
+            var v = el.value.replace(/[^\d.]/g, '');
+            /* allow only one dot */
+            var parts = v.split('.');
+            if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+            el.value = v;
+            el.classList.toggle('border-red-400', v !== '' && !/^\d+(\.\d+)?$/.test(v));
+        });
+    }
+
     if (addMedBtn && prescriptionsList) {
         addMedBtn.addEventListener('click', function() {
             var row = document.createElement('div');
             row.className = 'prescription-row flex flex-wrap items-center gap-2';
             row.innerHTML = '<input name="medication_name" class="flex-1 min-w-[120px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Medication name" type="text"/>' +
-                '<input name="dosage" class="w-24 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Dose" type="text"/>' +
+                '<input name="dosage" class="dosage-field w-24 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Dose" type="text"/>' +
                 '<input name="duration" class="flex-1 min-w-[100px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Frequency" type="text"/>' +
                 '<button type="button" class="prescription-remove p-2 text-slate-400 hover:text-primary" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>';
             row.querySelector('.prescription-remove').addEventListener('click', function() { row.remove(); });
@@ -719,8 +699,15 @@
 <div class="relative">
 <select class="w-full h-11 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-transparent appearance-none cursor-pointer text-sm" name="testId" required>
 <option disabled selected value="">Select examination type...</option>
-<% for (LabTest lt : labTests) { %>
-<option value="<%= lt.getTestId() %>"><%= lt.getTestName() != null ? lt.getTestName() : "" %></option>
+<%
+    java.util.Set<String> seenLabTestNames = new java.util.HashSet<>();
+    for (LabTest lt : labTests) {
+        String ltName = lt.getTestName();
+        if (ltName == null || ltName.isEmpty()) continue;
+        if (seenLabTestNames.contains(ltName)) continue;
+        seenLabTestNames.add(ltName);
+%>
+<option value="<%= lt.getTestId() %>"><%= ltName %></option>
 <% } %>
 </select>
 <span class="material-symbols-outlined absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
@@ -763,6 +750,355 @@
 </div>
 </div>
 </div>
+
+<script>
+    (function () {
+        /* ── localStorage autosave ── */
+        const STORAGE_KEY = 'exam_draft_<%= ap.getAppointmentId() %>';
+
+        const diagnosisEl     = document.querySelector('textarea[name="diagnosis"]');
+        const treatmentEl     = document.querySelector('textarea[name="treatment"]');
+        const prescriptionsList = document.getElementById('prescriptions-list');
+        const examForm        = document.getElementById('examination-form');
+        const labForm         = document.getElementById('lab-request-form');
+
+        function escHtml(s) {
+            return String(s || '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function makePrescriptionRow(name, dosage, duration) {
+            const row = document.createElement('div');
+            row.className = 'prescription-row flex flex-wrap items-center gap-2';
+            row.innerHTML =
+                '<input name="medication_name" class="flex-1 min-w-[120px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Medication name" type="text" value="' + escHtml(name) + '"/>' +
+                '<input name="dosage" class="dosage-field w-24 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Dose" type="text" value="' + escHtml(dosage) + '"/>' +
+                '<input name="duration" class="flex-1 min-w-[100px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2" placeholder="Frequency" type="text" value="' + escHtml(duration) + '"/>' +
+                '<button type="button" class="prescription-remove p-2 text-slate-400 hover:text-primary" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>';
+            row.querySelector('.prescription-remove').addEventListener('click', function () {
+                if (prescriptionsList && prescriptionsList.querySelectorAll('.prescription-row').length > 1) row.remove();
+                saveDraft();
+            });
+            return row;
+        }
+
+        function collectDraft() {
+            const prescriptions = [];
+            if (prescriptionsList) {
+                prescriptionsList.querySelectorAll('.prescription-row').forEach(function (row) {
+                    const n = (row.querySelector('input[name="medication_name"]') || {}).value || '';
+                    const d = (row.querySelector('input[name="dosage"]') || {}).value || '';
+                    const u = (row.querySelector('input[name="duration"]') || {}).value || '';
+                    prescriptions.push({ n: n, d: d, u: u });
+                });
+            }
+            return {
+                diagnosis:     diagnosisEl  ? diagnosisEl.value  : '',
+                treatment:     treatmentEl  ? treatmentEl.value  : '',
+                prescriptions: prescriptions
+            };
+        }
+
+        function saveDraft() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectDraft())); } catch (e) {}
+        }
+
+        function clearDraft() {
+            try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        }
+        window._examClearDraft = clearDraft;
+
+        function restoreDraft() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const draft = JSON.parse(raw);
+
+                if (diagnosisEl && draft.diagnosis !== undefined)
+                    diagnosisEl.value = draft.diagnosis;
+                if (treatmentEl && draft.treatment !== undefined)
+                    treatmentEl.value = draft.treatment;
+
+                if (Array.isArray(draft.prescriptions) && draft.prescriptions.length > 0 && prescriptionsList) {
+                    prescriptionsList.querySelectorAll('.prescription-row').forEach(function (r) { r.remove(); });
+                    draft.prescriptions.forEach(function (p) {
+                        prescriptionsList.appendChild(makePrescriptionRow(p.n, p.d, p.u));
+                    });
+                }
+            } catch (e) {}
+        }
+
+        /* debounced autosave on every keystroke */
+        let saveTimer;
+        function debouncedSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveDraft, 700);
+        }
+
+        if (diagnosisEl)      diagnosisEl.addEventListener('input', debouncedSave);
+        if (treatmentEl)      treatmentEl.addEventListener('input', debouncedSave);
+        if (prescriptionsList) prescriptionsList.addEventListener('input', debouncedSave);
+
+        /* track which exam-form button was clicked */
+        let pendingAction = null;
+        document.querySelectorAll('button[name="action"]').forEach(function (btn) {
+            btn.addEventListener('click', function () { pendingAction = this.value; });
+        });
+
+        if (examForm) {
+            examForm.addEventListener('submit', function () {
+                if (pendingAction === 'complete') {
+                    clearDraft();
+                } else {
+                    saveDraft();
+                }
+                pendingAction = null;
+            });
+        }
+
+        /* restore saved draft immediately on page load */
+        restoreDraft();
+
+        /* ── server autosave + lab request submit ── */
+        if (!examForm || !labForm) return;
+
+        let isSubmitting = false;
+        labForm.addEventListener('submit', async function (e) {
+            if (isSubmitting) return;
+            e.preventDefault();
+
+            saveDraft(); /* persist to localStorage before any network call */
+
+            const submitBtn = document.querySelector('button[type="submit"][form="lab-request-form"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const saveData = new FormData(examForm);
+                saveData.set('action', 'save');
+                const saveResp = await fetch('<%= ctx %>/vet/examination', {
+                    method: 'POST',
+                    body: saveData,
+                    credentials: 'same-origin'
+                });
+
+                if (!saveResp.ok) throw new Error('Autosave failed');
+
+                isSubmitting = true;
+                labForm.submit();
+            } catch (err) {
+                if (submitBtn) submitBtn.disabled = false;
+                alert('Could not save examination draft before sending lab request. Please try again.');
+            }
+        });
+    })();
+</script>
+
+<!-- Pending Lab Requests Warning Modal -->
+<div id="pending-lab-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-start gap-4">
+            <div class="shrink-0 size-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <span class="material-symbols-outlined text-amber-500 text-xl">warning</span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Pending Lab Requests</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    There <span id="pending-lab-word">are</span>
+                    <span class="font-bold text-amber-600" id="pending-lab-count"><%= pendingLabCount %></span>
+                    pending lab request<span id="pending-lab-plural">s</span> that have not been completed yet.
+                    These requests will remain open but the examination record will be finalized.
+                </p>
+            </div>
+        </div>
+        <div class="p-5 bg-slate-50/60 dark:bg-slate-900/50 flex items-center justify-end gap-3">
+            <button type="button" id="pending-lab-cancel"
+                    class="px-5 py-2 rounded-lg text-slate-600 dark:text-slate-400 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                Go Back
+            </button>
+            <button type="button" id="pending-lab-confirm"
+                    class="px-6 py-2.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm hover:brightness-110 transition-all shadow-md">
+                Complete Anyway
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const PENDING_LAB_COUNT = <%= pendingLabCount %>;
+    const completeBtn   = document.getElementById('complete-exam-btn');
+    const modal         = document.getElementById('pending-lab-modal');
+    const cancelBtn     = document.getElementById('pending-lab-cancel');
+    const confirmBtn    = document.getElementById('pending-lab-confirm');
+    const examForm      = document.getElementById('examination-form');
+    const completeError = document.getElementById('complete-error');
+
+    /* ── helpers ── */
+    function setFieldError(el, hasError) {
+        if (!el) return;
+        if (hasError) {
+            el.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+            el.classList.remove('border-slate-200', 'dark:border-slate-700');
+        } else {
+            el.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+            el.classList.add('border-slate-200', 'dark:border-slate-700');
+        }
+    }
+
+    function showBanner(msg) {
+        if (!completeError) return;
+        completeError.textContent = msg;
+        completeError.classList.remove('hidden');
+        clearTimeout(completeError._timer);
+        completeError._timer = setTimeout(function () {
+            completeError.classList.add('hidden');
+        }, 5000);
+    }
+
+    /* ── full validation — returns true if valid ── */
+    function runValidations() {
+        var valid = true;
+        var firstInvalidEl = null;
+
+        /* 1. Diagnosis required */
+        var diagnosisEl    = document.getElementById('diagnosis-textarea');
+        var diagnosisErrEl = document.getElementById('diagnosis-error');
+        var diagnosisEmpty = diagnosisEl && !diagnosisEl.value.trim();
+        setFieldError(diagnosisEl, diagnosisEmpty);
+        if (diagnosisErrEl) diagnosisErrEl.classList.toggle('hidden', !diagnosisEmpty);
+        if (diagnosisEmpty) {
+            valid = false;
+            if (!firstInvalidEl) firstInvalidEl = diagnosisEl;
+        }
+
+        /* 2. At least one service */
+        var serviceRows = document.querySelectorAll('#examination-services-list .service-row');
+        if (serviceRows.length === 0) {
+            valid = false;
+            showBanner('Please add at least one service before completing the examination.');
+        }
+
+        /* 3. Prescription rows: if name filled → dosage (required + numeric) + duration required */
+        var rxBannerMsg = null;
+        document.querySelectorAll('#prescriptions-list .prescription-row').forEach(function (row) {
+            var nameEl     = row.querySelector('input[name="medication_name"]');
+            var dosageEl   = row.querySelector('.dosage-field');
+            var durationEl = row.querySelector('input[name="duration"]');
+
+            if (!nameEl || !nameEl.value.trim()) {
+                /* empty row — clear any previous errors */
+                setFieldError(dosageEl,   false);
+                setFieldError(durationEl, false);
+                return;
+            }
+
+            /* dosage: required */
+            var dosageVal     = dosageEl   ? dosageEl.value.trim()   : '';
+            var durationVal   = durationEl ? durationEl.value.trim() : '';
+            var dosageEmpty   = !dosageVal;
+            var dosageNaN     = dosageVal && !/^\d+(\.\d+)?$/.test(dosageVal);
+            var durationEmpty = !durationVal;
+
+            setFieldError(dosageEl,   dosageEmpty || dosageNaN);
+            setFieldError(durationEl, durationEmpty);
+
+            if (dosageEmpty || durationEmpty) {
+                valid = false;
+                rxBannerMsg = 'Please fill in dosage and frequency for all medications.';
+                if (!firstInvalidEl) firstInvalidEl = dosageEmpty ? dosageEl : durationEl;
+            } else if (dosageNaN) {
+                valid = false;
+                rxBannerMsg = 'Dosage must be a number (e.g. 100 or 2.5).';
+                if (!firstInvalidEl) firstInvalidEl = dosageEl;
+            }
+        });
+        if (rxBannerMsg && serviceRows.length > 0) showBanner(rxBannerMsg);
+
+        /* scroll to first problem */
+        if (firstInvalidEl) {
+            firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstInvalidEl.focus();
+        }
+
+        return valid;
+    }
+
+    /* ── modal ── */
+    function showCompleteModal() {
+        if (!modal) return;
+        var word   = document.getElementById('pending-lab-word');
+        var plural = document.getElementById('pending-lab-plural');
+        if (word)   word.textContent   = PENDING_LAB_COUNT === 1 ? 'is' : 'are';
+        if (plural) plural.textContent = PENDING_LAB_COUNT === 1 ? ''   : 's';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function hideModal() {
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    /* ── actual submit ── */
+    function doComplete() {
+        hideModal();
+        if (!runValidations()) return;
+
+        var serviceIdsInput = document.getElementById('serviceIds');
+        if (serviceIdsInput) {
+            var ids = [];
+            document.querySelectorAll('#examination-services-list .service-row').forEach(function (r) {
+                var id = r.getAttribute('data-service-id');
+                if (id && id !== '') ids.push(id);
+            });
+            serviceIdsInput.value = ids.join(',');
+        }
+
+        if (window._examClearDraft) window._examClearDraft();
+        var actionInput   = document.createElement('input');
+        actionInput.type  = 'hidden';
+        actionInput.name  = 'action';
+        actionInput.value = 'complete';
+        examForm.appendChild(actionInput);
+        examForm.submit();
+    }
+
+    /* ── complete button click ── */
+    if (completeBtn) {
+        completeBtn.addEventListener('click', function () {
+            if (!runValidations()) return;
+            if (PENDING_LAB_COUNT > 0) {
+                showCompleteModal();
+            } else {
+                doComplete();
+            }
+        });
+    }
+
+    if (cancelBtn)  cancelBtn.addEventListener('click', hideModal);
+    if (confirmBtn) confirmBtn.addEventListener('click', doComplete);
+
+    if (modal) {
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) hideModal();
+        });
+    }
+
+    /* clear field errors when user starts correcting */
+    var diagnosisEl = document.getElementById('diagnosis-textarea');
+    if (diagnosisEl) {
+        diagnosisEl.addEventListener('input', function () {
+            var errEl = document.getElementById('diagnosis-error');
+            if (this.value.trim()) {
+                setFieldError(this, false);
+                if (errEl) errEl.classList.add('hidden');
+            }
+        });
+    }
+})();
+</script>
 
 </body>
 </html>
