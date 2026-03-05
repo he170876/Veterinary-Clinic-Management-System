@@ -187,7 +187,7 @@
                         // Close popup
                         document.getElementById('confirmPopup').classList.remove('active');
                     } else {
-                        alert('Lỗi: ' + data.message);
+                        alert('Error: ' + data.message);
                         // Reset select
                         if (originalVetId) {
                             currentSelectElement.value = originalVetId;
@@ -196,7 +196,7 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Có lỗi khi đổi bác sỹ');
+                    alert('An error occurred while changing the doctor');
                     // Reset select
                     if (originalVetId) {
                         currentSelectElement.value = originalVetId;
@@ -230,17 +230,17 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showToast(data.message || 'Xử lý yêu cầu thành công');
+                        showToast(data.message || 'Request processed successfully');
                         setTimeout(() => {
                             window.location.reload();
                         }, 450);
                     } else {
-                        alert('Lỗi: ' + (data.message || 'Không thể xử lý yêu cầu'));
+                        alert('Error: ' + (data.message || 'Unable to process the request'));
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Có lỗi xảy ra khi xử lý yêu cầu');
+                    alert('An error occurred while processing the request');
                 });
             }
 
@@ -257,7 +257,7 @@
                     .then(r => r.json())
                     .then(data => {
                         if (!data.success) {
-                            alert('Lỗi: ' + data.message);
+                            alert('Error: ' + data.message);
                             panel.classList.add('hidden');
                             return;
                         }
@@ -268,7 +268,7 @@
                     })
                     .catch(err => {
                         console.error(err);
-                        alert('Có lỗi xảy ra khi tải thông tin');
+                        alert('An error occurred while loading appointment details');
                         panel.classList.add('hidden');
                     });
             }
@@ -392,13 +392,13 @@
                         showToast(data.message);
                         setTimeout(() => { location.reload(); }, 1500);
                     } else {
-                        alert('Lỗi: ' + data.message);
+                        alert('Error: ' + data.message);
                         if (button) button.disabled = false;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Có lỗi khi cập nhật trạng thái');
+                    alert('An error occurred while updating status');
                     if (button) button.disabled = false;
                 });
             }
@@ -408,7 +408,7 @@
             }
 
             function rejectAppointment(appointmentId, button) {
-                if (!confirm('Bạn có chắc chắn muốn từ chối lịch hẹn này?')) {
+                if (!confirm('Are you sure you want to reject this appointment?')) {
                     return;
                 }
                 updateStatus(appointmentId, 'Rejected', button);
@@ -419,9 +419,9 @@
             }
 
             function rescheduleAppointment(appointmentId) {
-                const newDate = prompt('Nhập ngày mới (yyyy-MM-dd):');
+                const newDate = prompt('Enter new date (yyyy-MM-dd):');
                 if (!newDate) return;
-                const newTime = prompt('Nhập giờ mới (HH:mm):');
+                const newTime = prompt('Enter new time (HH:mm):');
                 if (!newTime) return;
                 
                 fetch('RescheduleAppointment', {
@@ -437,17 +437,17 @@
                         showToast(data.message);
                         setTimeout(() => { location.reload(); }, 1500);
                     } else {
-                        alert('Lỗi: ' + data.message);
+                        alert('Error: ' + data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Có lỗi khi đổi lịch');
+                    alert('An error occurred while rescheduling the appointment');
                 });
             }
 
             function cancelAppointment(appointmentId, button) {
-                if (!confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) {
+                if (!confirm('Are you sure you want to cancel this appointment?')) {
                     return;
                 }
                 updateStatus(appointmentId, 'Canceled', button);
@@ -580,7 +580,7 @@
                             <c:when test="${empty list}">
                                 <div class="text-center py-12">
                                     <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700">event_busy</span>
-                                    <p class="mt-4 text-slate-500 dark:text-slate-400">Không có appointment nào</p>
+                                    <p class="mt-4 text-slate-500 dark:text-slate-400">No appointments found</p>
                                 </div>
                             </c:when>
                             <c:otherwise>
@@ -663,7 +663,7 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60">person</span>
-                                    <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'ChÆ°a cÃ³'}</span>
+                                    <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'N/A'}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">schedule</span>
@@ -671,7 +671,7 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">medical_services</span>
-                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'Chưa có'}</span>
+                                    <span class="truncate">${not empty appointment.service ? appointment.service : 'N/A'}</span>
                                 </div>
                                 <div>
                                     <select 
@@ -679,7 +679,7 @@
                                         data-appointment-id="${appointment.appointmentId}"
                                         data-original-vet="${appointment.veterinarianId}"
                                         onchange="showConfirmPopup(this.dataset.appointmentId, this, this.value)">
-                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Chưa có</option>
+                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Unassigned</option>
                                         <c:forEach var="vet" items="${veterinarians}">
                                             <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
                                                 ${vet.fullName}
@@ -909,7 +909,7 @@
                                     <select id="d-doctor-select" data-appointment-id="" data-original-vet="" 
                                         class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
                                         onchange="showDoctorChangeConfirm(this)">
-                                        <option value="0">Chưa có</option>
+                                        <option value="0">Unassigned</option>
                                         <c:forEach var="vet" items="${veterinarians}">
                                             <option value="${vet.userId}"><c:out value="${vet.fullName}"/></option>
                                         </c:forEach>
@@ -942,21 +942,21 @@
                     <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">warning</span>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Xác nhận đổi bác sỹ?</h3>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Confirm doctor change?</h3>
                 </div>
                 <p class="text-slate-600 dark:text-slate-400 mb-6">
-                    Hãy chắc chắn rằng bạn đã thông báo cho khách hàng
+                    Please make sure the customer has been informed.
                 </p>
                 <div class="flex gap-3 justify-end">
                     <button 
                         onclick="closePopup()"
                         class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-medium">
-                        Hủy
+                        Cancel
                     </button>
                     <button 
                         onclick="confirmDoctorChange()"
                         class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all font-medium">
-                        Xác nhận
+                        Confirm
                     </button>
                 </div>
             </div>
@@ -965,7 +965,7 @@
         <!-- Success Toast -->
         <div id="successToast" class="toast">
             <span class="material-symbols-outlined">check_circle</span>
-            <span id="toastMessage">Đổi bác sỹ thành công!</span>
+            <span id="toastMessage">Doctor changed successfully!</span>
         </div>
 
     </body></html>

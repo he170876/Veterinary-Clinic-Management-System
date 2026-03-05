@@ -24,13 +24,13 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
             boolean success = dao.updateAppointmentStatus(appointmentId, status);
             
             if (success) {
-                response.getWriter().write("{\"success\": true, \"message\": \"Cập nhật trạng thái thành công!\"}");
+                response.getWriter().write("{\"success\": true, \"message\": \"Status updated successfully!\"}");
             } else {
-                response.getWriter().write("{\"success\": false, \"message\": \"Không thể cập nhật trạng thái\"}");
+                response.getWriter().write("{\"success\": false, \"message\": \"Unable to update status\"}");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi: " + e.getMessage() + "\"}");
+            response.getWriter().write("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }
     }
 }

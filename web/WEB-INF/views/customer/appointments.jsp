@@ -111,9 +111,7 @@
                 <input type="hidden" name="toDate" value="${toDate}"/>
             </form>
             <div class="flex items-center gap-4">
-                <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                    <span class="material-symbols-outlined">notifications</span>
-                </button>
+                <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                 <div class="h-8 w-px bg-slate-200 dark:border-slate-800"></div>
                 <div class="flex items-center gap-3">
                     <div class="text-right hidden sm:block">

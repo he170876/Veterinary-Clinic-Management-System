@@ -26,7 +26,7 @@ public class RescheduleAppointmentServlet extends HttpServlet {
             String newTime = request.getParameter("newTime");
             
             if (newDate == null || newTime == null || newDate.isEmpty() || newTime.isEmpty()) {
-                response.getWriter().write("{\"success\": false, \"message\": \"Ngày và giờ không được để trống\"}");
+                response.getWriter().write("{\"success\": false, \"message\": \"Date and time are required\"}");
                 return;
             }
             
@@ -41,16 +41,16 @@ public class RescheduleAppointmentServlet extends HttpServlet {
             boolean success = dao.rescheduleAppointment(appointmentId, parsedDate, parsedTime);
             
             if (success) {
-                response.getWriter().write("{\"success\": true, \"message\": \"Đổi lịch hẹn thành công!\"}");
+                response.getWriter().write("{\"success\": true, \"message\": \"Appointment rescheduled successfully!\"}");
             } else {
-                response.getWriter().write("{\"success\": false, \"message\": \"Không thể đổi lịch hẹn\"}");
+                response.getWriter().write("{\"success\": false, \"message\": \"Unable to reschedule appointment\"}");
             }
         } catch (ParseException e) {
             e.printStackTrace();
-            response.getWriter().write("{\"success\": false, \"message\": \"Định dạng ngày/giờ không hợp lệ\"}");
+            response.getWriter().write("{\"success\": false, \"message\": \"Invalid date/time format\"}");
         } catch (Exception e) {
             e.printStackTrace();
-            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi: " + e.getMessage() + "\"}");
+            response.getWriter().write("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }
     }
 }

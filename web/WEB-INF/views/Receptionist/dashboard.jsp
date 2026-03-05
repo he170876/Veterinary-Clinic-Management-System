@@ -383,7 +383,7 @@
                                 <select id="d-doctor-select" data-appointment-id="" data-original-vet="" 
                                     class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
                                     onchange="showDoctorChangeConfirm(this)">
-                                    <option value="0">Chưa có</option>
+                                    <option value="0">Unassigned</option>
                                     <!-- Veterinarians loaded from server -->
                                     <c:forEach var="vet" items="${veterinarians}">
                                         <option value="${vet.userId}"><c:out value="${vet.fullName}"/></option>
@@ -532,7 +532,7 @@
                     // Close popup
                     document.getElementById('confirmPopup').classList.remove('active');
                 } else {
-                    alert('Lỗi: ' + data.message);
+                    alert('Error: ' + data.message);
                     // Reset select
                     if (originalDoctorId !== null) {
                         currentDoctorSelect.value = originalDoctorId > 0 ? originalDoctorId : "0";
@@ -541,7 +541,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Có lỗi xảy ra khi đổi bác sỹ');
+                alert('An error occurred while changing the doctor');
                 // Reset select
                 if (originalDoctorId !== null) {
                     currentDoctorSelect.value = originalDoctorId > 0 ? originalDoctorId : "0";
@@ -573,12 +573,12 @@
                 <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                     <span class="material-symbols-outlined text-orange-600 text-2xl">warning</span>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800">Xác nhận đổi bác sỹ</h3>
+                <h3 class="text-lg font-bold text-slate-800">Confirm doctor change</h3>
             </div>
-            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn đổi bác sỹ? Hãy chắc chắn rằng đã thông báo cho khách hàng biết.</p>
+            <p class="text-slate-600 mb-6">Are you sure you want to change the doctor? Please make sure the customer has been informed.</p>
             <div class="flex gap-3 justify-end">
-                <button onclick="closeDoctorPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Hủy</button>
-                <button onclick="confirmDoctorChange()" class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 font-medium transition-all">Xác nhận</button>
+                <button onclick="closeDoctorPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Cancel</button>
+                <button onclick="confirmDoctorChange()" class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 font-medium transition-all">Confirm</button>
             </div>
         </div>
     </div>
@@ -586,7 +586,7 @@
     <!-- Success Toast -->
     <div id="successToast" class="hidden fixed top-6 right-6 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 z-[2000] animate-slide-in">
         <span class="material-symbols-outlined">check_circle</span>
-        <span id="toastMessage">Thành công!</span>
+        <span id="toastMessage">Success!</span>
     </div>
 
     <style>

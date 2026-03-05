@@ -22,7 +22,7 @@ public class HandleAppointmentRequestServlet extends HttpServlet {
             String decision = request.getParameter("decision");
 
             if (requestType == null || requestType.isBlank() || decision == null || decision.isBlank()) {
-                response.getWriter().write("{\"success\": false, \"message\": \"Thiếu dữ liệu yêu cầu\"}");
+                response.getWriter().write("{\"success\": false, \"message\": \"Missing request data\"}");
                 return;
             }
 
@@ -35,19 +35,19 @@ public class HandleAppointmentRequestServlet extends HttpServlet {
             } else if ("doctor-change".equalsIgnoreCase(requestType)) {
                 success = dao.processDoctorChangeRequest(appointmentId, approve);
             } else {
-                response.getWriter().write("{\"success\": false, \"message\": \"Loại yêu cầu không hợp lệ\"}");
+                response.getWriter().write("{\"success\": false, \"message\": \"Invalid request type\"}");
                 return;
             }
 
             if (success) {
-                String action = approve ? "duyệt" : "từ chối";
-                response.getWriter().write("{\"success\": true, \"message\": \"Đã " + action + " yêu cầu thành công\"}");
+                String actionMessage = approve ? "Request approved successfully" : "Request rejected successfully";
+                response.getWriter().write("{\"success\": true, \"message\": \"" + actionMessage + "\"}");
             } else {
-                response.getWriter().write("{\"success\": false, \"message\": \"Không thể xử lý yêu cầu\"}");
+                response.getWriter().write("{\"success\": false, \"message\": \"Unable to process the request\"}");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi: " + e.getMessage() + "\"}");
+            response.getWriter().write("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }
     }
 }

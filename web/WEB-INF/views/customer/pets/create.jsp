@@ -67,10 +67,7 @@
 Quay lại trang đầu
 </a>
 <% } %>
-<button class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 relative">
-<span class="material-symbols-outlined">notifications</span>
-<span class="absolute top-2 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white dark:border-background-dark"></span>
-</button>
+<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
 <button class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
 <span class="material-symbols-outlined">help_outline</span>
 </button>

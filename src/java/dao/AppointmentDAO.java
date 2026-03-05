@@ -1152,11 +1152,11 @@ public class AppointmentDAO extends DBContext {
                     displayTime = approvedTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
                 } catch (Exception ignored) {
                 }
-                customerMessage = "Yêu cầu đổi lịch cho lịch hẹn #" + appointmentId
-                        + " đã được duyệt. Lịch mới: " + displayTime + ".";
+                customerMessage = "Your reschedule request for appointment #" + appointmentId
+                        + " has been approved. New time: " + displayTime + ".";
             } else {
-                customerMessage = "Yêu cầu đổi lịch cho lịch hẹn #" + appointmentId
-                        + " đã bị từ chối. Vui lòng giữ lịch hiện tại hoặc gửi yêu cầu mới.";
+                customerMessage = "Your reschedule request for appointment #" + appointmentId
+                        + " was rejected. Please keep your current schedule or submit a new request.";
             }
             try (PreparedStatement notifyPs = con.prepareStatement(notifyCustomerSql)) {
                 notifyPs.setString(1, title);
@@ -1234,8 +1234,8 @@ public class AppointmentDAO extends DBContext {
 
             String title = approve ? "Doctor Change Approved" : "Doctor Change Rejected";
             String customerMessage = approve
-                    ? "Yêu cầu đổi bác sĩ cho lịch hẹn #" + appointmentId + " đã được duyệt."
-                    : "Yêu cầu đổi bác sĩ cho lịch hẹn #" + appointmentId + " đã bị từ chối.";
+                    ? "Your doctor change request for appointment #" + appointmentId + " has been approved."
+                    : "Your doctor change request for appointment #" + appointmentId + " was rejected.";
             try (PreparedStatement notifyPs = con.prepareStatement(notifyCustomerSql)) {
                 notifyPs.setString(1, title);
                 notifyPs.setString(2, customerMessage);

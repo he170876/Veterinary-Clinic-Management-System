@@ -112,10 +112,7 @@
 <% } %>
 </div>
 <div class="flex items-center gap-6">
-<button class="relative p-2 text-[#8d755e] hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] rounded-full transition-colors">
-<span class="material-symbols-outlined">notifications</span>
-<span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-white dark:border-[#2d2116]"></span>
-</button>
+<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
 <div class="flex items-center gap-3 pl-4 border-l border-[#f5f2f0] dark:border-[#3d2f23]">
 <div class="text-right">
 <%

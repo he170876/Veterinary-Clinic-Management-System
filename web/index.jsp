@@ -15,9 +15,32 @@ Anipats landing page - VCMS (Tailwind design)
     Object currentUser = (session == null) ? null : session.getAttribute("currentUser");
     boolean loggedIn = (currentUser != null);
     String userDisplayName = null;
+    String roleDashboardUrl = null;
     if (currentUser != null && currentUser instanceof model.User) {
-        String fn = ((model.User) currentUser).getFullName();
-        if (fn != null && !fn.isEmpty()) userDisplayName = fn; else userDisplayName = ((model.User) currentUser).getEmail();
+        model.User loggedUser = (model.User) currentUser;
+        String fn = loggedUser.getFullName();
+        if (fn != null && !fn.isEmpty()) userDisplayName = fn; else userDisplayName = loggedUser.getEmail();
+
+        int roleId = (loggedUser.getRole() != null) ? loggedUser.getRole().getRoleId() : 0;
+        switch (roleId) {
+            case 5: // Admin
+            case 6: // ClinicOwner
+                roleDashboardUrl = ctx + "/owner/dashboard";
+                break;
+            case 2: // Veterinarian
+                roleDashboardUrl = ctx + "/vet/dashboard";
+                break;
+            case 3: // Receptionist
+                roleDashboardUrl = ctx + "/staff/dashboard";
+                break;
+            case 4: // LabStaff
+                roleDashboardUrl = ctx + "/lab/dashboard";
+                break;
+            case 1: // Customer
+            default:
+                roleDashboardUrl = ctx + "/customer/dashboard";
+                break;
+        }
     }
     String booked = request.getParameter("booked");
     String bookErr = request.getParameter("bookError");
@@ -50,7 +73,7 @@ Anipats landing page - VCMS (Tailwind design)
     request.setAttribute("services", services);
     
     // --- DEBUGGING ---
-    System.out.println("DEBUG index.jsp: So luong dich vu tai duoc: " + (services != null ? services.size() : "null"));
+    System.out.println("DEBUG index.jsp: Loaded services count: " + (services != null ? services.size() : "null"));
     // --- END DEBUGGING ---
 %>
 <!DOCTYPE html>
@@ -171,7 +194,7 @@ Anipats landing page - VCMS (Tailwind design)
                 </nav>
                 <div class="flex items-center gap-4">
                     <% if (loggedIn) { %>
-                    <a href="<%= ctx %>/customer/dashboard" class="hidden lg:flex px-5 py-2.5 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-[#181111] dark:text-white text-sm font-bold rounded-lg border border-gray-200 dark:border-white/10 transition-all hover:shadow-sm no-underline">
+                    <a href="<%= roleDashboardUrl != null ? roleDashboardUrl : (ctx + "/customer/dashboard") %>" class="hidden lg:flex px-5 py-2.5 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-[#181111] dark:text-white text-sm font-bold rounded-lg border border-gray-200 dark:border-white/10 transition-all hover:shadow-sm no-underline">
                         Dashboard
                     </a>
                     <% } %>

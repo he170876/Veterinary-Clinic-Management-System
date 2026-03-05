@@ -35,13 +35,13 @@ public class UpdateAppointmentDoctorServlet extends HttpServlet {
                             "You have been assigned to appointment #" + appointmentId + "."
                     );
                 }
-                response.getWriter().write("{\"success\": true, \"message\": \"Đổi bác sỹ thành công!\"}");
+                response.getWriter().write("{\"success\": true, \"message\": \"Doctor changed successfully!\"}");
             }else {
-                response.getWriter().write("{\"success\": false, \"message\": \"Không thể đổi bác sỹ\"}");
+                response.getWriter().write("{\"success\": false, \"message\": \"Unable to change doctor\"}");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi: " + e.getMessage() + "\"}");
+            response.getWriter().write("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }
     }
 }
