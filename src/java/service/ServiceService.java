@@ -15,6 +15,8 @@ public interface ServiceService {
 
     Optional<Service> getServiceById(int serviceId);
 
+    boolean existsByName(String name);
+
     Service createService(Service service);
 
     boolean updateService(Service service);

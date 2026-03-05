@@ -15,6 +15,8 @@ public interface ServiceDAO {
 
     Optional<Service> findById(int serviceId);
 
+    boolean existsByName(String name);
+
     Service create(Service service);
 
     boolean update(Service service);

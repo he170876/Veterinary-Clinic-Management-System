@@ -34,6 +34,11 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
+    public boolean existsByName(String name) {
+        return serviceDAO.existsByName(name);
+    }
+
+    @Override
     public Service createService(Service service) {
         return serviceDAO.create(service);
     }

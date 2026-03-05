@@ -391,6 +391,8 @@
                     console.log('Response status:', response.status);
                     if (response.status === 302 || response.redirected) {
                         location.reload();
+                        } else if (response.status === 409) {
+                            alert('Service name already exists. Please use a different name.');
                         } else if (response.ok) {
                             location.reload();
                             } else {

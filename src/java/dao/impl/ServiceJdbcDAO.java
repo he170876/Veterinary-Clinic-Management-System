@@ -95,6 +95,33 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
     }
 
     @Override
+    public boolean existsByName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return false;
+        }
+
+        String sql = "SELECT COUNT(1) FROM Services "
+                + "WHERE is_deleted = 0 AND LOWER(LTRIM(RTRIM(name))) = LOWER(LTRIM(RTRIM(?)))";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException ex) {
+            System.err.println("[ServiceJdbcDAO] existsByName() error: " + ex.getMessage());
+            System.err.println("SQLState: " + ex.getSQLState());
+            System.err.println("ErrorCode: " + ex.getErrorCode());
+            ex.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
     public Service create(Service service) {
         String sql = "INSERT INTO Services (name, category, duration, price, description, is_deleted) "
                 + "OUTPUT INSERTED.service_id "

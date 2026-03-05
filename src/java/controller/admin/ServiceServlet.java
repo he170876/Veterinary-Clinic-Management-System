@@ -89,8 +89,22 @@ public class ServiceServlet extends HttpServlet {
     private void createService(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
+            String serviceName = request.getParameter("name");
+            if (serviceName == null || serviceName.trim().isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Service name is required");
+                return;
+            }
+            serviceName = serviceName.trim();
+
+            if (serviceService.existsByName(serviceName)) {
+                response.setStatus(HttpServletResponse.SC_CONFLICT);
+                response.setContentType("text/plain;charset=UTF-8");
+                response.getWriter().write("Service name already exists");
+                return;
+            }
+
             Service service = new Service();
-            service.setName(request.getParameter("name"));
+            service.setName(serviceName);
             service.setCategory(request.getParameter("category"));
             service.setDescription(request.getParameter("description"));
             
