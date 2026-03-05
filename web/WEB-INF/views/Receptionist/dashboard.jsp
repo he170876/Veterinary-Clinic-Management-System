@@ -273,7 +273,7 @@
                                                 </c:choose>
                                             </td>
                                             <td class="px-6 py-4 text-right">
-                                                <button onclick="openDetail(${apt.appointmentId})" class="px-3 py-1.5 bg-primary/10 text-primary text-xs font-semibold rounded-lg hover:bg-primary hover:text-white transition-all">
+                                                <button data-appointment-id="${apt.appointmentId}" onclick="openDetail(this.dataset.appointmentId)" class="px-3 py-1.5 bg-primary/10 text-primary text-xs font-semibold rounded-lg hover:bg-primary hover:text-white transition-all">
                                                     Details
                                                 </button>
                                             </td>

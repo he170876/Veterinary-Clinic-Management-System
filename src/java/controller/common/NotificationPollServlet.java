@@ -38,7 +38,7 @@ public class NotificationPollServlet extends HttpServlet {
         }
 
         NotificationDAO dao = new NotificationDAO();
-        List<Notification> notifications = dao.getRecentForUser(user.getUserId(), 3);
+        List<Notification> notifications = dao.getRecentForUser(user.getUserId(), 10);
         if (notifications == null) {
             notifications = Collections.emptyList();
         }
@@ -54,10 +54,15 @@ public class NotificationPollServlet extends HttpServlet {
                 }
                 String time = n.getCreatedAt() != null ? n.getCreatedAt().format(fmt) : "";
                 out.print('{');
-                out.print("\"id\":").print(n.getNotificationId());
-                out.print(",\"title\":\"").print(escape(n.getTitle()));
-                out.print("\",\"message\":\"").print(escape(n.getMessage()));
-                out.print("\",\"time\":\"").print(escape(time)).print("\"");
+                out.print("\"id\":");
+                out.print(n.getNotificationId());
+                out.print(",\"title\":\"");
+                out.print(escape(n.getTitle()));
+                out.print("\",\"message\":\"");
+                out.print(escape(n.getMessage()));
+                out.print("\",\"time\":\"");
+                out.print(escape(time));
+                out.print("\"");
                 out.print('}');
             }
             out.print(']');

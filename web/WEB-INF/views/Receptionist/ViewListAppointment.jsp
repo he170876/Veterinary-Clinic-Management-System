@@ -549,27 +549,6 @@
                             </button>
                         </div>
                     </div>
-                    <c:if test="${pendingCustomerRequestCount > 0}">
-                        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="text-sm font-bold text-amber-700 dark:text-amber-300">Customer Requests Notifications</h3>
-                                <span class="text-xs font-semibold text-amber-700 dark:text-amber-300">${pendingCustomerRequestCount} pending</span>
-                            </div>
-                            <div class="space-y-2">
-                                <c:forEach var="req" items="${pendingCustomerRequests}">
-                                    <div class="flex items-center justify-between text-xs bg-white/70 dark:bg-slate-900/40 rounded-lg px-3 py-2 border border-amber-100 dark:border-amber-900/30">
-                                        <div class="flex items-center gap-2 min-w-0">
-                                            <span class="material-symbols-outlined text-sm text-amber-600">notifications_active</span>
-                                            <span class="font-semibold text-slate-700 dark:text-slate-200 truncate">
-                                                ${req.status == 'Reschedule-Requested' ? 'Reschedule Request' : 'Doctor Change Request'} - ${req.pet.name}
-                                            </span>
-                                        </div>
-                                        <span class="text-slate-500 dark:text-slate-400 whitespace-nowrap ml-2">#${req.appointmentId}</span>
-                                    </div>
-                                </c:forEach>
-                            </div>
-                        </div>
-                    </c:if>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
                         <div class="flex gap-8">
                             <a href="?status=All&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-semibold ${statusFilter == 'All' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">All (${totalCount})</a>
@@ -697,8 +676,9 @@
                                 <div>
                                     <select 
                                         class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                        data-appointment-id="${appointment.appointmentId}"
                                         data-original-vet="${appointment.veterinarianId}"
-                                        onchange="showConfirmPopup(${appointment.appointmentId}, this, this.value)">
+                                        onchange="showConfirmPopup(this.dataset.appointmentId, this, this.value)">
                                         <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Chưa có</option>
                                         <c:forEach var="vet" items="${veterinarians}">
                                             <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
@@ -710,39 +690,39 @@
                                 <div class="flex items-center justify-end gap-2 pr-2">
                                     <%-- Pending / Re-Scheduled: Confirm + Reject --%>
                                     <c:if test="${isPending || isRescheduled}">
-                                        <button onclick="confirmAppointment(${appointment.appointmentId}, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
-                                        <button onclick="rejectAppointment(${appointment.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="confirmAppointment(this.dataset.appointmentId, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="rejectAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
                                     </c:if>
                                     <%-- Customer Request: Reschedule Requested --%>
                                     <c:if test="${isRescheduleRequested}">
-                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
-                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
                                     </c:if>
                                     <%-- Customer Request: Doctor Change Requested --%>
                                     <c:if test="${isDoctorChangeRequested}">
-                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
-                                        <button onclick="processAppointmentRequest(${appointment.appointmentId}, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
                                     </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">
-                                        <button onclick="checkInAppointment(${appointment.appointmentId}, this)" class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
-                                        <button onclick="rescheduleAppointment(${appointment.appointmentId})" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
-                                        <button onclick="cancelAppointment(${appointment.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="checkInAppointment(this.dataset.appointmentId, this)" class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Check-in</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="rescheduleAppointment(this.dataset.appointmentId)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all">Re-Schedule</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="cancelAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Checked-in: Cancel only --%>
                                     <c:if test="${isCheckedIn}">
-                                        <button onclick="cancelAppointment(${appointment.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="cancelAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Waiting for Payment: Mark as Paid --%>
                                     <c:if test="${isWaitingForPayment}">
-                                        <button onclick="markAsPaid(${appointment.appointmentId}, this)" class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="markAsPaid(this.dataset.appointmentId, this)" class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
                                     </c:if>
                                     <%-- Done: View Invoice --%>
                                     <c:if test="${isCompleted}">
-                                        <button onclick="viewInvoice(${appointment.appointmentId})" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="viewInvoice(this.dataset.appointmentId)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all">View Invoice</button>
                                     </c:if>
                                     <%-- In-Examination and Canceled: no action buttons --%>
-                                    <button onclick="openDetail(${appointment.appointmentId})" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
+                                    <button data-appointment-id="${appointment.appointmentId}" onclick="openDetail(this.dataset.appointmentId)" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
                                 </div>
                             </div>
                         </c:forEach>

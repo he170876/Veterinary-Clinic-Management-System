@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1036,6 +1037,7 @@ public class AppointmentDAO extends DBContext {
             FROM Notifications
             WHERE title = ?
               AND message LIKE ?
+                        ORDER BY created_at DESC, notification_id DESC
         """;
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -1090,7 +1092,6 @@ public class AppointmentDAO extends DBContext {
             con.setAutoCommit(false);
 
             String status;
-            int customerId;
             try (PreparedStatement findPs = con.prepareStatement(findSql)) {
                 findPs.setInt(1, appointmentId);
                 try (ResultSet rs = findPs.executeQuery()) {
@@ -1098,7 +1099,6 @@ public class AppointmentDAO extends DBContext {
                         con.rollback();
                         return false;
                     }
-                    customerId = rs.getInt("customer_id");
                     status = rs.getString("status");
                 }
             }
@@ -1144,14 +1144,28 @@ public class AppointmentDAO extends DBContext {
             }
 
             String title = approve ? "Reschedule Approved" : "Reschedule Rejected";
-            String customerMessage = "appointmentId=" + appointmentId
-                    + ";customerId=" + customerId
-                    + ";result=" + (approve ? "approved" : "rejected");
+            String customerMessage;
+            if (approve) {
+                String displayTime = requestedTimeRaw;
+                try {
+                    LocalDateTime approvedTime = LocalDateTime.parse(requestedTimeRaw);
+                    displayTime = approvedTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+                } catch (Exception ignored) {
+                }
+                customerMessage = "Yêu cầu đổi lịch cho lịch hẹn #" + appointmentId
+                        + " đã được duyệt. Lịch mới: " + displayTime + ".";
+            } else {
+                customerMessage = "Yêu cầu đổi lịch cho lịch hẹn #" + appointmentId
+                        + " đã bị từ chối. Vui lòng giữ lịch hiện tại hoặc gửi yêu cầu mới.";
+            }
             try (PreparedStatement notifyPs = con.prepareStatement(notifyCustomerSql)) {
                 notifyPs.setString(1, title);
                 notifyPs.setString(2, customerMessage);
                 notifyPs.setInt(3, appointmentId);
-                notifyPs.executeUpdate();
+                if (notifyPs.executeUpdate() <= 0) {
+                    con.rollback();
+                    return false;
+                }
             }
 
             con.commit();
@@ -1189,7 +1203,6 @@ public class AppointmentDAO extends DBContext {
             con.setAutoCommit(false);
 
             String status;
-            int customerId;
             try (PreparedStatement findPs = con.prepareStatement(findSql)) {
                 findPs.setInt(1, appointmentId);
                 try (ResultSet rs = findPs.executeQuery()) {
@@ -1197,7 +1210,6 @@ public class AppointmentDAO extends DBContext {
                         con.rollback();
                         return false;
                     }
-                    customerId = rs.getInt("customer_id");
                     status = rs.getString("status");
                 }
             }
@@ -1221,14 +1233,17 @@ public class AppointmentDAO extends DBContext {
             }
 
             String title = approve ? "Doctor Change Approved" : "Doctor Change Rejected";
-            String customerMessage = "appointmentId=" + appointmentId
-                    + ";customerId=" + customerId
-                    + ";result=" + (approve ? "approved" : "rejected");
+            String customerMessage = approve
+                    ? "Yêu cầu đổi bác sĩ cho lịch hẹn #" + appointmentId + " đã được duyệt."
+                    : "Yêu cầu đổi bác sĩ cho lịch hẹn #" + appointmentId + " đã bị từ chối.";
             try (PreparedStatement notifyPs = con.prepareStatement(notifyCustomerSql)) {
                 notifyPs.setString(1, title);
                 notifyPs.setString(2, customerMessage);
                 notifyPs.setInt(3, appointmentId);
-                notifyPs.executeUpdate();
+                if (notifyPs.executeUpdate() <= 0) {
+                    con.rollback();
+                    return false;
+                }
             }
 
             con.commit();
