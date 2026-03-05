@@ -1,6 +1,7 @@
 package controller.vet;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,6 +13,7 @@ import model.User;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -38,6 +40,9 @@ public class VetPatientsQueueServlet extends HttpServlet {
         List<Appointment> appointments = dao.getAppointmentsForDateByVeterinarian(today, veterinarianId);
 
         request.setAttribute("user", user);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("appointments", appointments);
         request.setAttribute("queueDate", today);
         request.getRequestDispatcher("/WEB-INF/views/vet/patients-queue.jsp").forward(request, response);

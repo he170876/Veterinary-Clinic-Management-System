@@ -15,6 +15,14 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * Shows the "Medical Records History" list for a veterinarian.
+ * <p>
+ * Dùng {@link AppointmentDAO#getVeterinarianIdByUserId(int)} để tìm <code>veterinarian_id</code> cho user hiện tại,
+ * sau đó gọi {@link MedicalRecordDAO#getRecentRecordsByVeterinarian(int, int)} để lấy tối đa N bản ghi
+ * (record_id, pet, ngày khám, chẩn đoán) và forward sang <code>vet/medical-records.jsp</code>.
+ * </p>
+ */
 @WebServlet(name = "VetMedicalRecordsServlet", urlPatterns = {"/vet/records"})
 public class VetMedicalRecordsServlet extends HttpServlet {
 

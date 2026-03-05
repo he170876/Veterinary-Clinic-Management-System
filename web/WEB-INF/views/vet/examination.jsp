@@ -113,9 +113,7 @@
 <input class="w-full pl-10 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20" placeholder="Search patient or owner..." type="text"/>
 </div>
 <div class="flex items-center gap-3">
-<button class="size-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-<span class="material-symbols-outlined text-xl">notifications</span>
-</button>
+<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
 <div class="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
 <div class="text-right hidden sm:block">
 <p class="text-xs font-bold text-slate-900 dark:text-white leading-none"><%= user.getFullName() %></p>

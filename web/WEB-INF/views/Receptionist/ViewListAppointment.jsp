@@ -493,17 +493,7 @@
                     <input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder-slate-500 dark:placeholder-slate-400" placeholder="Search patients, owners or records..." type="text"/>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
-                        <span class="material-symbols-outlined">notifications</span>
-                        <c:choose>
-                            <c:when test="${pendingCustomerRequestCount > 0}">
-                                <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">${pendingCustomerRequestCount}</span>
-                            </c:when>
-                            <c:otherwise>
-                                <span class="absolute top-2 right-2 w-2 h-2 bg-slate-300 rounded-full border-2 border-white dark:border-slate-900"></span>
-                            </c:otherwise>
-                        </c:choose>
-                    </button>
+                    <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
                         <div class="text-right">
                             <p class="text-sm font-semibold text-slate-800 dark:text-white"><c:out value="${not empty sessionScope.currentUser ? sessionScope.currentUser.fullName : 'User'}"/></p>

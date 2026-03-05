@@ -5,6 +5,7 @@
 package controller.receptionist;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
@@ -246,6 +247,18 @@ public class ViewListAppointmentServlet extends HttpServlet {
         
         // Load all veterinarians for the dropdown
         List<User> veterinarians = dao.getAllVeterinarians();
+
+        // Notifications for receptionist user (if logged in)
+        NotificationDAO ndao = new NotificationDAO();
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            Object currentUserObj = session.getAttribute("currentUser");
+            if (currentUserObj instanceof User) {
+                User currentUser = (User) currentUserObj;
+                request.setAttribute("notifications", ndao.getRecentForUser(currentUser.getUserId(), 10));
+                request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
+            }
+        }
         
         request.setAttribute("list", paginatedList);
         request.setAttribute("veterinarians", veterinarians);

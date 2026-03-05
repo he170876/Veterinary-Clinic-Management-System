@@ -66,9 +66,7 @@
 <input class="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/50" placeholder="Search patients..." type="text" id="searchQueue"/>
 </div>
 <div class="flex items-center gap-3">
-<button class="size-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-<span class="material-symbols-outlined">notifications</span>
-</button>
+<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
 <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
 <div class="flex items-center gap-3">
 <div class="text-right hidden sm:block">

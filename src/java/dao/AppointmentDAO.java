@@ -210,6 +210,26 @@ public class AppointmentDAO extends DBContext {
         return 0;
     }
 
+    /** Map veterinarian_id -> Users.user_id (for notifications). Returns 0 if not found. */
+    public int getUserIdByVeterinarianId(int veterinarianId) {
+        if (veterinarianId <= 0) return 0;
+        String sql = """
+            SELECT u.user_id
+            FROM Veterinarians v
+            JOIN Users u ON v.user_id = u.user_id
+            WHERE v.veterinarian_id = ?
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, veterinarianId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("user_id") : 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     /**
      * Returns today's appointments assigned to a specific veterinarian, limited to
      * Only Checked-in (patient has been checked in by receptionist).

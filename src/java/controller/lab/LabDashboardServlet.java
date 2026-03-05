@@ -1,6 +1,7 @@
 package controller.lab;
 
 import dao.LabTestRequestDAO;
+import dao.NotificationDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -11,6 +12,7 @@ import model.LabTestRequest;
 import model.User;
 
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -34,6 +36,9 @@ public class LabDashboardServlet extends HttpServlet {
         List<LabTestRequest> pendingRequests = dao.getPendingRequests();
 
         request.setAttribute("user", user);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("pendingRequests", pendingRequests);
         request.getRequestDispatcher("/WEB-INF/views/lab/dashboard.jsp").forward(request, response);
     }

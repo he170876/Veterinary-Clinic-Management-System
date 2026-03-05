@@ -15,8 +15,16 @@ import model.Visit;
 import java.io.IOException;
 
 /**
- * POST: Receptionist checks in a patient. Creates Visit with staff_id and sets appointment status to Checked-in.
- * Requires appointmentId. Redirects to /staff/queue with checkedin=1, already=1, or error params.
+ * Receptionist check‑in flow:
+ * <ul>
+ *   <li>Nhận <code>appointmentId</code> từ form trong màn Staff Queue.</li>
+ *   <li>Map user hiện tại sang <code>receptionist_id</code> (thông qua {@link AppointmentDAO#getReceptionistIdByUserId}).</li>
+ *   <li>Kiểm tra appointment tồn tại và chưa có Visit tương ứng.</li>
+ *   <li>Tạo một bản ghi {@link Visit} với trạng thái <code>Checked-in</code> và gán <code>staff_id</code>
+ *       (hàm {@link VisitDAO#createForCheckIn}).</li>
+ *   <li>Cập nhật trạng thái Appointment sang <code>Checked-in</code>, sau đó redirect về
+ *       <code>/staff/queue</code> với các query param báo kết quả (checkedin / already / error).</li>
+ * </ul>
  */
 @WebServlet(name = "StaffCheckInServlet", urlPatterns = {"/staff/check-in"})
 public class StaffCheckInServlet extends HttpServlet {
