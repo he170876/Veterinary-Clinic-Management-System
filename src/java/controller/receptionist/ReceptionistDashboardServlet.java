@@ -23,10 +23,10 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         
         AppointmentDAO dao = new AppointmentDAO();
         
-        // Get today's date range
+        // Get today's date range (only today)
         LocalDate today = LocalDate.now();
         LocalDate fromDate = today;
-        LocalDate toDate = today.plusDays(1);
+        LocalDate toDate = today;
         
         final LocalDate rangeStart = fromDate;
         final LocalDate rangeEnd = toDate;
@@ -44,20 +44,19 @@ public class ReceptionistDashboardServlet extends HttpServlet {
                 })
                 .collect(java.util.stream.Collectors.toList());
         
-        // Count statistics
+        // Count statistics - include all appointments (including Canceled) to match ViewListAppointment
+        // Total = all appointments today
         int totalAppointments = todayAppointments.size();
+        
+        // Normal = non-Emergency appointments
         int normalAppointments = (int) todayAppointments.stream()
                 .filter(a -> {
                     String status = a.getStatus();
-                    return status != null && 
-                           !status.equalsIgnoreCase("Emergency") && 
-                           !status.equalsIgnoreCase("Completed") &&
-                           !status.equalsIgnoreCase("Done") &&
-                           !status.equalsIgnoreCase("Canceled") &&
-                           !status.equalsIgnoreCase("Cancelled");
+                    return status != null && !status.equalsIgnoreCase("Emergency");
                 })
                 .count();
         
+        // Emergency = only Emergency status
         int emergencyCases = (int) todayAppointments.stream()
                 .filter(a -> {
                     String status = a.getStatus();
@@ -65,15 +64,13 @@ public class ReceptionistDashboardServlet extends HttpServlet {
                 })
                 .count();
         
-        int emergencyActive = 2;
-        int emergencyResolved = emergencyCases - emergencyActive;
-        if (emergencyResolved < 0) emergencyResolved = 0;
+        // Active emergency = Emergency status
+        int emergencyActive = emergencyCases;
+        int emergencyResolved = 0;
         
-        // Get recent appointments (today, sorted by time, limited to 5)
+        // Get all appointments for today (sorted by time)
         todayAppointments.sort(java.util.Comparator.comparing(Appointment::getAppointmentTime));
-        List<Appointment> recentAppointments = todayAppointments.stream()
-                .limit(5)
-                .collect(java.util.stream.Collectors.toList());
+        List<Appointment> recentAppointments = todayAppointments;
         
         List<User> veterinarians = dao.getAllVeterinarians();
         
@@ -85,7 +82,7 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         request.setAttribute("recentAppointments", recentAppointments);
         request.setAttribute("veterinarians", veterinarians);
         
-        request.getRequestDispatcher("/WEB-INF/views/Receptionist/dashboard.jsp")
+        request.getRequestDispatcher("/WEB-INF/views/Receptionist/Dashboard.jsp")
                 .forward(request, response);
     }
 }

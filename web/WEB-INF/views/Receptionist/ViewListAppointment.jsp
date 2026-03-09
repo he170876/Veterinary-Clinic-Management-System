@@ -407,10 +407,26 @@
                 updateStatus(appointmentId, 'Confirmed', button);
             }
 
+            let currentRejectAppointmentId = null;
+            let currentRejectButton = null;
+
             function rejectAppointment(appointmentId, button) {
-                if (!confirm('Are you sure you want to reject this appointment?')) {
-                    return;
-                }
+                currentRejectAppointmentId = appointmentId;
+                currentRejectButton = button;
+                document.getElementById('rejectPopup').classList.add('active');
+            }
+
+            function closeRejectPopup() {
+                document.getElementById('rejectPopup').classList.remove('active');
+                currentRejectAppointmentId = null;
+                currentRejectButton = null;
+            }
+
+            function confirmReject() {
+                if (!currentRejectAppointmentId) return;
+                const appointmentId = currentRejectAppointmentId;
+                const button = currentRejectButton;
+                closeRejectPopup();
                 updateStatus(appointmentId, 'Rejected', button);
             }
 
@@ -446,10 +462,26 @@
                 });
             }
 
+            let currentCancelAppointmentId = null;
+            let currentCancelButton = null;
+
             function cancelAppointment(appointmentId, button) {
-                if (!confirm('Are you sure you want to cancel this appointment?')) {
-                    return;
-                }
+                currentCancelAppointmentId = appointmentId;
+                currentCancelButton = button;
+                document.getElementById('cancelPopup').classList.add('active');
+            }
+
+            function closeCancelPopup() {
+                document.getElementById('cancelPopup').classList.remove('active');
+                currentCancelAppointmentId = null;
+                currentCancelButton = null;
+            }
+
+            function confirmCancel() {
+                if (!currentCancelAppointmentId) return;
+                const appointmentId = currentCancelAppointmentId;
+                const button = currentCancelButton;
+                closeCancelPopup();
                 updateStatus(appointmentId, 'Canceled', button);
             }
 
@@ -596,6 +628,7 @@
                             <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
                             <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
                             <c:set var="isCanceled" value="${status == 'Canceled' || status == 'Cancelled'}"/>
+                            <c:set var="canChangeDoctor" value="${isPending || isConfirmed || isRescheduled || isCheckedIn}"/>
                             
                             <c:choose>
                                 <c:when test="${isCompleted}">
@@ -665,27 +698,34 @@
                                     <span class="material-symbols-outlined text-base opacity-60">person</span>
                                     <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'N/A'}</span>
                                 </div>
-                                <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
-                                    <span class="material-symbols-outlined text-base opacity-60 text-primary">schedule</span>
-                                    <span>${appointment.formattedTime}</span>
+                                <div class="flex flex-col text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
+                                    <span class="font-semibold">${appointment.formattedTime}</span>
+                                    <span>${appointment.formattedDate}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">medical_services</span>
                                     <span class="truncate">${not empty appointment.service ? appointment.service : 'N/A'}</span>
                                 </div>
                                 <div>
-                                    <select 
-                                        class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                        data-appointment-id="${appointment.appointmentId}"
-                                        data-original-vet="${appointment.veterinarianId}"
-                                        onchange="showConfirmPopup(this.dataset.appointmentId, this, this.value)">
-                                        <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Unassigned</option>
-                                        <c:forEach var="vet" items="${veterinarians}">
-                                            <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
-                                                ${vet.fullName}
-                                            </option>
-                                        </c:forEach>
-                                    </select>
+                                    <c:choose>
+                                        <c:when test="${canChangeDoctor}">
+                                            <select
+                                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                data-appointment-id="${appointment.appointmentId}"
+                                                data-original-vet="${appointment.veterinarianId}"
+                                                onchange="showConfirmPopup(${appointment.appointmentId}, this, this.value)">
+                                                <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Chưa có</option>
+                                                <c:forEach var="vet" items="${veterinarians}">
+                                                    <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
+                                                        ${vet.fullName}
+                                                    </option>
+                                                </c:forEach>
+                                            </select>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <p class="text-xs text-slate-600 dark:text-slate-400">${not empty appointment.veterinarianName ? appointment.veterinarianName : 'Chưa có'}</p>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </div>
                                 <div class="flex items-center justify-end gap-2 pr-2">
                                     <%-- Pending / Re-Scheduled: Confirm + Reject --%>
@@ -966,6 +1006,60 @@
         <div id="successToast" class="toast">
             <span class="material-symbols-outlined">check_circle</span>
             <span id="toastMessage">Doctor changed successfully!</span>
+        </div>
+
+        <!-- Cancel Confirmation Popup -->
+        <div id="cancelPopup" class="popup-overlay">
+            <div class="popup-content">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-2xl">warning</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Xác nhận hủy lịch hẹn</h3>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 mb-6">
+                    Bạn có chắc chắn muốn hủy lịch hẹn này?
+                </p>
+                <div class="flex gap-3 justify-end">
+                    <button 
+                        onclick="closeCancelPopup()"
+                        class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-medium">
+                        Hủy
+                    </button>
+                    <button 
+                        onclick="confirmCancel()"
+                        class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 transition-all font-medium">
+                        Xác nhận hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reject Confirmation Popup -->
+        <div id="rejectPopup" class="popup-overlay">
+            <div class="popup-content">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-2xl">warning</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Xác nhận từ chối lịch hẹn</h3>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 mb-6">
+                    Bạn có chắc chắn muốn từ chối lịch hẹn này?
+                </p>
+                <div class="flex gap-3 justify-end">
+                    <button 
+                        onclick="closeRejectPopup()"
+                        class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-medium">
+                        Hủy
+                    </button>
+                    <button 
+                        onclick="confirmReject()"
+                        class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 transition-all font-medium">
+                        Xác nhận từ chối
+                    </button>
+                </div>
+            </div>
         </div>
 
     </body></html>
