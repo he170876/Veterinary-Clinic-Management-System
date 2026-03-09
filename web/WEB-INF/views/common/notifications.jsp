@@ -16,6 +16,21 @@
         fmt = java.time.format.DateTimeFormatter.ofPattern("MMM dd, HH:mm");
     }
     String ctx = request.getContextPath();
+    String roleName = (user.getRole() != null && user.getRole().getRoleName() != null)
+            ? user.getRole().getRoleName() : "";
+
+    String dashboardHref = ctx + "/";
+    String secondaryHref = "#";
+    String secondaryLabel = "";
+    if ("Receptionist".equalsIgnoreCase(roleName)) {
+        dashboardHref = ctx + "/Receptionist/Dashboard";
+        secondaryHref = ctx + "/Receptionist/ManageAppointmentRequests";
+        secondaryLabel = "Request Center";
+    } else if ("Veterinarian".equalsIgnoreCase(roleName) || "Vet".equalsIgnoreCase(roleName)) {
+        dashboardHref = ctx + "/vet/dashboard";
+        secondaryHref = ctx + "/vet/queue";
+        secondaryLabel = "Patients";
+    }
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,9 +89,11 @@
                     </div>
                     <nav class="hidden md:flex items-center gap-6">
                         <a class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
-                           href="<%= ctx %>/vet/dashboard">Dashboard</a>
-                        <a class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
-                           href="<%= ctx %>/vet/queue">Patients</a>
+                                    href="<%= dashboardHref %>">Dashboard</a>
+                                <% if (!secondaryLabel.isEmpty()) { %>
+                                <a class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
+                                    href="<%= secondaryHref %>"><%= secondaryLabel %></a>
+                                <% } %>
                         <span class="text-sm font-semibold text-primary">Notifications</span>
                     </nav>
                 </div>
@@ -130,8 +147,45 @@
                     String title = n.getTitle() != null ? n.getTitle() : "Notification";
                     String message = n.getMessage() != null ? n.getMessage() : "";
                     String time = n.getCreatedAt() != null ? n.getCreatedAt().format(fmt) : "";
+
+                    String titleLower = title.toLowerCase();
+                    boolean isRequestNotification = n.getNotificationId() < 0
+                            || (titleLower.contains("request")
+                            && (titleLower.contains("reschedule") || titleLower.contains("doctor change")));
+                    int appointmentId = n.getNotificationId() < 0 ? -n.getNotificationId() : -1;
+                    if (appointmentId <= 0) {
+                        java.util.regex.Matcher m = java.util.regex.Pattern
+                                .compile("Appointment #(\\d+)|appointmentId=(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE)
+                                .matcher(message);
+                        if (m.find()) {
+                            try {
+                                String idGroup = m.group(1) != null ? m.group(1) : m.group(2);
+                                appointmentId = Integer.parseInt(idGroup);
+                            } catch (Exception ignore) {
+                                appointmentId = -1;
+                            }
+                        }
+                    }
+
+                    String reqType = "All";
+                    if (titleLower.contains("reschedule")) {
+                        reqType = "Reschedule";
+                    } else if (titleLower.contains("doctor")) {
+                        reqType = "DoctorChange";
+                    }
+
+                    String itemHref = null;
+                    if ("Receptionist".equalsIgnoreCase(roleName) && isRequestNotification && appointmentId > 0) {
+                        itemHref = ctx + "/Receptionist/ManageAppointmentRequests?requestType="
+                                + java.net.URLEncoder.encode(reqType, java.nio.charset.StandardCharsets.UTF_8)
+                                + "&appointmentId=" + appointmentId;
+                    }
                 %>
-                <div class="group relative flex items-start gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm transition-all hover:shadow-md">
+                <div class="group relative rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm transition-all hover:shadow-md">
+                    <% if (itemHref != null) { %>
+                    <a href="<%= itemHref %>" class="absolute inset-0" aria-label="Open related request"></a>
+                    <% } %>
+                    <div class="relative flex items-start gap-4">
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <span class="material-symbols-outlined">notifications</span>
                     </div>
@@ -141,6 +195,7 @@
                             <span class="text-xs text-slate-400 whitespace-nowrap"><%= time %></span>
                         </div>
                         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed"><%= message %></p>
+                    </div>
                     </div>
                 </div>
                 <% } %>

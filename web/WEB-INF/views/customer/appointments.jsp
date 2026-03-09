@@ -185,6 +185,7 @@
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Date &amp; Time</th>
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Veterinarian</th>
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">Status</th>
+                                <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">Request</th>
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">Action</th>
                             </tr>
                             </thead>
@@ -192,7 +193,7 @@
                             <c:choose>
                                 <c:when test="${empty appointments}">
                                     <tr>
-                                        <td colspan="5" class="px-6 py-10 text-center text-slate-500">No appointments found.</td>
+                                        <td colspan="6" class="px-6 py-10 text-center text-slate-500">No appointments found.</td>
                                     </tr>
                                 </c:when>
                                 <c:otherwise>
@@ -261,9 +262,6 @@
                                             </td>
                                             <td class="px-6 py-5 text-right">
                                                 <div class="flex flex-col items-end gap-1">
-                                                    <a href="<%= ctx %>/customer/appointments/detail?id=${appointment.appointmentId}" class="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 font-bold text-sm underline-offset-4 hover:underline">
-                                                        View Detail
-                                                    </a>
                                                     <c:choose>
                                                         <c:when test="${canRequest}">
                                                             <button
@@ -309,6 +307,11 @@
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </div>
+                                            </td>
+                                            <td class="px-6 py-5 text-right">
+                                                <a href="<%= ctx %>/customer/appointments/detail?id=${appointment.appointmentId}" class="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 font-bold text-sm underline-offset-4 hover:underline">
+                                                    View Detail
+                                                </a>
                                             </td>
                                         </tr>
                                     </c:forEach>

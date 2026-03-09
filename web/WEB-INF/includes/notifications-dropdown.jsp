@@ -1,6 +1,9 @@
 <%@ page language="java" %>
 <%@ page import="java.util.List" %>
 <%@ page import="model.Notification" %>
+<%@ page import="model.User" %>
+<%@ page import="java.net.URLEncoder" %>
+<%@ page import="java.nio.charset.StandardCharsets" %>
 <%
     // Use a unique variable name to avoid clashing with parent JSPs
     String notifCtx = request.getContextPath();
@@ -17,6 +20,18 @@
         if (!n.isRead()) {
             hasUnread = true;
             break;
+        }
+    }
+
+    String notifCenterHref = notifCtx + "/notifications";
+    String notifCenterLabel = "View notification center";
+    Object currentUserObj = session != null ? session.getAttribute("currentUser") : null;
+    if (currentUserObj instanceof User) {
+        User notifUser = (User) currentUserObj;
+        String roleName = notifUser.getRole() != null ? notifUser.getRole().getRoleName() : null;
+        if (roleName != null && "Receptionist".equalsIgnoreCase(roleName)) {
+            notifCenterHref = notifCtx + "/Receptionist/ManageAppointmentRequests";
+            notifCenterLabel = "View request center";
         }
     }
 %>
@@ -47,9 +62,42 @@
                     String title = n.getTitle() != null ? n.getTitle() : "Notification";
                     String message = n.getMessage() != null ? n.getMessage() : "";
                     String time = n.getCreatedAt() != null ? n.getCreatedAt().format(fmt) : "";
+                    int appointmentId = n.getNotificationId() < 0 ? -n.getNotificationId() : -1;
+                    if (appointmentId <= 0) {
+                        java.util.regex.Matcher m = java.util.regex.Pattern.compile("Appointment #(\\d+)|appointmentId=(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(message);
+                        if (m.find()) {
+                            try {
+                                String idGroup = m.group(1) != null ? m.group(1) : m.group(2);
+                                appointmentId = Integer.parseInt(idGroup);
+                            } catch (Exception ignore) {
+                                appointmentId = -1;
+                            }
+                        }
+                    }
+
+                    String titleLower = title != null ? title.toLowerCase() : "";
+                    boolean isRequestNotification = n.getNotificationId() < 0
+                            || (titleLower.contains("request")
+                            && (titleLower.contains("reschedule") || titleLower.contains("doctor change")));
+
+                    String reqType = "All";
+                    if (titleLower.contains("reschedule")) {
+                        reqType = "Reschedule";
+                    } else if (titleLower.contains("doctor")) {
+                        reqType = "DoctorChange";
+                    }
+
+                    String itemHref = null;
+                    if (isRequestNotification && appointmentId > 0) {
+                        itemHref = notifCtx + "/Receptionist/ManageAppointmentRequests?requestType="
+                                + URLEncoder.encode(reqType, StandardCharsets.UTF_8)
+                                + "&appointmentId=" + appointmentId;
+                    }
                 %>
-                <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0
-                            hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <% if (itemHref != null) { %>
+                    <a href="<%= itemHref %>" class="block">
+                    <% } %>
                     <div class="flex items-start gap-3">
                         <div class="mt-0.5">
                             <span class="material-symbols-outlined text-sm text-primary">notifications</span>
@@ -62,14 +110,17 @@
                             <% } %>
                         </div>
                     </div>
+                    <% if (itemHref != null) { %>
+                    </a>
+                    <% } %>
                 </div>
                 <% } %>
                 <% } %>
             </div>
         </div>
         <div class="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-right">
-            <a href="<%= notifCtx %>/notifications"
-               class="text-[11px] font-semibold text-primary hover:underline">View notification center</a>
+            <a href="<%= notifCenterHref %>"
+               class="text-[11px] font-semibold text-primary hover:underline"><%= notifCenterLabel %></a>
         </div>
     </div>
 </div>
@@ -122,7 +173,31 @@
                     const title = escapeHtml(n.title || 'Notification');
                     const message = escapeHtml(n.message || '');
                     const time = escapeHtml(n.time || '');
+                    const rawTitle = (n.title || '').toLowerCase();
+                    const rawMessage = n.message || '';
+                    const isRequestNotification = (typeof n.id === 'number' && n.id < 0)
+                        || (rawTitle.indexOf('request') !== -1
+                        && (rawTitle.indexOf('reschedule') !== -1 || rawTitle.indexOf('doctor change') !== -1));
+                    let requestType = 'All';
+                    if (rawTitle.indexOf('reschedule') !== -1) requestType = 'Reschedule';
+                    else if (rawTitle.indexOf('doctor') !== -1) requestType = 'DoctorChange';
+
+                    let appointmentId = null;
+                    if (typeof n.id === 'number' && n.id < 0) {
+                        appointmentId = String(Math.abs(n.id));
+                    }
+                    if (!appointmentId) {
+                        const idMatch = rawMessage.match(/Appointment #(\d+)|appointmentId=(\d+)/i);
+                        if (idMatch) appointmentId = idMatch[1] || idMatch[2];
+                    }
+
+                    let itemHref = null;
+                    if (isRequestNotification && appointmentId) {
+                        itemHref = base + '/Receptionist/ManageAppointmentRequests?requestType=' + encodeURIComponent(requestType) + '&appointmentId=' + encodeURIComponent(appointmentId);
+                    }
+
                     html += '<div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">';
+                    if (itemHref) html += '<a href="' + itemHref + '" class="block">';
                     html += '<div class="flex items-start gap-3">';
                     html += '<div class="mt-0.5"><span class="material-symbols-outlined text-sm text-primary">notifications</span></div>';
                     html += '<div class="flex-1">';
@@ -131,7 +206,9 @@
                     if (time) {
                         html += '<p class="text-[10px] text-slate-400 mt-1">' + time + '</p>';
                     }
-                    html += '</div></div></div>';
+                    html += '</div></div>';
+                    if (itemHref) html += '</a>';
+                    html += '</div>';
                 });
                 itemsEl.innerHTML = html;
             }

@@ -511,6 +511,10 @@
                     <span class="material-symbols-outlined">calendar_today</span>
                     <span class="font-medium">Schedule</span>
                 </a>
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="/Veterinary_Clinic_Management_System/Receptionist/ManageAppointmentRequests">
+                    <span class="material-symbols-outlined">pending_actions</span>
+                    <span class="font-medium">Request Center</span>
+                </a>
                 <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
                     <span class="material-symbols-outlined">settings</span>
                     <span class="font-medium">Settings</span>
@@ -579,6 +583,10 @@
                                 <span class="material-symbols-outlined text-lg">emergency</span>
                                 <span>Emergency</span>
                             </button>
+                            <a href="${pageContext.request.contextPath}/Receptionist/ManageAppointmentRequests" class="bg-amber-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                                <span class="material-symbols-outlined text-lg">pending_actions</span>
+                                <span>Request Center</span>
+                            </a>
                         </div>
                     </div>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
@@ -713,7 +721,7 @@
                                                 class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                                 data-appointment-id="${appointment.appointmentId}"
                                                 data-original-vet="${appointment.veterinarianId}"
-                                                onchange="showConfirmPopup(${appointment.appointmentId}, this, this.value)">
+                                                onchange="showConfirmPopup(this.dataset.appointmentId, this, this.value)">
                                                 <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Chưa có</option>
                                                 <c:forEach var="vet" items="${veterinarians}">
                                                     <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
@@ -732,16 +740,6 @@
                                     <c:if test="${isPending || isRescheduled}">
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="confirmAppointment(this.dataset.appointmentId, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="rejectAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
-                                    </c:if>
-                                    <%-- Customer Request: Reschedule Requested --%>
-                                    <c:if test="${isRescheduleRequested}">
-                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
-                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
-                                    </c:if>
-                                    <%-- Customer Request: Doctor Change Requested --%>
-                                    <c:if test="${isDoctorChangeRequested}">
-                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Approve Request</button>
-                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">Reject Request</button>
                                     </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">

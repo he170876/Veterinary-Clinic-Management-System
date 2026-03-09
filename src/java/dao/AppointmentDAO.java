@@ -1178,6 +1178,10 @@ public class AppointmentDAO extends DBContext {
     }
 
     public boolean processDoctorChangeRequest(int appointmentId, boolean approve) {
+        return processDoctorChangeRequest(appointmentId, approve, null);
+    }
+
+    public boolean processDoctorChangeRequest(int appointmentId, boolean approve, Integer newVeterinarianId) {
         String findSql = """
             SELECT customer_id, status
             FROM appointments
@@ -1187,6 +1191,12 @@ public class AppointmentDAO extends DBContext {
         String updateSql = """
             UPDATE appointments
             SET status = ?
+            WHERE appointment_id = ?
+        """;
+
+        String updateWithDoctorSql = """
+            UPDATE appointments
+            SET status = ?, veterinarian_id = ?
             WHERE appointment_id = ?
         """;
 
@@ -1223,12 +1233,29 @@ public class AppointmentDAO extends DBContext {
             Map<String, String> payload = parseRequestPayload(payloadRaw);
             String previousStatus = normalizePreviousStatus(payload.get("previousStatus"));
 
-            try (PreparedStatement updatePs = con.prepareStatement(updateSql)) {
-                updatePs.setString(1, previousStatus);
-                updatePs.setInt(2, appointmentId);
-                if (updatePs.executeUpdate() == 0) {
-                    con.rollback();
-                    return false;
+            if (approve && (newVeterinarianId == null || newVeterinarianId <= 0)) {
+                con.rollback();
+                return false;
+            }
+
+            if (approve) {
+                try (PreparedStatement updatePs = con.prepareStatement(updateWithDoctorSql)) {
+                    updatePs.setString(1, previousStatus);
+                    updatePs.setInt(2, newVeterinarianId);
+                    updatePs.setInt(3, appointmentId);
+                    if (updatePs.executeUpdate() == 0) {
+                        con.rollback();
+                        return false;
+                    }
+                }
+            } else {
+                try (PreparedStatement updatePs = con.prepareStatement(updateSql)) {
+                    updatePs.setString(1, previousStatus);
+                    updatePs.setInt(2, appointmentId);
+                    if (updatePs.executeUpdate() == 0) {
+                        con.rollback();
+                        return false;
+                    }
                 }
             }
 

@@ -1,6 +1,7 @@
 package controller.receptionist;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -33,7 +34,30 @@ public class HandleAppointmentRequestServlet extends HttpServlet {
             if ("reschedule".equalsIgnoreCase(requestType)) {
                 success = dao.processRescheduleRequest(appointmentId, approve);
             } else if ("doctor-change".equalsIgnoreCase(requestType)) {
-                success = dao.processDoctorChangeRequest(appointmentId, approve);
+                Integer veterinarianId = null;
+                String vetIdRaw = request.getParameter("veterinarianId");
+                if (vetIdRaw != null && !vetIdRaw.isBlank()) {
+                    try {
+                        veterinarianId = Integer.parseInt(vetIdRaw);
+                    } catch (Exception ignore) {
+                        veterinarianId = null;
+                    }
+                }
+
+                if (approve && (veterinarianId == null || veterinarianId <= 0)) {
+                    response.getWriter().write("{\"success\": false, \"message\": \"Please select a new doctor before approval\"}");
+                    return;
+                }
+
+                success = dao.processDoctorChangeRequest(appointmentId, approve, veterinarianId);
+
+                if (success && approve && veterinarianId != null && veterinarianId > 0) {
+                    int vetUserId = dao.getUserIdByVeterinarianId(veterinarianId);
+                    if (vetUserId > 0) {
+                        NotificationDAO ndao = new NotificationDAO();
+                        ndao.create(vetUserId, "Appointment assigned", "You have been assigned to appointment #" + appointmentId + ".");
+                    }
+                }
             } else {
                 response.getWriter().write("{\"success\": false, \"message\": \"Invalid request type\"}");
                 return;
