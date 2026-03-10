@@ -55,7 +55,7 @@
                         <span class="material-symbols-outlined">dashboard</span>
                         <span class="text-sm font-semibold">Dashboard</span>
                     </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/dashboard">
                         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">medical_services</span>
                         <span class="text-sm font-semibold">Services</span>
                     </a>
@@ -63,14 +63,7 @@
                         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">image</span>
                         <span class="text-sm font-bold">Images</span>
                     </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
-                        <span class="material-symbols-outlined">group</span>
-                        <span class="text-sm font-semibold">Staff</span>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
-                        <span class="material-symbols-outlined">description</span>
-                        <span class="text-sm font-semibold">Reports</span>
-                    </a>
+
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
                         <span class="material-symbols-outlined">settings</span>
                         <span class="text-sm font-semibold">Settings</span>
@@ -234,7 +227,6 @@
                             <option value="banner">Banner</option>
                             <option value="services">Services</option>
                             <option value="team">Team</option>
-                            <option value="testimonials">Testimonials</option>
                             <option value="gallery">Gallery</option>
                             <option value="home">Home</option>
                         </select>

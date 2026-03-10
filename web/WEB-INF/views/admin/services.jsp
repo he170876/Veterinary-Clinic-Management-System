@@ -61,15 +61,7 @@
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/admin/images">
                         <span class="material-symbols-outlined">image</span>
-                        <span class="text-sm font-semibold">Image Control</span>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
-                        <span class="material-symbols-outlined">group</span>
-                        <span class="text-sm font-semibold">Staff</span>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
-                        <span class="material-symbols-outlined">description</span>
-                        <span class="text-sm font-semibold">Reports</span>
+                        <span class="text-sm font-semibold">Images</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
                         <span class="material-symbols-outlined">settings</span>
@@ -235,7 +227,7 @@
                             <label class="text-sm font-bold text-[#1d140c] dark:text-gray-200">Standard Duration (min)</label>
                             <div class="relative">
                                 <input class="w-full bg-[#fcfaf8] dark:bg-gray-800 border border-[#eadbcd] dark:border-gray-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder-[#a17145]/40" id="addDuration" min="0" name="duration" placeholder="30" step="1" type="number" required/>
-                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#a17145]">MINS</span>
+                                <span class="me-5 absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#a17145]">MINS</span>
                             </div>
                         </div>
                     </div>
