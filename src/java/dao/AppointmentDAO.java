@@ -231,6 +231,27 @@ public class AppointmentDAO extends DBContext {
         return 0;
     }
 
+    public int getVeterinarianIdByAppointmentId(int appointmentId) {
+        if (appointmentId <= 0) return 0;
+        String sql = """
+            SELECT veterinarian_id
+            FROM appointments
+            WHERE appointment_id = ?
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int vetId = rs.getInt("veterinarian_id");
+                    return vetId > 0 ? vetId : 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     /**
      * Returns today's appointments assigned to a specific veterinarian, limited to
      * Only Checked-in (patient has been checked in by receptionist).
@@ -1031,6 +1052,169 @@ public class AppointmentDAO extends DBContext {
         return payload;
     }
 
+    public Map<String, String> getDoctorChangeRequestDetails(int appointmentId) {
+        Map<String, String> details = new HashMap<>();
+        try (Connection con = getConnection()) {
+            String payloadRaw = getLatestRequestMessage(con, appointmentId, "Doctor Change Request");
+            if (payloadRaw != null && !payloadRaw.isEmpty()) {
+                details = parseRequestPayload(payloadRaw);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return details;
+    }
+
+    public Map<String, String> getRescheduleRequestDetails(int appointmentId) {
+        Map<String, String> details = new HashMap<>();
+        try (Connection con = getConnection()) {
+            String payloadRaw = getLatestRequestMessage(con, appointmentId, "Reschedule Request");
+            if (payloadRaw != null && !payloadRaw.isEmpty()) {
+                details = parseRequestPayload(payloadRaw);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return details;
+    }
+
+    public boolean createDoctorChangeRequest(int appointmentId, int customerId, int preferredVeterinarianId, String reason) {
+        String findSql = """
+            SELECT a.appointment_time, a.status, a.pet_id, a.veterinarian_id, vet_user.full_name AS veterinarian_name
+            FROM appointments a
+            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+            WHERE a.appointment_id = ? AND a.customer_id = ?
+        """;
+
+        String findVetSql = """
+            SELECT u.full_name
+            FROM veterinarians v
+            JOIN users u ON v.user_id = u.user_id
+            WHERE v.veterinarian_id = ?
+        """;
+
+        String notifySql = """
+            INSERT INTO Notifications (user_id, title, message)
+            SELECT u.user_id, ?, ?
+            FROM Receptionists r
+            JOIN Users u ON r.user_id = u.user_id
+            WHERE u.status = 'Active'
+        """;
+
+        String updateStatusSql = """
+            UPDATE appointments
+            SET status = 'Doctor-Change-Requested'
+            WHERE appointment_id = ? AND customer_id = ?
+        """;
+
+        try (Connection con = getConnection()) {
+            con.setAutoCommit(false);
+
+            LocalDateTime appointmentTime;
+            String status;
+            int petId;
+            int currentVetId;
+            String currentVetName;
+
+            try (PreparedStatement findPs = con.prepareStatement(findSql)) {
+                findPs.setInt(1, appointmentId);
+                findPs.setInt(2, customerId);
+                try (ResultSet rs = findPs.executeQuery()) {
+                    if (!rs.next()) {
+                        con.rollback();
+                        return false;
+                    }
+
+                    Timestamp ts = rs.getTimestamp("appointment_time");
+                    if (ts == null) {
+                        con.rollback();
+                        return false;
+                    }
+
+                    appointmentTime = ts.toLocalDateTime();
+                    status = rs.getString("status");
+                    petId = rs.getInt("pet_id");
+                    currentVetId = rs.getInt("veterinarian_id");
+                    currentVetName = rs.getString("veterinarian_name");
+                }
+            }
+
+            if (appointmentTime.isBefore(LocalDateTime.now())) {
+                con.rollback();
+                return false;
+            }
+
+            boolean allowStatus = status != null
+                    && ("Pending".equalsIgnoreCase(status)
+                    || "Scheduled".equalsIgnoreCase(status)
+                    || "Confirmed".equalsIgnoreCase(status)
+                    || "Re-Scheduled".equalsIgnoreCase(status)
+                    || "Rescheduled".equalsIgnoreCase(status)
+                    || "Reschedule-Requested".equalsIgnoreCase(status));
+            if (!allowStatus) {
+                con.rollback();
+                return false;
+            }
+
+            if ("Doctor-Change-Requested".equalsIgnoreCase(status)) {
+                con.rollback();
+                return false;
+            }
+
+            String preferredVetName = "";
+            try (PreparedStatement vetPs = con.prepareStatement(findVetSql)) {
+                vetPs.setInt(1, preferredVeterinarianId);
+                try (ResultSet rs = vetPs.executeQuery()) {
+                    if (rs.next()) {
+                        preferredVetName = rs.getString("full_name");
+                    }
+                }
+            }
+
+            String note = reason == null ? "" : reason.trim();
+            if (note.length() > 600) {
+                note = note.substring(0, 600);
+            }
+
+            String title = "Doctor Change Request";
+            String message = "appointmentId=" + appointmentId
+                    + ";customerId=" + customerId
+                    + ";petId=" + petId
+                    + ";previousStatus=" + status
+                    + ";currentVeterinarianId=" + currentVetId
+                    + ";currentVeterinarianName=" + (currentVetName == null ? "" : currentVetName)
+                    + ";preferredVeterinarianId=" + preferredVeterinarianId
+                    + ";preferredDoctor=" + (preferredVetName == null ? "" : preferredVetName)
+                    + ";reason=" + note;
+
+            try (PreparedStatement updatePs = con.prepareStatement(updateStatusSql)) {
+                updatePs.setInt(1, appointmentId);
+                updatePs.setInt(2, customerId);
+                if (updatePs.executeUpdate() == 0) {
+                    con.rollback();
+                    return false;
+                }
+            }
+
+            try (PreparedStatement notifyPs = con.prepareStatement(notifySql)) {
+                notifyPs.setString(1, title);
+                notifyPs.setString(2, message);
+                if (notifyPs.executeUpdate() <= 0) {
+                    con.rollback();
+                    return false;
+                }
+            }
+
+            con.commit();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     private String getLatestRequestMessage(Connection con, int appointmentId, String title) throws Exception {
         String sql = """
             SELECT TOP 1 message
@@ -1232,6 +1416,18 @@ public class AppointmentDAO extends DBContext {
             String payloadRaw = getLatestRequestMessage(con, appointmentId, "Doctor Change Request");
             Map<String, String> payload = parseRequestPayload(payloadRaw);
             String previousStatus = normalizePreviousStatus(payload.get("previousStatus"));
+
+            // If newVeterinarianId is not provided and we're approving, try to extract from payload
+            if (approve && (newVeterinarianId == null || newVeterinarianId <= 0)) {
+                String preferredVetIdStr = payload.get("preferredVeterinarianId");
+                if (preferredVetIdStr != null && !preferredVetIdStr.isEmpty()) {
+                    try {
+                        newVeterinarianId = Integer.parseInt(preferredVetIdStr);
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
 
             if (approve && (newVeterinarianId == null || newVeterinarianId <= 0)) {
                 con.rollback();

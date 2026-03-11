@@ -44,18 +44,17 @@ public class HandleAppointmentRequestServlet extends HttpServlet {
                     }
                 }
 
-                if (approve && (veterinarianId == null || veterinarianId <= 0)) {
-                    response.getWriter().write("{\"success\": false, \"message\": \"Please select a new doctor before approval\"}");
-                    return;
-                }
-
                 success = dao.processDoctorChangeRequest(appointmentId, approve, veterinarianId);
 
-                if (success && approve && veterinarianId != null && veterinarianId > 0) {
-                    int vetUserId = dao.getUserIdByVeterinarianId(veterinarianId);
-                    if (vetUserId > 0) {
-                        NotificationDAO ndao = new NotificationDAO();
-                        ndao.create(vetUserId, "Appointment assigned", "You have been assigned to appointment #" + appointmentId + ".");
+                // After approval, send notification to the assigned veterinarian
+                if (success && approve) {
+                    int assignedVetId = dao.getVeterinarianIdByAppointmentId(appointmentId);
+                    if (assignedVetId > 0) {
+                        int vetUserId = dao.getUserIdByVeterinarianId(assignedVetId);
+                        if (vetUserId > 0) {
+                            NotificationDAO ndao = new NotificationDAO();
+                            ndao.create(vetUserId, "Appointment assigned", "You have been assigned to appointment #" + appointmentId + ".");
+                        }
                     }
                 }
             } else {

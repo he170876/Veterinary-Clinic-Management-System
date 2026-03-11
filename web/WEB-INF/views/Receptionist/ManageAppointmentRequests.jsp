@@ -31,13 +31,6 @@
         };
 
         function processAppointmentRequest(appointmentId, requestType, decision, veterinarianId) {
-            if (requestType === 'doctor-change' && decision === 'approve') {
-                if (!veterinarianId || parseInt(veterinarianId, 10) <= 0) {
-                    alert('Please select a new doctor before approval.');
-                    return;
-                }
-            }
-
             let body = 'appointmentId=' + encodeURIComponent(appointmentId)
                     + '&requestType=' + encodeURIComponent(requestType)
                     + '&decision=' + encodeURIComponent(decision);
@@ -146,34 +139,69 @@
                         <c:forEach var="appointment" items="${requestList}">
                             <c:set var="isRescheduleRequested" value="${appointment.status == 'Reschedule-Requested'}"/>
                             <c:set var="isDoctorChangeRequested" value="${appointment.status == 'Doctor-Change-Requested'}"/>
-                            <div id="request-${appointment.appointmentId}" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-4">
-                                <div class="min-w-0">
-                                    <p class="text-sm font-semibold text-slate-800 dark:text-white truncate">
-                                        #${appointment.appointmentId} - ${appointment.pet.name} - ${appointment.customer.user.fullName}
-                                    </p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                                        ${appointment.formattedDate} ${appointment.formattedTime} | ${not empty appointment.service ? appointment.service : 'N/A'}
-                                    </p>
-                                    <p class="text-xs mt-1 ${isRescheduleRequested ? 'text-amber-600 dark:text-amber-300' : 'text-violet-600 dark:text-violet-300'} font-semibold">
-                                        ${appointment.status}
-                                    </p>
+                            <c:set var="details" value="${appointmentDetails[appointment.appointmentId]}"/>
+                            <div id="request-${appointment.appointmentId}" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
+                                <div class="flex items-start justify-between gap-4 mb-3">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-slate-800 dark:text-white truncate">
+                                            #${appointment.appointmentId} - ${appointment.pet.name} - ${appointment.customer.user.fullName}
+                                        </p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                                            ${appointment.formattedDate} ${appointment.formattedTime} | ${not empty appointment.service ? appointment.service : 'N/A'}
+                                        </p>
+                                        <p class="text-xs mt-1 ${isRescheduleRequested ? 'text-amber-600 dark:text-amber-300' : 'text-violet-600 dark:text-violet-300'} font-semibold">
+                                            ${appointment.status}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-2 shrink-0">
+                                
+                                <!-- Request Details -->
+                                <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mb-3 text-xs">
+                                    <c:if test="${isDoctorChangeRequested}">
+                                        <div class="space-y-2">
+                                            <div>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Current Doctor:</span>
+                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['currentVeterinarianName'] ? details['currentVeterinarianName'] : 'Unassigned'}</span>
+                                            </div>
+                                            <div>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Requested Doctor:</span>
+                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['preferredDoctor'] ? details['preferredDoctor'] : 'N/A'}</span>
+                                            </div>
+                                            <div>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Reason:</span>
+                                                <p class="text-slate-700 dark:text-slate-200 mt-1 max-h-24 overflow-y-auto">${not empty details['reason'] ? details['reason'] : 'No reason provided'}</p>
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                    <c:if test="${isRescheduleRequested}">
+                                        <div class="space-y-2">
+                                            <div>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Current Time:</span>
+                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['oldTime'] ? details['oldTime'] : appointment.formattedDate}</span>
+                                            </div>
+                                            <div>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Requested Time:</span>
+                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['requestedTime'] ? details['requestedTime'] : 'N/A'}</span>
+                                            </div>
+                                            <div>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Reason:</span>
+                                                <p class="text-slate-700 dark:text-slate-200 mt-1 max-h-24 overflow-y-auto">${not empty details['reason'] ? details['reason'] : 'No reason provided'}</p>
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex items-center gap-2">
                                     <c:if test="${isRescheduleRequested}">
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Approve</button>
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400">Reject</button>
                                     </c:if>
                                     <c:if test="${isDoctorChangeRequested}">
-                                        <select id="vet-select-${appointment.appointmentId}" class="px-2 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                                            <option value="0">Select doctor</option>
-                                            <c:forEach var="vet" items="${veterinarians}">
-                                                <option value="${vet.userId}">${vet.fullName}</option>
-                                            </c:forEach>
-                                        </select>
-                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'approve', document.getElementById('vet-select-${appointment.appointmentId}').value)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Approve</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Approve</button>
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400">Reject</button>
                                     </c:if>
-                                    <a href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold">Open Schedule</a>
+                                    <a href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold ml-auto">Open Schedule</a>
                                 </div>
                             </div>
                         </c:forEach>

@@ -161,7 +161,23 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
         request.setAttribute("keyword", keyword != null ? keyword.trim() : "");
         request.setAttribute("customerName", customerName != null ? customerName.trim() : "");
         request.setAttribute("displayDateRange", displayDateRange);
+        
+        // Add request details for each appointment
+        java.util.Map<Integer, java.util.Map<String, String>> appointmentDetails = new java.util.HashMap<>();
+        for (Appointment appt : filteredRequests) {
+            java.util.Map<String, String> details;
+            if ("Doctor-Change-Requested".equalsIgnoreCase(appt.getStatus())) {
+                details = dao.getDoctorChangeRequestDetails(appt.getAppointmentId());
+            } else if ("Reschedule-Requested".equalsIgnoreCase(appt.getStatus())) {
+                details = dao.getRescheduleRequestDetails(appt.getAppointmentId());
+            } else {
+                details = new java.util.HashMap<>();
+            }
+            appointmentDetails.put(appt.getAppointmentId(), details);
+        }
+        
         request.setAttribute("requestList", filteredRequests);
+        request.setAttribute("appointmentDetails", appointmentDetails);
         request.setAttribute("veterinarians", dao.getAllVeterinarians());
         request.setAttribute("totalRequestCount", requestAppointments.size());
         request.setAttribute("rescheduleCount", rescheduleCount);

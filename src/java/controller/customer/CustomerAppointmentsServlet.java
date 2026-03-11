@@ -181,6 +181,7 @@ public class CustomerAppointmentsServlet extends HttpServlet {
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("totalFiltered", totalFiltered);
         request.setAttribute("pageSize", PAGE_SIZE);
+        request.setAttribute("veterinarians", appointmentDAO.getAllVeterinarians());
 
         request.getRequestDispatcher("/WEB-INF/views/customer/appointments.jsp").forward(request, response);
     }

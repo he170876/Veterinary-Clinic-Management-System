@@ -448,8 +448,13 @@
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold">Preferred Doctor (Optional)</label>
-                    <input class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" type="text" name="preferredDoctor" placeholder="e.g. Dr. Sarah Smith" maxlength="120"/>
+                    <label class="text-sm font-semibold">Preferred Doctor *</label>
+                    <select class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" name="preferredDoctorId" required>
+                        <option value="">Select a doctor</option>
+                        <c:forEach var="vet" items="${veterinarians}">
+                            <option value="${vet.userId}">${vet.fullName}</option>
+                        </c:forEach>
+                    </select>
                 </div>
 
                 <div class="flex flex-col gap-2">

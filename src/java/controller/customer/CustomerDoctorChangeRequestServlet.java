@@ -43,7 +43,7 @@ public class CustomerDoctorChangeRequestServlet extends HttpServlet {
         }
 
         String appointmentIdRaw = request.getParameter("appointmentId");
-        String preferredDoctor = request.getParameter("preferredDoctor");
+        String preferredDoctorIdRaw = request.getParameter("preferredDoctorId");
         String reason = request.getParameter("reason");
         String tab = request.getParameter("tab");
 
@@ -59,7 +59,18 @@ public class CustomerDoctorChangeRequestServlet extends HttpServlet {
             return;
         }
 
-        String cleanedPreferredDoctor = preferredDoctor != null ? preferredDoctor.trim() : "";
+        int preferredDoctorId;
+        try {
+            preferredDoctorId = Integer.parseInt(preferredDoctorIdRaw);
+            if (preferredDoctorId <= 0) {
+                response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=invalid_doctor");
+                return;
+            }
+        } catch (Exception ex) {
+            response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=invalid_doctor");
+            return;
+        }
+
         String cleanedReason = reason != null ? reason.trim() : "";
 
         if (cleanedReason.isEmpty()) {
@@ -70,7 +81,7 @@ public class CustomerDoctorChangeRequestServlet extends HttpServlet {
         boolean success = appointmentDAO.createDoctorChangeRequest(
                 appointmentId,
                 customerOpt.get().getCustomerId(),
-                cleanedPreferredDoctor,
+                preferredDoctorId,
                 cleanedReason
         );
 

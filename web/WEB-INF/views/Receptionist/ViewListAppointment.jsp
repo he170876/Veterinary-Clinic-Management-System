@@ -583,10 +583,7 @@
                                 <span class="material-symbols-outlined text-lg">emergency</span>
                                 <span>Emergency</span>
                             </button>
-                            <a href="${pageContext.request.contextPath}/Receptionist/ManageAppointmentRequests" class="bg-amber-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
-                                <span class="material-symbols-outlined text-lg">pending_actions</span>
-                                <span>Request Center</span>
-                            </a>
+                                        
                         </div>
                     </div>
                     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
