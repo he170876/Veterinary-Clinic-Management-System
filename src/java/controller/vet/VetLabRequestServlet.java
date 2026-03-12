@@ -71,7 +71,7 @@ public class VetLabRequestServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/vet/queue?error=notcheckedin");
             return;
         }
-
+        //tạo lab request
         LabTestRequestDAO labDao = new LabTestRequestDAO();
         labDao.createRequest(visit.getVisitId(), testId, visit.getVeterinarianId());
 
