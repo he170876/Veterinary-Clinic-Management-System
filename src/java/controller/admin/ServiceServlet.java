@@ -89,43 +89,70 @@ public class ServiceServlet extends HttpServlet {
     private void createService(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
-            String serviceName = request.getParameter("name");
-            if (serviceName == null || serviceName.trim().isEmpty()) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Service name is required");
+            String name = request.getParameter("name");
+            String category = request.getParameter("category");
+            String description = request.getParameter("description");
+            String durationStr = request.getParameter("duration");
+            String priceStr = request.getParameter("price");
+
+            // ====== VALIDATION ======
+            if (name == null || name.trim().isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Service name is required.");
                 return;
             }
-            serviceName = serviceName.trim();
+            name = name.trim();
+            if (name.length() > 100) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Service name must be less than 100 characters.");
+                return;
+            }
 
-            if (serviceService.existsByName(serviceName)) {
+            if (serviceService.existsByName(name)) {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
                 response.setContentType("text/plain;charset=UTF-8");
                 response.getWriter().write("Service name already exists");
                 return;
             }
 
+            int duration = 0;
+            try {
+                if (durationStr != null && !durationStr.trim().isEmpty()) {
+                    duration = Integer.parseInt(durationStr.trim());
+                    if (duration < 0) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Duration cannot be negative.");
+                        return;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid duration format. Please enter a whole number.");
+                return;
+            }
+
+            double price = 0.0;
+            try {
+                if (priceStr != null && !priceStr.trim().isEmpty()) {
+                    price = Double.parseDouble(priceStr.trim());
+                    if (price < 0) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Price cannot be negative.");
+                        return;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid price format. Please enter a number.");
+                return;
+            }
+
+            if (description != null && description.length() > 500) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Description must be less than 500 characters.");
+                return;
+            }
+
             Service service = new Service();
-            service.setName(serviceName);
-            service.setCategory(request.getParameter("category"));
-            service.setDescription(request.getParameter("description"));
-            
-            // Parse duration
-            String durationStr = request.getParameter("duration");
-            try {
-                int duration = durationStr != null && !durationStr.isEmpty() ? Integer.parseInt(durationStr) : 0;
-                service.setDuration(duration);
-            } catch (NumberFormatException e) {
-                service.setDuration(0);
-            }
-            
-            // Parse price
-            String priceStr = request.getParameter("price");
-            try {
-                double price = priceStr != null && !priceStr.isEmpty() ? Double.parseDouble(priceStr) : 0.0;
-                service.setPrice(price);
-            } catch (NumberFormatException e) {
-                service.setPrice(0.0);
-            }
-            
+            service.setName(name);
+            service.setCategory(category != null ? category.trim() : "");
+            service.setDescription(description != null ? description.trim() : "");
+            service.setDuration(duration);
+            service.setPrice(price);
+
             Service created = serviceService.createService(service);
             if (created != null) {
                 response.sendRedirect(request.getContextPath() + "/owner/dashboard");
@@ -135,7 +162,7 @@ public class ServiceServlet extends HttpServlet {
         } catch (Exception e) {
             System.err.println("CreateService ERROR: " + e.getMessage());
             e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
         }
     }
 
@@ -155,28 +182,61 @@ public class ServiceServlet extends HttpServlet {
                 return;
             }
             
-            service.setName(request.getParameter("name"));
-            service.setCategory(request.getParameter("category"));
-            service.setDescription(request.getParameter("description"));
-            
-            // Parse duration
+            String name = request.getParameter("name");
+            String category = request.getParameter("category");
+            String description = request.getParameter("description");
             String durationStr = request.getParameter("duration");
-            try {
-                int duration = durationStr != null && !durationStr.isEmpty() ? Integer.parseInt(durationStr) : 0;
-                service.setDuration(duration);
-            } catch (NumberFormatException e) {
-                service.setDuration(0);
-            }
-            
-            // Parse price
             String priceStr = request.getParameter("price");
-            try {
-                double price = priceStr != null && !priceStr.isEmpty() ? Double.parseDouble(priceStr) : 0.0;
-                service.setPrice(price);
-            } catch (NumberFormatException e) {
-                service.setPrice(0.0);
+
+            // ====== VALIDATION ======
+            if (name == null || name.trim().isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Service name is required.");
+                return;
             }
-            
+            if (name.trim().length() > 100) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Service name must be less than 100 characters.");
+                return;
+            }
+
+            int duration = 0;
+            try {
+                if (durationStr != null && !durationStr.trim().isEmpty()) {
+                    duration = Integer.parseInt(durationStr.trim());
+                    if (duration < 0) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Duration cannot be negative.");
+                        return;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid duration format. Please enter a whole number.");
+                return;
+            }
+
+            double price = 0.0;
+            try {
+                if (priceStr != null && !priceStr.trim().isEmpty()) {
+                    price = Double.parseDouble(priceStr.trim());
+                    if (price < 0) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Price cannot be negative.");
+                        return;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid price format. Please enter a number.");
+                return;
+            }
+
+            if (description != null && description.length() > 500) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Description must be less than 500 characters.");
+                return;
+            }
+
+            service.setName(name.trim());
+            service.setCategory(category != null ? category.trim() : "");
+            service.setDescription(description != null ? description.trim() : "");
+            service.setDuration(duration);
+            service.setPrice(price);
+
             if (serviceService.updateService(service)) {
                 response.sendRedirect(request.getContextPath() + "/owner/dashboard");
             } else {
