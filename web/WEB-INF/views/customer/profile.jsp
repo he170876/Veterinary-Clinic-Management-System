@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ page import="model.User" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
 <%
@@ -19,6 +19,14 @@
     boolean isGoogleUser = user.isGoogleUser();
     String pwMsg = request.getParameter("pw");
     String pwErr = request.getParameter("pwError");
+    String decodedPwErr = null;
+    if (pwErr != null && !pwErr.isEmpty()) {
+        try {
+            decodedPwErr = java.net.URLDecoder.decode(pwErr, "UTF-8");
+        } catch (Exception e) {
+            decodedPwErr = pwErr;
+        }
+    }
     String profileUpdated = request.getParameter("updated");
     request.setAttribute("customerCurrentPage", "profile");
 %>
@@ -103,9 +111,9 @@
                 Password updated successfully.
             </div>
             <% } %>
-            <% if (pwErr != null && !pwErr.isEmpty()) { %>
+            <% if (decodedPwErr != null && !decodedPwErr.isEmpty()) { %>
             <div class="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-sm font-medium">
-                <%= java.net.URLDecoder.decode(pwErr, "UTF-8").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") %>
+                <%= decodedPwErr.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") %>
             </div>
             <% } %>
             <!-- Breadcrumbs -->
