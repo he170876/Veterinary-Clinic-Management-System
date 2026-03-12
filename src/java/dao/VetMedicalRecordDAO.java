@@ -220,6 +220,168 @@ public class VetMedicalRecordDAO extends DBContext {
         return list;
     }
 
+    public List<MedicalRecordSummary> getEarliestRecordsByVeterinarian(int veterinarianId, int limit, String query) {
+        List<MedicalRecordSummary> list = new ArrayList<>();
+        if (limit <= 0) limit = 10;
+        if (query == null) query = "";
+        query = query.trim();
+
+        String sql = """
+            SELECT TOP (?) mr.record_id,
+                           v.visit_id,
+                           v.appointment_id,
+                           v.pet_id,
+                           p.name AS pet_name,
+                           cu.full_name AS owner_name,
+                           mr.created_at,
+                           u.full_name AS veterinarian_name,
+                           mr.diagnosis
+            FROM MedicalRecords mr
+            JOIN Visits v ON mr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            JOIN Customers c ON v.customer_id = c.customer_id
+            JOIN Users cu ON c.user_id = cu.user_id
+            JOIN Veterinarians vet ON mr.veterinarian_id = vet.veterinarian_id
+            JOIN Users u ON vet.user_id = u.user_id
+            WHERE mr.veterinarian_id = ?
+              AND ( ? = ''
+                    OR p.name LIKE ?
+                    OR cu.full_name LIKE ?
+                    OR CAST(mr.record_id AS NVARCHAR(20)) = ? )
+            ORDER BY mr.created_at ASC, mr.record_id ASC
+            """;
+
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            ps.setInt(2, veterinarianId);
+            ps.setString(3, query);
+            String like = "%" + query + "%";
+            ps.setString(4, like);
+            ps.setString(5, like);
+            ps.setString(6, query);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    MedicalRecordSummary s = new MedicalRecordSummary();
+                    s.setRecordId(rs.getInt("record_id"));
+                    int petId = rs.getInt("pet_id");
+                    s.setPetId(petId);
+                    s.setAppointmentId(rs.getInt("appointment_id"));
+                    s.setPatientCode("PA-" + petId);
+                    s.setPetName(rs.getString("pet_name"));
+                    Timestamp t = rs.getTimestamp("created_at");
+                    if (t != null) s.setExaminationDate(t.toLocalDateTime());
+                    s.setVeterinarianName(rs.getString("veterinarian_name"));
+                    s.setPrimaryDiagnosis(rs.getString("diagnosis"));
+                    list.add(s);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public int countRecordsByVeterinarian(int veterinarianId, String query) {
+        if (query == null) query = "";
+        query = query.trim();
+
+        String sql = """
+            SELECT COUNT(*)
+            FROM MedicalRecords mr
+            JOIN Visits v ON mr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            JOIN Customers c ON v.customer_id = c.customer_id
+            JOIN Users cu ON c.user_id = cu.user_id
+            WHERE mr.veterinarian_id = ?
+              AND ( ? = ''
+                    OR p.name LIKE ?
+                    OR cu.full_name LIKE ?
+                    OR CAST(mr.record_id AS NVARCHAR(20)) = ? )
+            """;
+
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, veterinarianId);
+            ps.setString(2, query);
+            String like = "%" + query + "%";
+            ps.setString(3, like);
+            ps.setString(4, like);
+            ps.setString(5, query);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public List<MedicalRecordSummary> getRecordsPageByVeterinarian(int veterinarianId, int offset, int pageSize, String query) {
+        List<MedicalRecordSummary> list = new ArrayList<>();
+        if (pageSize <= 0) pageSize = 10;
+        if (offset < 0) offset = 0;
+        if (query == null) query = "";
+        query = query.trim();
+
+        String sql = """
+            SELECT mr.record_id,
+                   v.visit_id,
+                   v.appointment_id,
+                   v.pet_id,
+                   p.name AS pet_name,
+                   cu.full_name AS owner_name,
+                   mr.created_at,
+                   u.full_name AS veterinarian_name,
+                   mr.diagnosis
+            FROM MedicalRecords mr
+            JOIN Visits v ON mr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            JOIN Customers c ON v.customer_id = c.customer_id
+            JOIN Users cu ON c.user_id = cu.user_id
+            JOIN Veterinarians vet ON mr.veterinarian_id = vet.veterinarian_id
+            JOIN Users u ON vet.user_id = u.user_id
+            WHERE mr.veterinarian_id = ?
+              AND ( ? = ''
+                    OR p.name LIKE ?
+                    OR cu.full_name LIKE ?
+                    OR CAST(mr.record_id AS NVARCHAR(20)) = ? )
+            ORDER BY mr.created_at ASC, mr.record_id ASC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+            """;
+
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, veterinarianId);
+            ps.setString(2, query);
+            String like = "%" + query + "%";
+            ps.setString(3, like);
+            ps.setString(4, like);
+            ps.setString(5, query);
+            ps.setInt(6, offset);
+            ps.setInt(7, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    MedicalRecordSummary s = new MedicalRecordSummary();
+                    s.setRecordId(rs.getInt("record_id"));
+                    int petId = rs.getInt("pet_id");
+                    s.setPetId(petId);
+                    s.setAppointmentId(rs.getInt("appointment_id"));
+                    s.setPatientCode("PA-" + petId);
+                    s.setPetName(rs.getString("pet_name"));
+                    Timestamp t = rs.getTimestamp("created_at");
+                    if (t != null) s.setExaminationDate(t.toLocalDateTime());
+                    s.setVeterinarianName(rs.getString("veterinarian_name"));
+                    s.setPrimaryDiagnosis(rs.getString("diagnosis"));
+                    list.add(s);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     public List<MedicalRecordSummary> getRecordsForCustomer(int customerId) {
         List<MedicalRecordSummary> list = new ArrayList<>();
         String sql = """

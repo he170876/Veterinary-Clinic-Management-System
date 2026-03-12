@@ -44,10 +44,30 @@ public class VetMedicalRecordsServlet extends HttpServlet {
         }
 
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
-        List<MedicalRecordSummary> records = recordDao.getRecentRecordsByVeterinarian(veterinarianId, 100);
+        String q = request.getParameter("q");
+        int pageSize = 10;
+        int page = 1;
+        try {
+            String pageParam = request.getParameter("page");
+            if (pageParam != null) {
+                page = Integer.parseInt(pageParam);
+            }
+        } catch (NumberFormatException ignored) {}
+        if (page < 1) page = 1;
+
+        int total = recordDao.countRecordsByVeterinarian(veterinarianId, q);
+        int totalPages = total == 0 ? 1 : (int) Math.ceil(total / (double) pageSize);
+        if (page > totalPages) page = totalPages;
+        int offset = (page - 1) * pageSize;
+
+        List<MedicalRecordSummary> records = recordDao.getRecordsPageByVeterinarian(veterinarianId, offset, pageSize, q);
 
         request.setAttribute("user", user);
         request.setAttribute("records", records);
+        request.setAttribute("q", q == null ? "" : q.trim());
+        request.setAttribute("page", page);
+        request.setAttribute("pageSize", pageSize);
+        request.setAttribute("totalRecords", total);
         request.setAttribute("dateFormatter", DateTimeFormatter.ofPattern("MMM dd, yyyy"));
         request.getRequestDispatcher("/WEB-INF/views/vet/medical-records.jsp").forward(request, response);
     }

@@ -17,6 +17,27 @@
     if (dateFormatter == null) {
         dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy");
     }
+    String q = (String) request.getAttribute("q");
+    if (q == null) q = "";
+    String qEsc = q.replace("&", "&amp;")
+                   .replace("\"", "&quot;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;");
+    Integer pageObj = (Integer) request.getAttribute("page");
+    Integer pageSizeObj = (Integer) request.getAttribute("pageSize");
+    Integer totalObj = (Integer) request.getAttribute("totalRecords");
+    int pageNumber = pageObj != null ? pageObj : 1;
+    int pageSize = pageSizeObj != null ? pageSizeObj : 10;
+    int total = totalObj != null ? totalObj : records.size();
+    if (pageNumber < 1) pageNumber = 1;
+    if (pageSize <= 0) pageSize = 10;
+    int fromIndex = records.isEmpty() ? 0 : (pageNumber - 1) * pageSize + 1;
+    int toIndex = records.isEmpty() ? 0 : (pageNumber - 1) * pageSize + records.size();
+    int totalPages = total == 0 ? 1 : (int) Math.ceil(total / (double) pageSize);
+    String prevDisabledAttr = pageNumber <= 1 ? "disabled" : "";
+    String prevExtraClass = pageNumber <= 1 ? " opacity-40 cursor-not-allowed" : "";
+    String nextDisabledAttr = pageNumber >= totalPages ? "disabled" : "";
+    String nextExtraClass = pageNumber >= totalPages ? " opacity-40 cursor-not-allowed" : "";
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -62,11 +83,6 @@
         <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center justify-between px-8 shrink-0">
             <div class="flex items-center gap-4">
                 <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Medical Records History</h2>
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <span class="material-symbols-outlined text-slate-400 text-sm">search</span>
-                    <input class="bg-transparent border-none p-0 text-sm focus:ring-0 w-64 placeholder:text-slate-400"
-                           placeholder="Search records..." type="text"/>
-                </div>
             </div>
             <div class="flex items-center gap-3">
                 <button class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" type="button">
@@ -80,7 +96,20 @@
             </div>
         </header>
         <div class="flex-1 overflow-auto p-8">
-            <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                <!-- Prominent search bar -->
+                <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+                    <form action="<%= ctx %>/vet/records" method="get" class="relative max-w-2xl">
+                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                        <input name="q"
+                               value="<%= qEsc %>"
+                               class="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400"
+                               placeholder="Search by pet, owner, or record ID..."
+                               type="text"/>
+                        <input type="hidden" name="page" value="1"/>
+                    </form>
+                </div>
+                <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                     <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
@@ -137,11 +166,51 @@
                         }
                     %>
                     </tbody>
-                </table>
+                    </table>
+                </div>
                 <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <p class="text-xs text-slate-500 font-medium">
-                        Showing 1 to <%= records.isEmpty() ? 0 : records.size() %> records
-                    </p>
+                    <div class="flex items-center gap-6">
+                        <p class="text-xs text-slate-500 font-medium whitespace-nowrap">
+                            Showing <%= fromIndex %> to <%= toIndex %> of <%= total %> records (Earliest first)
+                            <% if (!q.isEmpty()) { %>
+                                for "<span class="font-semibold"><%= qEsc %></span>"
+                            <% } %>
+                        </p>
+                        <div class="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-6">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Go to page</span>
+                            <form action="<%= ctx %>/vet/records" method="get" class="flex items-center gap-1">
+                                <input type="hidden" name="q" value="<%= qEsc %>"/>
+                                <input class="w-16 h-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-center focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                       name="page"
+                                       type="number"
+                                       min="1"
+                                       max="<%= totalPages %>"
+                                       value="<%= pageNumber %>"/>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <form action="<%= ctx %>/vet/records" method="get">
+                            <input type="hidden" name="q" value="<%= qEsc %>"/>
+                            <input type="hidden" name="page" value="<%= pageNumber - 1 %>"/>
+                            <button type="submit"
+                                    class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors<%= prevExtraClass %>"
+                                    <%= prevDisabledAttr %>>
+                                <span class="material-symbols-outlined text-sm">chevron_left</span>
+                                <span class="text-xs font-bold">Previous</span>
+                            </button>
+                        </form>
+                        <form action="<%= ctx %>/vet/records" method="get">
+                            <input type="hidden" name="q" value="<%= qEsc %>"/>
+                            <input type="hidden" name="page" value="<%= pageNumber + 1 %>"/>
+                            <button type="submit"
+                                    class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors<%= nextExtraClass %>"
+                                    <%= nextDisabledAttr %>>
+                                <span class="text-xs font-bold">Next</span>
+                                <span class="material-symbols-outlined text-sm">chevron_right</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
