@@ -183,14 +183,14 @@ public class VetExaminationServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/vet/queue?error=notcheckedin");
             return;
         }
-
+//  lưu lại diagnosis, treatment, note
         String diagnosis = request.getParameter("diagnosis");
         String treatment = request.getParameter("treatment");
         String note = request.getParameter("note");
         if (diagnosis == null) diagnosis = "";
         if (treatment == null) treatment = "";
         if (note == null) note = "";
-
+// tạo ra medical record theo visitid, nếu đã có sẽ update
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         MedicalRecord record = recordDao.getByVisitId(visit.getVisitId());
         if (record == null) {
@@ -219,7 +219,7 @@ public class VetExaminationServlet extends HttpServlet {
                     } catch (NumberFormatException ignored) {}
                 }
             }
-
+//Prescriptions validation
             recordDao.deletePrescriptionsByRecordId(record.getRecordId());
             String[] medNames = request.getParameterValues("medication_name");
             String[] dosages = request.getParameterValues("dosage");
@@ -234,7 +234,7 @@ public class VetExaminationServlet extends HttpServlet {
                 }
             }
         }
-
+//sau khi hoàn thành examation sẽ xóa cái recordservices đi và tính số tiền 
         String action = request.getParameter("action");
         if ("complete".equals(action) && visit != null) {
             visitDao.completeVisit(visit.getVisitId());
