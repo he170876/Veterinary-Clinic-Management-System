@@ -23,6 +23,10 @@ import java.util.Set;
 
 public class AppointmentDAO extends DBContext {
 
+    private static final int DEFAULT_SERVICE_DURATION_MINUTES = 30;
+    private static final int DEFAULT_BOOKING_BUFFER_MINUTES = 5;
+    public static final int MAX_BOOKINGS_PER_DAY = 3;
+
     public List<Appointment> getAllAppointments() {
         List<Appointment> list = new ArrayList<>();
 
@@ -704,6 +708,238 @@ public class AppointmentDAO extends DBContext {
         }
 
         return 0;
+    }
+
+    /** Creates a pending appointment for an existing customer booking flow. */
+    public int createCustomerBooking(int petId, int customerId, Integer veterinarianId, LocalDateTime appointmentTime, Integer serviceId, String notes) {
+        String sql = """
+            INSERT INTO appointments (
+                pet_id,
+                customer_id,
+                veterinarian_id,
+                appointment_time,
+                status,
+                service_id,
+                created_at,
+                notes
+            )
+            OUTPUT INSERTED.appointment_id
+            VALUES (?, ?, ?, ?, ?, ?, GETDATE(), ?)
+        """;
+
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setInt(1, petId);
+            ps.setInt(2, customerId);
+            if (veterinarianId != null && veterinarianId > 0) {
+                ps.setInt(3, veterinarianId);
+            } else {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            }
+            ps.setTimestamp(4, Timestamp.valueOf(appointmentTime));
+            ps.setString(5, "Pending");
+            ps.setObject(6, serviceId);
+            ps.setString(7, notes);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Counts how many active (non-cancelled, non-completed) bookings a customer
+     * has already made for a specific date via the customer booking flow.
+     * Used to enforce the daily booking cap (MAX_BOOKINGS_PER_DAY).
+     */
+    public int countCustomerBookingsOnDate(int customerId, java.time.LocalDate date) {
+        String sql = """
+            SELECT COUNT(*)
+            FROM appointments
+            WHERE customer_id = ?
+              AND CAST(appointment_time AS DATE) = ?
+              AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
+              AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
+              AND LOWER(COALESCE(status, '')) <> 'done'
+        """;
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setInt(1, customerId);
+            ps.setDate(2, java.sql.Date.valueOf(date));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public boolean hasCustomerAppointmentConflict(int customerId, LocalDateTime appointmentTime) {
+        return hasCustomerAppointmentConflict(customerId, appointmentTime, DEFAULT_SERVICE_DURATION_MINUTES);
+    }
+
+    public boolean hasCustomerAppointmentConflict(int customerId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
+        String sql = """
+            SELECT
+                a.appointment_time,
+                s.duration,
+                s.category,
+                s.name AS service_name
+            FROM appointments a
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE a.customer_id = ?
+              AND a.appointment_time IS NOT NULL
+              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
+              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%complete%'
+              AND LOWER(COALESCE(a.status, '')) <> 'done'
+        """;
+        return hasAppointmentOverlap(sql, customerId, appointmentTime, requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+    }
+
+    public boolean hasPetAppointmentConflict(int petId, LocalDateTime appointmentTime) {
+        return hasPetAppointmentConflict(petId, appointmentTime, DEFAULT_SERVICE_DURATION_MINUTES);
+    }
+
+    public boolean hasPetAppointmentConflict(int petId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
+        String sql = """
+            SELECT
+                a.appointment_time,
+                s.duration,
+                s.category,
+                s.name AS service_name
+            FROM appointments a
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE a.pet_id = ?
+              AND a.appointment_time IS NOT NULL
+              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
+              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%complete%'
+              AND LOWER(COALESCE(a.status, '')) <> 'done'
+        """;
+        return hasAppointmentOverlap(sql, petId, appointmentTime, requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+    }
+
+    public boolean hasVeterinarianAppointmentConflict(int veterinarianId, LocalDateTime appointmentTime) {
+        return hasVeterinarianAppointmentConflict(veterinarianId, appointmentTime, DEFAULT_SERVICE_DURATION_MINUTES);
+    }
+
+    public boolean hasVeterinarianAppointmentConflict(int veterinarianId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
+        String sql = """
+            SELECT
+                a.appointment_time,
+                s.duration,
+                s.category,
+                s.name AS service_name
+            FROM appointments a
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE a.veterinarian_id = ?
+              AND a.appointment_time IS NOT NULL
+              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
+              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%complete%'
+              AND LOWER(COALESCE(a.status, '')) <> 'done'
+        """;
+        return hasAppointmentOverlap(sql, veterinarianId, appointmentTime, requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+    }
+
+    private boolean hasAppointmentOverlap(String sql, int entityId, LocalDateTime requestedStart,
+            int requestedDurationMinutes, int bufferMinutes) {
+        if (requestedStart == null) {
+            return false;
+        }
+
+        int safeBuffer = Math.max(0, bufferMinutes);
+        int effectiveRequestedDuration = resolveEffectiveDurationMinutes(requestedDurationMinutes, null, null);
+        LocalDateTime requestedEnd = requestedStart.plusMinutes((long) effectiveRequestedDuration + safeBuffer);
+
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setInt(1, entityId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp existingTs = rs.getTimestamp("appointment_time");
+                    if (existingTs == null) {
+                        continue;
+                    }
+
+                    LocalDateTime existingStart = existingTs.toLocalDateTime();
+                    Integer existingDuration = rs.getObject("duration", Integer.class);
+                    String existingCategory = rs.getString("category");
+                    String existingServiceName = rs.getString("service_name");
+
+                    int effectiveExistingDuration = resolveEffectiveDurationMinutes(existingDuration, existingCategory, existingServiceName);
+                    LocalDateTime existingEnd = existingStart.plusMinutes((long) effectiveExistingDuration + safeBuffer);
+
+                    if (requestedStart.isBefore(existingEnd) && existingStart.isBefore(requestedEnd)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private int resolveEffectiveDurationMinutes(Integer rawDuration, String category, String serviceName) {
+        if (rawDuration != null && rawDuration > 0) {
+            return rawDuration;
+        }
+
+        String normalizedCategory = normalizeDurationHint(category);
+        if (normalizedCategory.contains("vaccine")) {
+            return 15;
+        }
+        if (normalizedCategory.contains("checkup") || normalizedCategory.contains("preventive")) {
+            return 20;
+        }
+        if (normalizedCategory.contains("xray") || normalizedCategory.contains("x-ray")
+                || normalizedCategory.contains("radiology") || normalizedCategory.contains("blood")
+                || normalizedCategory.contains("lab")) {
+            return 25;
+        }
+        if (normalizedCategory.contains("consult") || normalizedCategory.contains("surgery")
+                || normalizedCategory.contains("emergency")) {
+            return 30;
+        }
+
+        String normalizedServiceName = normalizeDurationHint(serviceName);
+        if (normalizedServiceName.contains("vaccine")) {
+            return 15;
+        }
+        if (normalizedServiceName.contains("checkup") || normalizedServiceName.contains("general check")) {
+            return 20;
+        }
+        if (normalizedServiceName.contains("xray") || normalizedServiceName.contains("x-ray")
+                || normalizedServiceName.contains("blood") || normalizedServiceName.contains("lab")) {
+            return 25;
+        }
+        if (normalizedServiceName.contains("consult") || normalizedServiceName.contains("surgery")
+                || normalizedServiceName.contains("emergency")) {
+            return 30;
+        }
+
+        return DEFAULT_SERVICE_DURATION_MINUTES;
+    }
+
+    private int resolveEffectiveDurationMinutes(int rawDuration, String category, String serviceName) {
+        return resolveEffectiveDurationMinutes(Integer.valueOf(rawDuration), category, serviceName);
+    }
+
+    private String normalizeDurationHint(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 
     public boolean rescheduleAppointment(int appointmentId, java.util.Date newDate, java.sql.Time newTime) {

@@ -215,7 +215,7 @@
                                 </div>
                             </div>
                             <div class="mt-4 flex gap-2">
-                                <a href="<%= ctx %>/index.jsp" class="flex-1 text-center text-xs font-bold py-2 bg-background-light dark:bg-white/10 text-[#181111] dark:text-white rounded-lg hover:bg-primary hover:text-white transition-colors no-underline">Book Visit</a>
+                                <a href="<%= ctx %>/customer/appointments/book" class="flex-1 text-center text-xs font-bold py-2 bg-background-light dark:bg-white/10 text-[#181111] dark:text-white rounded-lg hover:bg-primary hover:text-white transition-colors no-underline">Book Visit</a>
                             </div>
                         </div>
                         <!-- Add Pet Placeholder -->

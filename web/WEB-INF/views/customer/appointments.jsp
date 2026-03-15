@@ -129,12 +129,17 @@
                         <h2 class="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">My Appointments</h2>
                         <p class="text-slate-500 dark:text-slate-400">Track and manage your scheduled consultations for your furry friends.</p>
                     </div>
-                    <a href="<%= ctx %>/index.jsp?openBooking=1" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shadow-sm">
+                    <a href="<%= ctx %>/customer/appointments/book" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shadow-sm">
                         <span class="material-symbols-outlined text-base">event_available</span>
                         Book Appointment
                     </a>
                 </div>
 
+                <c:if test="${param.booked == '1'}">
+                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 px-4 py-3 text-sm font-medium">
+                        Appointment booked successfully. The clinic will review and confirm it soon.
+                    </div>
+                </c:if>
                 <c:if test="${param.requested == '1'}">
                     <div class="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 px-4 py-3 text-sm font-medium">
                         Reschedule request has been sent. Please wait for receptionist approval.
