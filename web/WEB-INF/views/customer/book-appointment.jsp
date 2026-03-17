@@ -30,9 +30,8 @@
     String formError = (String) request.getAttribute("formError");
     String selectedPetId = request.getAttribute("selectedPetId") != null ? String.valueOf(request.getAttribute("selectedPetId")) : "";
     String selectedServiceId = request.getAttribute("selectedServiceId") != null ? String.valueOf(request.getAttribute("selectedServiceId")) : "";
-    String selectedPreferredDoctorId = request.getAttribute("selectedPreferredDoctorId") != null ? String.valueOf(request.getAttribute("selectedPreferredDoctorId")) : "";
     String selectedAppointmentDate = request.getAttribute("selectedAppointmentDate") != null ? String.valueOf(request.getAttribute("selectedAppointmentDate")) : "";
-    String selectedAppointmentTime = request.getAttribute("selectedAppointmentTime") != null ? String.valueOf(request.getAttribute("selectedAppointmentTime")) : "";
+    String selectedTimeSlot = request.getAttribute("selectedTimeSlot") != null ? String.valueOf(request.getAttribute("selectedTimeSlot")) : "morning";
     String notesValue = request.getAttribute("notesValue") != null ? String.valueOf(request.getAttribute("notesValue")) : "";
     String notesEsc = notesValue.replace("&", "&amp;")
             .replace("<", "&lt;")
@@ -105,7 +104,7 @@
                 <section class="bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                     <div class="mb-6">
                         <h3 class="text-2xl font-black tracking-tight">New Appointment Request</h3>
-                        <p class="text-sm text-slate-500 mt-1">Choose your pet, select a service, optionally request a veterinarian, and pick your preferred time.</p>
+                        <p class="text-sm text-slate-500 mt-1">Choose your pet, select a service, pick your preferred date, and choose morning or afternoon time slot. A veterinarian will be assigned when you check in.</p>
                     </div>
 
                     <% if (formError != null && !formError.isEmpty()) { %>
@@ -164,29 +163,22 @@
                             </div>
 
                             <div class="flex flex-col gap-2">
-                                <label for="preferredDoctorId" class="text-sm font-bold text-slate-700 dark:text-slate-200">Preferred Veterinarian</label>
-                                <select id="preferredDoctorId" name="preferredDoctorId" class="rounded-xl border-slate-200 text-sm" <%= veterinarians.isEmpty() ? "disabled" : "" %>>
-                                    <option value="">No preference</option>
-                                    <% for (User veterinarian : veterinarians) {
-                                        String optionValue = String.valueOf(veterinarian.getUserId());
-                                        String optionLabel = veterinarian.getFullName() != null && !veterinarian.getFullName().isEmpty()
-                                                ? veterinarian.getFullName()
-                                                : "Veterinarian";
-                                    %>
-                                    <option value="<%= optionValue %>" <%= optionValue.equals(selectedPreferredDoctorId) ? "selected" : "" %>>Dr. <%= optionLabel %></option>
-                                    <% } %>
-                                </select>
-                                <p class="text-xs text-slate-500">Optional. If selected, the system checks whether that veterinarian already has an overlapping appointment in your requested time range.</p>
-                            </div>
-
-                            <div class="flex flex-col gap-2">
                                 <label for="appointmentDate" class="text-sm font-bold text-slate-700 dark:text-slate-200">Preferred Date</label>
                                 <input id="appointmentDate" name="appointmentDate" type="date" value="<%= selectedAppointmentDate %>" class="rounded-xl border-slate-200 text-sm" required <%= canSubmit ? "" : "disabled" %>/>
                             </div>
 
                             <div class="flex flex-col gap-2">
-                                <label for="appointmentTime" class="text-sm font-bold text-slate-700 dark:text-slate-200">Preferred Time</label>
-                                <input id="appointmentTime" name="appointmentTime" type="time" value="<%= selectedAppointmentTime %>" class="rounded-xl border-slate-200 text-sm" required <%= canSubmit ? "" : "disabled" %>/>
+                                <label class="text-sm font-bold text-slate-700 dark:text-slate-200">Appointment Time Slot</label>
+                                <div class="flex gap-3">
+                                    <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors" id="morning-label" style="border-color: <%= "morning".equals(selectedTimeSlot) ? "#ff7b00" : "#e2e8f0" %>; background-color: <%= "morning".equals(selectedTimeSlot) ? "rgba(255, 123, 0, 0.05)" : "transparent" %>;">
+                                        <input type="radio" name="timeSlot" value="morning" class="w-4 h-4" <%= "morning".equals(selectedTimeSlot) ? "checked" : "" %> onchange="document.getElementById('morning-label').style.borderColor='#ff7b00'; document.getElementById('morning-label').style.backgroundColor='rgba(255, 123, 0, 0.05)'; document.getElementById('afternoon-label').style.borderColor='#e2e8f0'; document.getElementById('afternoon-label').style.backgroundColor='transparent';"/>
+                                        <span class="text-sm font-semibold">Morning (8:00 AM)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors" id="afternoon-label" style="border-color: <%= "afternoon".equals(selectedTimeSlot) ? "#ff7b00" : "#e2e8f0" %>; background-color: <%= "afternoon".equals(selectedTimeSlot) ? "rgba(255, 123, 0, 0.05)" : "transparent" %>;">
+                                        <input type="radio" name="timeSlot" value="afternoon" class="w-4 h-4" <%= "afternoon".equals(selectedTimeSlot) ? "checked" : "" %> onchange="document.getElementById('afternoon-label').style.borderColor='#ff7b00'; document.getElementById('afternoon-label').style.backgroundColor='rgba(255, 123, 0, 0.05)'; document.getElementById('morning-label').style.borderColor='#e2e8f0'; document.getElementById('morning-label').style.backgroundColor='transparent';"/>
+                                        <span class="text-sm font-semibold">Afternoon (2:00 PM)</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -214,7 +206,7 @@
                         <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
                             <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-base">check_circle</span><span>Choose one of your registered pets.</span></li>
                             <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-base">check_circle</span><span>Select the service that best matches the visit reason.</span></li>
-                            <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-base">check_circle</span><span>The system blocks overlapping bookings for the same customer, pet, or selected veterinarian.</span></li>
+                            <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-base">check_circle</span><span>Choose your preferred appointment time: morning or afternoon.</span></li>
                             <li class="flex gap-2"><span class="material-symbols-outlined text-primary text-base">check_circle</span><span>Your appointment will be created with Pending status until the clinic reviews it.</span></li>
                         </ul>
                     </section>
