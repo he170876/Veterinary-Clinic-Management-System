@@ -12,7 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(name = "UserManagementServlet", urlPatterns = {"/admin/user-management"})
+@WebServlet(name = "UserManagementServlet", urlPatterns = {"/owner/user-management"})
 public class UserManagementServlet extends HttpServlet {
     
     private final UserDAO userDAO = new UserJdbcDAO();

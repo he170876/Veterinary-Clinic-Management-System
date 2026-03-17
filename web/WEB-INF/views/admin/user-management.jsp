@@ -1,310 +1,325 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
-
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>User Management</title>
-
-        <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet"/>
-
-        <style>
-            body {
-                font-family: 'Manrope', sans-serif;
-            }
-
-            .status-select {
-                font-weight: 700;
-                border-radius: 9999px;
-                padding: 6px 14px;
-                font-size: 0.85rem;
-                border: 2px solid;
-                background-image: none;
-            }
-
-            .status-active {
-                background-color: #dcfce7;
-                color: #166534;
-                border-color: #22c55e;
-            }
-
-            .status-inactive {
-                background-color: #fef9c3;
-                color: #854d0e;
-                border-color: #eab308;
-            }
-
-            .status-blocked {
-                background-color: #fee2e2;
-                color: #991b1b;
-                border-color: #ef4444;
-            }
-
-            /* dropdown options không bị dính màu */
-            .status-select option {
-                background-color: white;
-                color: #111827;
-                font-weight: 600;
-            }
-        </style>
-    </head>
-
-    <body class="bg-[#fdf8f1] text-[#181111]">
-
-        <!-- NAVBAR -->
-        <header class="bg-white shadow">
-            <div class="max-w-[1200px] mx-auto px-6 py-4 flex justify-between items-center">
-                <h1 class="text-2xl font-black">Anipats</h1>
-                <nav class="space-x-6 font-semibold">
-                    <a href="index.jsp">Home</a>
-                    <a href="user-management" class="text-orange-500">User Management</a>
-                    <a href="logout">Logout</a>
-                </nav>
+<html class="light" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Management</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff7b00",
+                        "background-light": "#ffffff",
+                        "background-dark": "#16181d",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Manrope', sans-serif; }
+        .soft-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08); }
+        .sidebar-item-active { background-color: #f4ede6; border-radius: 0.75rem; }
+        .dark .sidebar-item-active { background-color: #1a1c22; }
+        .status-select {
+            font-weight: 700;
+            border-radius: 9999px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            border: 2px solid;
+            background-image: none;
+        }
+        .status-active {
+            background-color: #dcfce7;
+            color: #166534;
+            border-color: #22c55e;
+        }
+        .status-inactive {
+            background-color: #fef9c3;
+            color: #854d0e;
+            border-color: #eab308;
+        }
+        .status-blocked {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-color: #ef4444;
+        }
+        .status-select option {
+            background-color: white;
+            color: #111827;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#1d140c] dark:text-white transition-colors duration-200">
+<div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark hidden lg:flex flex-col p-6 sticky top-0 h-screen">
+        <div class="flex items-center gap-3 mb-8">
+            <div class="size-10 rounded-full bg-primary flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">pets</span>
             </div>
-        </header>
-
-        <!-- TITLE -->
-        <section class="py-8 bg-[#fff7ed]">
-            <div class="max-w-[1200px] mx-auto px-6 flex justify-between items-center">
-                <div>
-                    <h2 class="text-4xl font-black">User Management</h2>
-                    <p class="mt-2 text-[#896163]">Search and filter system users</p>
+            <div class="flex flex-col">
+                <h1 class="text-lg font-bold leading-tight">Anipat</h1>
+                <p class="text-[#a17145] text-xs font-medium">Veterinary Clinic</p>
+            </div>
+        </div>
+        <nav class="flex flex-col gap-2 flex-1">
+            <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="text-sm font-semibold">Dashboard</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 sidebar-item-active text-primary" href="user-management">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+                <span class="text-sm font-bold">User Management</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/dashboard">
+                <span class="material-symbols-outlined">medical_services</span>
+                <span class="text-sm font-semibold">Services</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/images">
+                        <span class="material-symbols-outlined">image</span>
+                        <span class="text-sm font-semibold">Images</span>
+                    </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="text-sm font-semibold">Settings</span>
+            </a>
+        </nav>
+    </aside>
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 bg-[#fcfaf8] dark:bg-[#0f1115]">
+        <!-- Header -->
+        <header class="h-16 border-b border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark flex items-center justify-between px-6 gap-8 sticky top-0 z-10">
+            <div class="flex items-center gap-4 lg:hidden">
+                <div class="size-8 rounded-full bg-primary flex items-center justify-center text-white">
+                    <span class="material-symbols-outlined text-lg">pets</span>
                 </div>
-                <button type="button"
-                        onclick="openCreateUserModal()"
-                        class="px-6 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600">
-                    + Add User
+            </div>
+            <div class="flex-1">
+                <div class="relative group max-w-2xl">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#a17145] group-focus-within:text-primary transition-colors">search</span>
+                    <form action="user-management" method="get">
+                        <input name="keyword" value="${param.keyword}" class="w-full bg-[#f4ede6] dark:bg-gray-800 border-none rounded-xl py-2 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all placeholder-[#a17145]/60" placeholder="Search users..." type="text" />
+                        <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
+                        <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
+                        <input type="hidden" name="page" value="1" />
+                        <input type="hidden" name="sort" value="${sort}" />
+                    </form>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="size-10 rounded-full border border-[#eadbcd] dark:border-gray-800 flex items-center justify-center hover:bg-[#f4ede6] dark:hover:bg-gray-800 transition-colors relative">
+                    <span class="material-symbols-outlined text-xl text-[#a17145]">notifications</span>
+                </button>
+                <div class="h-8 w-px bg-[#eadbcd] dark:border-gray-800 mx-1"></div>
+                <button class="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-[#f4ede6] dark:hover:bg-gray-800 transition-all border border-transparent hover:border-[#eadbcd] dark:hover:border-gray-700">
+                    <div class="size-8 rounded-full bg-cover bg-center border border-white dark:border-gray-700 shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAYUCJ5rFUlr81fchNgluov8XqF0omAMzcfRI6nmGwV8EbFQxDeqFbQ2PwK2MKwmUSKZit9vi8bIYew6GamGqmcFBwcGpAYU-bsg_UlBH_Iyq3v1Tw3iOUpKfVh7-O0zJ8tNEHwIneejfmZjDaWpXXIebkX_Wngol2e-sAKBsguK_Eoh0Ei9Um081oSK5oCR6I8GRroVTLARRcp1703Dl_8kP8qgtUq9GiIWG-D7MNPw2LA8xy1lh2GUpxleoam1XNeO1icd6fRSUI');"></div>
+                    <span class="material-symbols-outlined text-[#a17145]">expand_more</span>
                 </button>
             </div>
-        </section>
-
-        <main class="py-10">
-            <div class="max-w-[1200px] mx-auto px-6">
-
-                <!-- FILTER -->
-                <form action="user-management" method="get"
-                      class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-
-                    <input type="hidden" name="page" value="${currentPage}" />
-
-                    <input name="keyword" value="${param.keyword}"
-                           placeholder="Search name or email"
-                           class="rounded-xl border px-4 py-3"/>
-
-                    <select name="filterRoleId" class="rounded-xl border px-4 py-3">
-                        <option value="">All roles</option>
-                        <option value="1" ${param.filterRoleId=='1'?'selected':''}>Customer</option>
-                        <option value="2" ${param.filterRoleId=='2'?'selected':''}>Veterinarian</option>
-                        <option value="3" ${param.filterRoleId=='3'?'selected':''}>Receptionist</option>
-                        <option value="4" ${param.filterRoleId=='4'?'selected':''}>Lab Staff</option>
-                        <option value="5" ${param.filterRoleId=='5'?'selected':''}>Admin</option>
-                        <option value="6" ${param.filterRoleId=='6'?'selected':''}>Clinic Owner</option>
-                    </select>
-
-                    <select name="filterStatus" class="rounded-xl border px-4 py-3">
-                        <option value="">All status</option>
-                        <option value="Active" ${param.status=='Active'?'selected':''}>Active</option>
-                        <option value="Inactive" ${param.status=='Inactive'?'selected':''}>Inactive</option>
-                        <option value="Blocked" ${param.status=='Blocked'?'selected':''}>Blocked</option>
-                    </select>
-
-                    <button class="bg-orange-500 text-white font-bold rounded-xl">Filter</button>
-
-                    <a href="user-management"
-                       class="bg-gray-200 rounded-xl font-bold flex items-center justify-center">
-                        Clear
-                    </a>
-                </form>
-
-                <!-- TABLE -->
-                <div class="bg-white rounded-2xl shadow overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="px-6 py-4">
-                                    <form method="get" action="user-management" class="inline-flex items-center gap-1">
-
-                                        <!-- giữ filter -->
-                                        <input type="hidden" name="keyword" value="${param.keyword}" />
-                                        <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
-                                        <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
-                                        <input type="hidden" name="page" value="1" />
-
-                                        <!-- sort -->
-                                        <input type="hidden" name="sort"
-                                               value="${sort == 'id_asc' ? 'id_desc' : 'id_asc'}" />
-
-                                        ID
-                                        <button type="submit"
-                                                class="ml-1 font-bold text-orange-600 hover:scale-110 transition">
-
-                                            <c:choose>
-                                                <c:when test="${sort eq 'id_asc'}">↑</c:when>
-                                                <c:when test="${sort eq 'id_desc'}">↓</c:when>
-                                                <c:otherwise>↕</c:otherwise>
-                                            </c:choose>
-
-                                        </button>
-                                    </form>
-                                </th>
-                                <th class="px-6 py-4">Name</th>
-                                <th class="px-6 py-4">Email</th>
-                                <th class="px-6 py-4">Role</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4 text-center">Action</th>
-                            </tr>
-                        </thead>
-
-                        <tbody class="divide-y">
-                            <c:forEach items="${users}" var="u">
-                                <tr>
-                                    <td class="px-6 py-4">${u.userId}</td>
-                                    <td class="px-6 py-4 font-semibold">${u.fullName}</td>
-                                    <td class="px-6 py-4">${u.email}</td>
-                                    <td class="px-6 py-4">${u.role.roleName}</td>
-
-                                    <!-- STATUS DROPDOWN -->
-                                    <td class="px-6 py-4">
-                                        <form action="change-user-status" method="post">
-
-                                            <input type="hidden" name="id" value="${u.userId}" />
-
-                                            <!-- giữ filter -->
-                                            <input type="hidden" name="keyword" value="${param.keyword}" />
-                                            <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
-                                            <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
-
-                                            <!-- giữ phân trang + sort -->
-                                            <input type="hidden" name="page" value="${currentPage}" />
-                                            <input type="hidden" name="sort" value="${sort}" />
-
-                                            <!-- status của user -->
-                                            <select name="status"
-                                                    data-user-id="${u.userId}"
-                                                    data-old-status="${u.status}"
-                                                    onchange="openConfirmModal(this)"
-                                                    class="status-select
-                                                    ${u.status == 'Active' ? 'status-active' :
-                                                      u.status == 'Inactive' ? 'status-inactive' :
-                                                      'status-blocked'}">
-
-                                                <option value="Active" ${u.status=='Active'?'selected':''}>Active</option>
-                                                <option value="Inactive" ${u.status=='Inactive'?'selected':''}>Inactive</option>
-                                                <option value="Blocked" ${u.status=='Blocked'?'selected':''}>Blocked</option>
-                                            </select>
-                                        </form>
-
-                                    </td>
-
-                                    <!-- ACTION -->
-                                    <td class="px-6 py-4 text-center">
-
-                                        <button type="button"
-                                                onclick="openUserModal(
-                                                                '${u.userId}',
-                                                                '${u.fullName}',
-                                                                '${u.email}',
-                                                                '${u.role.roleName}',
-                                                                '${u.status}',
-                                                                '${u.phone}',
-                                                                '${u.address}',
-                                                                '${u.createdAt}',
-                                                                '${u.updatedAt}'
-                                                                )"
-                                                class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">
-                                            View
-                                        </button>
-
-                                        <button type="button"
-                                                onclick="openEditUserModal(
-                                                                '${u.userId}',
-                                                                '${u.fullName}',
-                                                                '${u.email}',
-                                                                '${u.phone}',
-                                                                '${u.address}',
-                                                                '${u.role.roleId}',
-                                                                '${u.status}'
-                                                                )"
-                                                class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600">
-                                            Edit
-                                        </button>
-
-                                    </td>
-                                </tr>
-                            </c:forEach>
-
-                            <c:if test="${empty users}">
-                                <tr>
-                                    <td colspan="6" class="text-center py-10 text-gray-500">
-                                        No users found
-                                    </td>
-                                </tr>
-                            </c:if>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="flex justify-between items-center mt-4 text-sm text-gray-600">
-
-                    <c:set var="from" value="${(currentPage - 1) * pageSize + 1}" />
-                    <c:set var="to" value="${currentPage * pageSize}" />
-
-                    <c:if test="${to > totalUsers}">
-                        <c:set var="to" value="${totalUsers}" />
-                    </c:if>
-
-                    <div>
-                        Showing
-                        <b>${from}</b>
-                        to
-                        <b>${to}</b>
-                        of
-                        <b>${totalUsers}</b>
-                        users
+        </header>
+        <div class="p-8 max-w-6xl mx-auto w-full flex flex-col gap-6">
+            <div class="flex flex-col @[480px]:flex-row justify-between items-start @[480px]:items-end gap-4 mb-4">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[#a17145] text-sm font-medium">Management</span>
+                        <span class="text-[#eadbcd] dark:text-gray-700">/</span>
+                        <span class="text-[#1d140c] dark:text-white text-sm font-bold">User Management</span>
                     </div>
-
+                    <h2 class="text-2xl font-bold tracking-tight">System Users</h2>
+                    <p class="text-[#a17145] text-sm">Search and filter system users</p>
                 </div>
-
-                <!-- PAGINATION -->
-                <c:if test="${totalPages > 1}">
-                    <div class="flex justify-center items-center gap-2 mt-8">
-
-                        <!-- PREV -->
-                        <c:if test="${currentPage > 1}">
-                            <a href="user-management?page=${currentPage-1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
-                               class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
-                                Prev
-                            </a>
-                        </c:if>
-
-                        <!-- PAGE NUMBERS -->
-                        <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="user-management?page=${i}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
-                               class="px-4 py-2 rounded-lg font-bold
-                               ${i == currentPage ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}">
-                                ${i}
-                            </a>
-                        </c:forEach>
-
-                        <!-- NEXT -->
-                        <c:if test="${currentPage < totalPages}">
-                            <a href="user-management?page=${currentPage+1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
-                               class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
-                                Next
-                            </a>
-                        </c:if>
-
-                    </div>
-                </c:if>
-
             </div>
-        </main>
+            <!-- FILTER -->
+            <form action="user-management" method="get"
+                  class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
 
-        <footer class="bg-[#181111] text-white py-10 mt-20 text-center opacity-70">
-            © 2025 Anipats
-        </footer>
+                <input type="hidden" name="page" value="${currentPage}" />
+
+                <input name="keyword" value="${param.keyword}"
+                       placeholder="Search name or email"
+                       class="rounded-xl border px-4 py-3"/>
+
+                <select name="filterRoleId" class="rounded-xl border px-4 py-3">
+                    <option value="">All roles</option>
+                    <option value="1" ${param.filterRoleId=='1'?'selected':''}>Customer</option>
+                    <option value="2" ${param.filterRoleId=='2'?'selected':''}>Veterinarian</option>
+                    <option value="3" ${param.filterRoleId=='3'?'selected':''}>Receptionist</option>
+                    <option value="4" ${param.filterRoleId=='4'?'selected':''}>Lab Staff</option>
+                    <option value="5" ${param.filterRoleId=='5'?'selected':''}>Admin</option>
+                    <option value="6" ${param.filterRoleId=='6'?'selected':''}>Clinic Owner</option>
+                </select>
+
+                <select name="filterStatus" class="rounded-xl border px-4 py-3">
+                    <option value="">All status</option>
+                    <option value="Active" ${param.status=='Active'?'selected':''}>Active</option>
+                    <option value="Inactive" ${param.status=='Inactive'?'selected':''}>Inactive</option>
+                    <option value="Blocked" ${param.status=='Blocked'?'selected':''}>Blocked</option>
+                </select>
+
+                <button class="bg-primary hover:bg-[#e66f00] text-white font-bold rounded-xl">Filter</button>
+
+                <a href="user-management"
+                   class="bg-gray-200 rounded-xl font-bold flex items-center justify-center">
+                    Clear
+                </a>
+            </form>
+            <!-- TABLE -->
+            <div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark overflow-x-auto">
+                <table class="min-w-full text-sm">
+                <thead class="bg-[#fcfaf8] dark:bg-gray-800/50 border-b border-[#eadbcd] dark:border-gray-800">
+                    <tr>
+                        <th class="px-6 py-4">
+                            <form method="get" action="user-management" class="inline-flex items-center gap-1">
+                                <input type="hidden" name="keyword" value="${param.keyword}" />
+                                <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
+                                <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
+                                <input type="hidden" name="page" value="1" />
+                                <input type="hidden" name="sort" value="${sort == 'id_asc' ? 'id_desc' : 'id_asc'}" />
+                                ID
+                                <button type="submit" class="ml-1 font-bold text-primary hover:scale-110 transition">
+                                    <c:choose>
+                                        <c:when test="${sort eq 'id_asc'}">↑</c:when>
+                                        <c:when test="${sort eq 'id_desc'}">↓</c:when>
+                                        <c:otherwise>↕</c:otherwise>
+                                    </c:choose>
+                                </button>
+                            </form>
+                        </th>
+                        <th class="px-6 py-4">Name</th>
+                        <th class="px-6 py-4">Email</th>
+                        <th class="px-6 py-4">Role</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    <c:forEach items="${users}" var="u">
+                        <tr class="hover:bg-[#fcfaf8] dark:hover:bg-gray-800/30 transition-colors">
+                            <td class="px-6 py-4">${u.userId}</td>
+                            <td class="px-6 py-4 font-semibold">${u.fullName}</td>
+                            <td class="px-6 py-4">${u.email}</td>
+                            <td class="px-6 py-4">${u.role.roleName}</td>
+                            <td class="px-6 py-4">
+                                <form action="change-user-status" method="post">
+                                    <input type="hidden" name="id" value="${u.userId}" />
+                                    <input type="hidden" name="keyword" value="${param.keyword}" />
+                                    <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
+                                    <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
+                                    <input type="hidden" name="page" value="${currentPage}" />
+                                    <input type="hidden" name="sort" value="${sort}" />
+                                    <select name="status"
+                                            data-user-id="${u.userId}"
+                                            data-old-status="${u.status}"
+                                            onchange="openConfirmModal(this)"
+                                            class="status-select
+                                            ${u.status == 'Active' ? 'status-active' :
+                                              u.status == 'Inactive' ? 'status-inactive' :
+                                              'status-blocked'}">
+                                        <option value="Active" ${u.status=='Active'?'selected':''}>Active</option>
+                                        <option value="Inactive" ${u.status=='Inactive'?'selected':''}>Inactive</option>
+                                        <option value="Blocked" ${u.status=='Blocked'?'selected':''}>Blocked</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button type="button"
+                                        onclick="openUserModal(
+                                                        '${u.userId}',
+                                                        '${u.fullName}',
+                                                        '${u.email}',
+                                                        '${u.role.roleName}',
+                                                        '${u.status}',
+                                                        '${u.phone}',
+                                                        '${u.address}',
+                                                        '${u.createdAt}',
+                                                        '${u.updatedAt}'
+                                                        )"
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">
+                                    View
+                                </button>
+                                <button type="button"
+                                        onclick="openEditUserModal(
+                                                        '${u.userId}',
+                                                        '${u.fullName}',
+                                                        '${u.email}',
+                                                        '${u.phone}',
+                                                        '${u.address}',
+                                                        '${u.role.roleId}',
+                                                        '${u.status}'
+                                                        )"
+                                        class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600">
+                                    Edit
+                                </button>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                    <c:if test="${empty users}">
+                        <tr>
+                            <td colspan="6" class="text-center py-10 text-[#a17145]">
+                                <div class="flex flex-col items-center gap-2">
+                                    <span class="material-symbols-outlined text-4xl opacity-50">inbox</span>
+                                    <p>No users found</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </c:if>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-[#fcfaf8] dark:bg-gray-800/50 px-6 py-4 border-t border-[#eadbcd] dark:border-gray-800 flex items-center justify-between mt-2">
+            <c:set var="from" value="${(currentPage - 1) * pageSize + 1}" />
+            <c:set var="to" value="${currentPage * pageSize}" />
+            <c:if test="${to > totalUsers}">
+                <c:set var="to" value="${totalUsers}" />
+            </c:if>
+            <div class="text-sm text-[#a17145]">
+                Showing <b>${from}</b> to <b>${to}</b> of <b>${totalUsers}</b> users
+            </div>
+        </div>
+
+
+        <!-- PAGINATION -->
+        <c:if test="${totalPages > 1}">
+            <div class="flex justify-center items-center gap-2 mt-8">
+                <c:if test="${currentPage > 1}">
+                    <a href="user-management?page=${currentPage-1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
+                       class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
+                        Prev
+                    </a>
+                </c:if>
+                <c:forEach begin="1" end="${totalPages}" var="i">
+                    <a href="user-management?page=${i}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
+                       class="px-4 py-2 rounded-lg font-bold
+                       ${i == currentPage ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}">
+                        ${i}
+                    </a>
+                </c:forEach>
+                <c:if test="${currentPage < totalPages}">
+                    <a href="user-management?page=${currentPage+1}&keyword=${param.keyword}&filterRoleId=${param.filterRoleId}&filterStatus=${param.filterStatus}&sort=${sort}"
+                       class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
+                        Next
+                    </a>
+                </c:if>
+            </div>
+        </c:if>
+    </div>
+    </main>
+</div>
 
         <!-- UPDATE USER STATUS -->
         <script>
@@ -472,7 +487,7 @@
 
                 <h3 class="text-2xl font-black mb-4">Edit User</h3>
 
-                <form action="edit-user" method="post" class="space-y-4">
+                <form id="editUserForm" action="${pageContext.request.contextPath}/owner/change-user-role" method="post" class="space-y-4">
 
                     <input type="hidden" name="id" id="e-id"/>
 
@@ -572,7 +587,7 @@
                         </button>
 
                         <button type="submit"
-                                onclick="return confirm('Save changes for this user?')"
+                                onclick="return handleEditUserSubmit(event)"
                                 class="px-5 py-2 bg-orange-500 text-white rounded-lg font-bold">
                             Save
                         </button>
@@ -613,167 +628,7 @@
             </script>
         </c:if>
 
-        <!-- CREATE USER MODAL -->
-        <div id="createUserModal"
-             class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-
-            <div class="bg-white w-full max-w-xl rounded-2xl shadow-lg p-6 relative">
-
-                <h3 class="text-2xl font-black mb-4">Create User</h3>
-
-                <form action="create-user" method="post" class="space-y-4">
-
-                    <!-- giữ filter + pagination -->
-                    <input type="hidden" name="keyword" value="${param.keyword}" />
-                    <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
-                    <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
-                    <input type="hidden" name="page" value="${currentPage}" />
-                    <input type="hidden" name="sort" value="${sort}" />
-
-                    <div>
-                        <label class="font-semibold">Full Name</label>
-                        <input name="fullName"
-                               value="${fullName}"
-                               class="w-full rounded-lg border px-4 py-2
-                               ${errors.fullName != null ? 'border-red-500' : ''}" required=""/>
-
-                        <c:if test="${errors.fullName != null}">
-                            <p class="text-red-500 text-sm mt-1">${errors.fullName}</p>
-                        </c:if>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold">Email</label>
-                        <input name="email"
-                               value="${email}"
-                               class="w-full rounded-lg border px-4 py-2
-                               ${errors.email != null ? 'border-red-500' : ''}" required=""/>
-
-                        <c:if test="${errors.email != null}">
-                            <p class="text-red-500 text-sm mt-1">${errors.email}</p>
-                        </c:if>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold">Password</label>
-                        <input type="password" name="password"
-                               class="w-full rounded-lg border px-4 py-2
-                               ${errors.password != null ? 'border-red-500' : ''}" required=""/>
-
-                        <c:if test="${errors.password != null}">
-                            <p class="text-red-500 text-sm mt-1">${errors.password}</p>
-                        </c:if>
-                    </div>
-
-                    <div>
-                        <label class="block mb-1 font-medium">Re-enter Password</label>
-                        <input type="password"
-                               name="confirmPassword"
-                               class="w-full rounded-lg border px-4 py-2
-                               ${errors.confirmPassword != null ? 'border-red-500' : ''}"
-                               required>
-
-                        <c:if test="${errors.confirmPassword != null}">
-                            <p class="text-red-500 text-sm mt-1">
-                                ${errors.confirmPassword}
-                            </p>
-                        </c:if>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold">Phone</label>
-                        <input name="phone"
-                               value="${phone}"
-                               class="w-full rounded-lg border px-4 py-2
-                               ${errors.phone != null ? 'border-red-500' : ''}"/>
-
-                        <c:if test="${errors.phone != null}">
-                            <p class="text-red-500 text-sm mt-1">${errors.phone}</p>
-                        </c:if>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold">Address</label>
-                        <input name="address"
-                               value="${address}"
-                               class="w-full rounded-lg border px-4 py-2
-                               ${errors.address != null ? 'border-red-500' : ''}"/>
-
-                        <c:if test="${errors.address != null}">
-                            <p class="text-red-500 text-sm mt-1">${errors.address}</p>
-                        </c:if>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold">Role</label>
-                        <select name="roleId"
-                                class="w-full rounded-lg border px-4 py-2
-                                ${errors.roleId != null ? 'border-red-500' : ''}">
-
-                            <option value="1" ${roleId == 1 ? 'selected' : ''}>Customer</option>
-                            <option value="2" ${roleId == 2 ? 'selected' : ''}>Veterinarian</option>
-                            <option value="3" ${roleId == 3 ? 'selected' : ''}>Receptionist</option>
-                            <option value="4" ${roleId == 4 ? 'selected' : ''}>Lab Staff</option>
-                            <option value="5" ${roleId == 5 ? 'selected' : ''}>Admin</option>
-                            <option value="6" ${roleId == 6 ? 'selected' : ''}>Clinic Owner</option>
-                        </select>
-
-                        <c:if test="${errors.roleId != null}">
-                            <p class="text-red-500 text-sm mt-1">${errors.roleId}</p>
-                        </c:if>
-                    </div>
-
-                    <div>
-                        <label class="font-semibold">Status</label>
-                        <select name="status"
-                                class="w-full rounded-lg border px-4 py-2">
-                            <option value="Active" ${status == 'Active' ? 'selected' : ''}>Active</option>
-                            <option value="Inactive" ${status == 'Inactive' ? 'selected' : ''}>Inactive</option>
-                            <option value="Blocked" ${status == 'Blocked' ? 'selected' : ''}>Blocked</option>
-                        </select>
-
-                        <c:if test="${errors.status != null}">
-                            <p class="text-red-500 text-sm mt-1">${errors.status}</p>
-                        </c:if>
-                    </div>
-
-                    <div class="flex justify-end gap-3 pt-4">
-                        <button type="button"
-                                onclick="closeCreateUserModal()"
-                                class="px-5 py-2 bg-gray-200 rounded-lg font-bold">
-                            Cancel
-                        </button>
-
-                        <button type="submit"
-                                onclick="return confirm('Create this user?')"
-                                class="px-5 py-2 bg-orange-500 text-white rounded-lg font-bold">
-                            Create
-                        </button>
-                    </div>
-
-                </form>
-            </div>
-        </div>
-
-        <script>
-            function openCreateUserModal() {
-                const modal = document.getElementById('createUserModal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
-
-            function closeCreateUserModal() {
-                const modal = document.getElementById('createUserModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        </script>
-
-        <c:if test="${openCreateModal}">
-            <script>
-                openCreateUserModal();
-            </script>
-        </c:if>
+       
 
     </body>
 </html>

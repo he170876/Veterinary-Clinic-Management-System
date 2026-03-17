@@ -54,12 +54,15 @@
                         <span class="material-symbols-outlined">dashboard</span>
                         <span class="text-sm font-semibold">Dashboard</span>
                     </a>
-
+                    <a class="flex items-center gap-3 px-3 py-2.5  text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/user-management">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+                        <span class="text-sm font-semibold">User Management</span>
+                    </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 sidebar-item-active text-primary" href="#">
                         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">medical_services</span>
                         <span class="text-sm font-bold">Services</span>
                     </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/admin/images">
+                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/images">
                         <span class="material-symbols-outlined">image</span>
                         <span class="text-sm font-semibold">Images</span>
                     </a>
@@ -188,8 +191,38 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="bg-[#fcfaf8] dark:bg-gray-800/50 px-6 py-4 border-t border-[#eadbcd] dark:border-gray-800 flex items-center justify-between">
-                            <p class="text-sm text-[#a17145]">Showing <span id="serviceCount">${empty services ? 0 : services.size()}</span> services</p>
+                        <div class="bg-[#fcfaf8] dark:bg-gray-800/50 px-6 py-4 border-t border-[#eadbcd] dark:border-gray-800 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <div class="text-sm text-[#a17145]">
+                                <c:set var="from" value="${(currentPage - 1) * pageSize + 1}" />
+                                <c:set var="to" value="${currentPage * pageSize}" />
+                                <c:if test="${to > totalServices}">
+                                    <c:set var="to" value="${totalServices}" />
+                                </c:if>
+                                Showing <b>${from}</b> to <b>${to}</b> of <b>${totalServices}</b> services
+                            </div>
+                            <c:if test="${totalPages > 1}">
+                                <div class="flex justify-center items-center gap-2">
+                                    <c:if test="${currentPage > 1}">
+                                        <a href="${pageContext.request.contextPath}/owner/dashboard?page=${currentPage-1}"
+                                           class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
+                                            Prev
+                                        </a>
+                                    </c:if>
+                                    <c:forEach begin="1" end="${totalPages}" var="i">
+                                        <a href="${pageContext.request.contextPath}/owner/dashboard?page=${i}"
+                                           class="px-4 py-2 rounded-lg font-bold
+                                           ${i == currentPage ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}">
+                                            ${i}
+                                        </a>
+                                    </c:forEach>
+                                    <c:if test="${currentPage < totalPages}">
+                                        <a href="${pageContext.request.contextPath}/owner/dashboard?page=${currentPage+1}"
+                                           class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
+                                            Next
+                                        </a>
+                                    </c:if>
+                                </div>
+                            </c:if>
                         </div>
                     </div>
                 </div>
@@ -385,115 +418,115 @@
                         location.reload();
                         } else if (response.status === 409) {
                             alert('Service name already exists. Please use a different name.');
-                        } else if (response.ok) {
-                            location.reload();
-                            } else {
-                                alert('Error saving service (Status: ' + response.status + ')');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Fetch error:', error);
-                            alert('Network error: ' + error.message);
-                        });
-                    }
-                    
-                    function submitEditService(event) {
-                        event.preventDefault();
-                        const formData = new FormData(document.getElementById('editServiceForm'));
-                        const params = new URLSearchParams(formData);
-                        
-                        fetch('<%= request.getContextPath() %>/owner/dashboard', {
-                            method: 'POST',
-                            body: params
-                        })
-                        .then(response => {
-                            console.log('Response status:', response.status);
-                            if (response.status === 302 || response.redirected) {
+                            } else if (response.ok) {
                                 location.reload();
-                                } else if (response.ok) {
-                                    location.reload();
-                                    } else {
-                                        alert('Error updating service (Status: ' + response.status + ')');
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Fetch error:', error);
-                                    alert('Network error: ' + error.message);
-                                });
-                            }
+                                } else {
+                                    alert('Error saving service (Status: ' + response.status + ')');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Fetch error:', error);
+                                alert('Network error: ' + error.message);
+                            });
+                        }
+                        
+                        function submitEditService(event) {
+                            event.preventDefault();
+                            const formData = new FormData(document.getElementById('editServiceForm'));
+                            const params = new URLSearchParams(formData);
                             
-                            // Delete Service
-                            function deleteService(id) {
-                                if (confirm('Are you sure you want to delete this service?')) {
-                                    const params = new URLSearchParams();
-                                    params.append('action', 'delete');
-                                    params.append('serviceId', id);
-                                    
-                                    fetch('<%= request.getContextPath() %>/owner/dashboard', {
-                                        method: 'POST',
-                                        body: params
+                            fetch('<%= request.getContextPath() %>/owner/dashboard', {
+                                method: 'POST',
+                                body: params
+                            })
+                            .then(response => {
+                                console.log('Response status:', response.status);
+                                if (response.status === 302 || response.redirected) {
+                                    location.reload();
+                                    } else if (response.ok) {
+                                        location.reload();
+                                        } else {
+                                            alert('Error updating service (Status: ' + response.status + ')');
+                                        }
                                     })
-                                    .then(response => {
-                                        console.log('Delete response status:', response.status);
-                                        if (response.status === 302 || response.redirected) {
-                                            location.reload();
-                                            } else if (response.ok) {
+                                    .catch(error => {
+                                        console.error('Fetch error:', error);
+                                        alert('Network error: ' + error.message);
+                                    });
+                                }
+                                
+                                // Delete Service
+                                function deleteService(id) {
+                                    if (confirm('Are you sure you want to delete this service?')) {
+                                        const params = new URLSearchParams();
+                                        params.append('action', 'delete');
+                                        params.append('serviceId', id);
+                                        
+                                        fetch('<%= request.getContextPath() %>/owner/dashboard', {
+                                            method: 'POST',
+                                            body: params
+                                        })
+                                        .then(response => {
+                                            console.log('Delete response status:', response.status);
+                                            if (response.status === 302 || response.redirected) {
                                                 location.reload();
-                                                } else {
-                                                    alert('Error deleting service');
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error('Fetch error:', error);
-                                                alert('Network error: ' + error.message);
-                                            });
+                                                } else if (response.ok) {
+                                                    location.reload();
+                                                    } else {
+                                                        alert('Error deleting service');
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    console.error('Fetch error:', error);
+                                                    alert('Network error: ' + error.message);
+                                                });
+                                            }
                                         }
-                                    }
-                                    
-                                    // Search/Filter Services
-                                    function filterServices() {
-                                        const searchText = document.getElementById('searchInput').value.toLowerCase();
-                                        const rows = document.querySelectorAll('.service-row');
                                         
-                                        rows.forEach(row => {
-                                            const name = row.getAttribute('data-service-name').toLowerCase();
-                                            const category = row.getAttribute('data-service-category').toLowerCase();
+                                        // Search/Filter Services
+                                        function filterServices() {
+                                            const searchText = document.getElementById('searchInput').value.toLowerCase();
+                                            const rows = document.querySelectorAll('.service-row');
                                             
-                                            if (name.includes(searchText) || category.includes(searchText)) {
-                                                row.style.display = '';
-                                                } else {
-                                                    row.style.display = 'none';
+                                            rows.forEach(row => {
+                                                const name = row.getAttribute('data-service-name').toLowerCase();
+                                                const category = row.getAttribute('data-service-category').toLowerCase();
+                                                
+                                                if (name.includes(searchText) || category.includes(searchText)) {
+                                                    row.style.display = '';
+                                                    } else {
+                                                        row.style.display = 'none';
+                                                    }
+                                                });
+                                            }
+                                            
+                                            // Close modal when clicking outside
+                                            document.getElementById('addServiceModal').addEventListener('click', function(e) {
+                                                if (e.target === this) {
+                                                    closeAddModal();
                                                 }
                                             });
-                                        }
-                                        
-                                        // Close modal when clicking outside
-                                        document.getElementById('addServiceModal').addEventListener('click', function(e) {
-                                            if (e.target === this) {
-                                                closeAddModal();
-                                            }
-                                        });
-                                        
-                                        document.getElementById('editServiceModal').addEventListener('click', function(e) {
-                                            if (e.target === this) {
-                                                closeEditModal();
-                                            }
-                                        });
-                                        
-                                        // Initialize service data map from data attributes
-                                        window.serviceDataMap = {};
-                                        document.querySelectorAll('#serviceDataContainer .service-data').forEach(div => {
-                                            const id = parseInt(div.dataset.id);
-                                            window.serviceDataMap[id] = {
-                                                id: id,
-                                                name: div.dataset.name || '',
-                                                category: div.dataset.category || '',
-                                                duration: parseInt(div.dataset.duration) || 0,
-                                                price: parseFloat(div.dataset.price) || 0,
-                                                description: div.dataset.description || ''
-                                            };
-                                        });
-                                    </script>
+                                            
+                                            document.getElementById('editServiceModal').addEventListener('click', function(e) {
+                                                if (e.target === this) {
+                                                    closeEditModal();
+                                                }
+                                            });
+                                            
+                                            // Initialize service data map from data attributes
+                                            window.serviceDataMap = {};
+                                            document.querySelectorAll('#serviceDataContainer .service-data').forEach(div => {
+                                                const id = parseInt(div.dataset.id);
+                                                window.serviceDataMap[id] = {
+                                                    id: id,
+                                                    name: div.dataset.name || '',
+                                                    category: div.dataset.category || '',
+                                                    duration: parseInt(div.dataset.duration) || 0,
+                                                    price: parseFloat(div.dataset.price) || 0,
+                                                    description: div.dataset.description || ''
+                                                };
+                                            });
+                                        </script>
 
-                                </body>
-                            </html>
+                                    </body>
+                                </html>

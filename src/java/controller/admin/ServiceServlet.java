@@ -70,8 +70,27 @@ public class ServiceServlet extends HttpServlet {
 
     private void listServices(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        List<Service> services = serviceService.getAllServices();
+        List<Service> allServices = serviceService.getAllServices();
+        int pageSize = 7;
+        int totalServices = allServices.size();
+        int totalPages = (int) Math.ceil((double) totalServices / pageSize);
+        int currentPage = 1;
+        String pageParam = request.getParameter("page");
+        if (pageParam != null) {
+            try {
+                currentPage = Integer.parseInt(pageParam);
+            } catch (NumberFormatException ignored) {}
+        }
+        if (currentPage < 1) currentPage = 1;
+        if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+        int fromIndex = (currentPage - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalServices);
+        List<Service> services = (fromIndex < toIndex) ? allServices.subList(fromIndex, toIndex) : java.util.Collections.emptyList();
         request.setAttribute("services", services);
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalServices", totalServices);
+        request.setAttribute("pageSize", pageSize);
         request.getRequestDispatcher("/WEB-INF/views/admin/services.jsp").forward(request, response);
     }
 
