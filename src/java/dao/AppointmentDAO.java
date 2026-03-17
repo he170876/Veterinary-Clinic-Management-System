@@ -811,6 +811,46 @@ public class AppointmentDAO extends DBContext {
         String sql = """
             SELECT
                 a.appointment_id,
+                a.appointment_date,
+                a.time_slot,
+                a.status,
+                a.veterinarian_id,
+                a.service_id,
+                a.notes,
+                s.name AS service_name,
+
+                p.pet_id,
+                p.name AS pet_name,
+                p.photoUrl AS pet_photo,
+                p.species,
+                p.breed,
+                p.gender,
+                p.birth_date,
+                p.weight,
+
+                c.customer_id,
+                u.full_name AS customer_name,
+                u.email AS customer_email,
+                u.phone AS customer_phone,
+                u.address AS customer_address,
+
+                vet_user.full_name AS veterinarian_name
+
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE a.appointment_id = ?
+              AND a.customer_id = ?
+              AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
+        """;
+
+        String legacySql = """
+            SELECT
+                a.appointment_id,
                 a.appointment_time,
                 a.status,
                 a.veterinarian_id,
@@ -858,9 +898,23 @@ public class AppointmentDAO extends DBContext {
                     Appointment ap = new Appointment();
                     ap.setAppointmentId(rs.getInt("appointment_id"));
 
-                    Timestamp appointmentTs = rs.getTimestamp("appointment_time");
-                    if (appointmentTs != null) {
-                        ap.setAppointmentTime(appointmentTs.toLocalDateTime());
+                    java.sql.Date apptDate = rs.getDate("appointment_date");
+                    String timeSlot = rs.getString("time_slot");
+                    if (apptDate != null) {
+                        ap.setAppointmentDate(apptDate.toLocalDate());
+                    }
+                    ap.setTimeSlot(timeSlot);
+
+                    if (apptDate != null) {
+                        java.time.LocalTime defaultTime;
+                        if (timeSlot != null && (timeSlot.equalsIgnoreCase("AM") || timeSlot.equalsIgnoreCase("morning"))) {
+                            defaultTime = java.time.LocalTime.of(9, 0);
+                        } else if (timeSlot != null && (timeSlot.equalsIgnoreCase("PM") || timeSlot.equalsIgnoreCase("afternoon"))) {
+                            defaultTime = java.time.LocalTime.of(15, 0);
+                        } else {
+                            defaultTime = java.time.LocalTime.of(12, 0);
+                        }
+                        ap.setAppointmentTime(java.time.LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
                     }
 
                     ap.setStatus(rs.getString("status"));
@@ -877,16 +931,10 @@ public class AppointmentDAO extends DBContext {
                     pet.setSpecies(rs.getString("species"));
                     pet.setBreed(rs.getString("breed"));
                     pet.setGender(rs.getString("gender"));
-
                     java.sql.Date bd = rs.getDate("birth_date");
-                    if (bd != null) {
-                        pet.setBirthDate(bd.toLocalDate());
-                    }
-
+                    if (bd != null) pet.setBirthDate(bd.toLocalDate());
                     double w = rs.getDouble("weight");
-                    if (!rs.wasNull()) {
-                        pet.setWeight(w);
-                    }
+                    if (!rs.wasNull()) pet.setWeight(w);
                     ap.setPet(pet);
 
                     Customer cus = new Customer();
@@ -902,7 +950,63 @@ public class AppointmentDAO extends DBContext {
                     return ap;
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception ignored) {
+            // Fallback for legacy schema using appointment_time.
+        }
+
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(legacySql)
+        ) {
+            ps.setInt(1, appointmentId);
+            ps.setInt(2, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Appointment ap = new Appointment();
+                    ap.setAppointmentId(rs.getInt("appointment_id"));
+
+                    Timestamp appointmentTs = rs.getTimestamp("appointment_time");
+                    if (appointmentTs != null) {
+                        LocalDateTime appointmentTime = appointmentTs.toLocalDateTime();
+                        ap.setAppointmentTime(appointmentTime);
+                        ap.setAppointmentDate(appointmentTime.toLocalDate());
+                        ap.setTimeSlot(appointmentTime.getHour() < 12 ? "AM" : "PM");
+                    }
+
+                    ap.setStatus(rs.getString("status"));
+                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+                    ap.setService(rs.getString("service_name"));
+                    ap.setServiceId(rs.getObject("service_id") != null ? rs.getInt("service_id") : null);
+                    ap.setNotes(rs.getString("notes"));
+                    ap.setVeterinarianName(rs.getString("veterinarian_name"));
+
+                    Pet pet = new Pet();
+                    pet.setPetId(rs.getInt("pet_id"));
+                    pet.setName(rs.getString("pet_name"));
+                    pet.setPhotoURL(rs.getString("pet_photo"));
+                    pet.setSpecies(rs.getString("species"));
+                    pet.setBreed(rs.getString("breed"));
+                    pet.setGender(rs.getString("gender"));
+                    java.sql.Date bd = rs.getDate("birth_date");
+                    if (bd != null) pet.setBirthDate(bd.toLocalDate());
+                    double w = rs.getDouble("weight");
+                    if (!rs.wasNull()) pet.setWeight(w);
+                    ap.setPet(pet);
+
+                    Customer cus = new Customer();
+                    cus.setCustomerId(rs.getInt("customer_id"));
+                    User customerUser = new User();
+                    customerUser.setFullName(rs.getString("customer_name"));
+                    customerUser.setEmail(rs.getString("customer_email"));
+                    customerUser.setPhone(rs.getString("customer_phone"));
+                    customerUser.setAddress(rs.getString("customer_address"));
+                    cus.setUser(customerUser);
+                    ap.setCustomer(cus);
+
+                    return ap;
+                }
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
