@@ -33,30 +33,6 @@ public class HandleAppointmentRequestServlet extends HttpServlet {
 
             if ("reschedule".equalsIgnoreCase(requestType)) {
                 success = dao.processRescheduleRequest(appointmentId, approve);
-            } else if ("doctor-change".equalsIgnoreCase(requestType)) {
-                Integer veterinarianId = null;
-                String vetIdRaw = request.getParameter("veterinarianId");
-                if (vetIdRaw != null && !vetIdRaw.isBlank()) {
-                    try {
-                        veterinarianId = Integer.parseInt(vetIdRaw);
-                    } catch (Exception ignore) {
-                        veterinarianId = null;
-                    }
-                }
-
-                success = dao.processDoctorChangeRequest(appointmentId, approve, veterinarianId);
-
-                // After approval, send notification to the assigned veterinarian
-                if (success && approve) {
-                    int assignedVetId = dao.getVeterinarianIdByAppointmentId(appointmentId);
-                    if (assignedVetId > 0) {
-                        int vetUserId = dao.getUserIdByVeterinarianId(assignedVetId);
-                        if (vetUserId > 0) {
-                            NotificationDAO ndao = new NotificationDAO();
-                            ndao.create(vetUserId, "Appointment assigned", "You have been assigned to appointment #" + appointmentId + ".");
-                        }
-                    }
-                }
             } else {
                 response.getWriter().write("{\"success\": false, \"message\": \"Invalid request type\"}");
                 return;

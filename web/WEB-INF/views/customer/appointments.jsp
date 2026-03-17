@@ -63,21 +63,6 @@
             document.getElementById('rescheduleForm').reset();
         }
 
-        function openDoctorChangeModal(button) {
-            const modal = document.getElementById('doctorChangeModal');
-            document.getElementById('doctorAppointmentId').value = button.dataset.id;
-            document.getElementById('doctorTabValue').value = button.dataset.tab || 'upcoming';
-            document.getElementById('doctorDetailText').textContent = button.dataset.detail || 'Appointment';
-            document.getElementById('doctorCurrentText').textContent = button.dataset.currentdoctor || '';
-            modal.classList.remove('hidden');
-        }
-
-        function closeDoctorChangeModal() {
-            const modal = document.getElementById('doctorChangeModal');
-            modal.classList.add('hidden');
-            document.getElementById('doctorChangeForm').reset();
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
             const dateInput = document.querySelector('input[name="requestedDate"]');
             if (dateInput) {
@@ -145,11 +130,6 @@
                         Reschedule request has been sent. Please wait for receptionist approval.
                     </div>
                 </c:if>
-                <c:if test="${param.doctorRequested == '1'}">
-                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 px-4 py-3 text-sm font-medium">
-                        Doctor change request has been sent. Please wait for receptionist approval.
-                    </div>
-                </c:if>
                 <c:if test="${not empty param.error}">
                     <div class="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-medium">
                         Could not submit your request. Please check data and try again.
@@ -187,7 +167,7 @@
                             <thead>
                             <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pet Name</th>
-                                <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Date &amp; Time</th>
+                                <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Date &amp; Slot</th>
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Veterinarian</th>
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">Status</th>
                                 <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">Request</th>
@@ -215,17 +195,28 @@
                                             boolean isPast = appointment.getAppointmentTime() != null && appointment.getAppointmentTime().isBefore(LocalDateTime.now());
                                             boolean hasPendingRequest = pendingRescheduleIds.contains(appointment.getAppointmentId());
                                             boolean canRequest = !isCancelled && !isCompleted && !isPast && requestableStatus && !hasPendingRequest;
-                                                boolean canDoctorChangeRequest = !isCancelled && !isCompleted && !isPast && requestableStatus;
+                                            String timeSlotText = "N/A";
+                                            String rawTimeSlot = appointment.getTimeSlot();
+                                            if (rawTimeSlot != null) {
+                                                String normalizedSlot = rawTimeSlot.trim().toLowerCase(Locale.ENGLISH);
+                                                if ("am".equals(normalizedSlot) || "morning".equals(normalizedSlot)) {
+                                                    timeSlotText = "AM";
+                                                } else if ("pm".equals(normalizedSlot) || "afternoon".equals(normalizedSlot)) {
+                                                    timeSlotText = "PM";
+                                                }
+                                            }
+                                            if ("N/A".equals(timeSlotText) && appointment.getAppointmentTime() != null) {
+                                                timeSlotText = appointment.getAppointmentTime().getHour() < 12 ? "AM" : "PM";
+                                            }
                                             String detail = (appointment.getPet() != null ? appointment.getPet().getName() : "Pet")
                                                     + " with "
                                                     + (appointment.getVeterinarianName() != null && !appointment.getVeterinarianName().isEmpty() ? "Dr. " + appointment.getVeterinarianName() : "Unassigned doctor");
-                                            String current = appointment.getFormattedDate() + " - " + appointment.getFormattedTime();
+                                            String current = appointment.getFormattedDate() + " - " + timeSlotText;
                                             pageContext.setAttribute("canRequest", canRequest);
-                                                pageContext.setAttribute("canDoctorChangeRequest", canDoctorChangeRequest);
                                             pageContext.setAttribute("hasPendingRequest", hasPendingRequest);
                                             pageContext.setAttribute("detail", detail);
+                                            pageContext.setAttribute("timeSlotText", timeSlotText);
                                             pageContext.setAttribute("currentTimeText", current);
-                                                pageContext.setAttribute("currentDoctorText", appointment.getVeterinarianName() != null && !appointment.getVeterinarianName().isEmpty() ? "Dr. " + appointment.getVeterinarianName() : "Unassigned");
                                         %>
                                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td class="px-6 py-5">
@@ -239,7 +230,7 @@
                                             <td class="px-6 py-5">
                                                 <div class="flex flex-col">
                                                     <span class="text-slate-900 dark:text-slate-100 font-medium">${appointment.formattedDate}</span>
-                                                    <span class="text-xs text-slate-500">${appointment.formattedTime}</span>
+                                                    <span class="text-xs text-slate-500">${timeSlotText}</span>
                                                 </div>
                                             </td>
                                             <td class="px-6 py-5">
@@ -278,33 +269,9 @@
                                                                     onclick="openRescheduleModal(this)">
                                                                 Request Reschedule
                                                             </button>
-                                                            <c:if test="${canDoctorChangeRequest}">
-                                                                <button
-                                                                        type="button"
-                                                                        class="text-indigo-600 hover:text-indigo-500 font-bold text-sm underline-offset-4 hover:underline"
-                                                                        data-id="${appointment.appointmentId}"
-                                                                        data-detail="${detail}"
-                                                                        data-currentdoctor="${currentDoctorText}"
-                                                                        data-tab="${tab}"
-                                                                        onclick="openDoctorChangeModal(this)">
-                                                                    Request Doctor Change
-                                                                </button>
-                                                            </c:if>
                                                         </c:when>
                                                         <c:when test="${hasPendingRequest}">
                                                             <span class="text-amber-600 font-bold text-sm">Waiting approval</span>
-                                                            <c:if test="${canDoctorChangeRequest}">
-                                                                <button
-                                                                        type="button"
-                                                                        class="text-indigo-600 hover:text-indigo-500 font-bold text-sm underline-offset-4 hover:underline"
-                                                                        data-id="${appointment.appointmentId}"
-                                                                        data-detail="${detail}"
-                                                                        data-currentdoctor="${currentDoctorText}"
-                                                                        data-tab="${tab}"
-                                                                        onclick="openDoctorChangeModal(this)">
-                                                                    Request Doctor Change
-                                                                </button>
-                                                            </c:if>
                                                         </c:when>
                                                         <c:otherwise>
                                                             <span class="text-slate-400 font-bold text-sm">Not available</span>
@@ -371,7 +338,6 @@
                             <h4 class="font-bold text-slate-900 dark:text-slate-100">About Rescheduling</h4>
                             <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                                 Clicking 'Request Reschedule' will notify our staff of your request. A clinic coordinator will review and confirm a new time slot.
-                                <span class="font-bold text-primary italic">You can also submit a separate doctor-change request for receptionist review.</span>
                             </p>
                         </div>
                     </div>
@@ -434,48 +400,5 @@
     </div>
 </div>
 
-<div id="doctorChangeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
-    <div class="bg-white dark:bg-background-dark w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
-        <div class="p-6 flex flex-col gap-6">
-            <div class="flex justify-between items-start">
-                <h3 class="text-xl font-bold">Request Doctor Change</h3>
-                <button type="button" class="text-slate-400 hover:text-slate-600" onclick="closeDoctorChangeModal()">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-
-            <form id="doctorChangeForm" method="post" action="<%= ctx %>/customer/appointments/request-doctor-change" class="flex flex-col gap-4">
-                <input type="hidden" name="appointmentId" id="doctorAppointmentId"/>
-                <input type="hidden" name="tab" id="doctorTabValue"/>
-
-                <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex flex-col gap-1">
-                    <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Appointment Detail</p>
-                    <p id="doctorDetailText" class="text-sm font-semibold"></p>
-                    <p id="doctorCurrentText" class="text-xs text-slate-500"></p>
-                </div>
-
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold">Preferred Doctor *</label>
-                    <select class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" name="preferredDoctorId" required>
-                        <option value="">Select a doctor</option>
-                        <c:forEach var="vet" items="${veterinarians}">
-                            <option value="${vet.userId}">${vet.fullName}</option>
-                        </c:forEach>
-                    </select>
-                </div>
-
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold">Reason for Change</label>
-                    <textarea class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" placeholder="Please tell us why you want a doctor change..." rows="3" name="reason" required></textarea>
-                </div>
-
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeDoctorChangeModal()" class="flex-1 py-3 px-4 border border-slate-200 dark:border-slate-800 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-                    <button type="submit" class="flex-1 py-3 px-4 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all">Submit Request</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 </body>
 </html>

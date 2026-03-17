@@ -82,15 +82,11 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
                     return true;
                 })
                 .filter(a -> a.getStatus() != null
-                        && ("Reschedule-Requested".equalsIgnoreCase(a.getStatus())
-                        || "Doctor-Change-Requested".equalsIgnoreCase(a.getStatus())))
+                        && "Reschedule-Requested".equalsIgnoreCase(a.getStatus()))
                 .collect(Collectors.toList());
 
         int rescheduleCount = (int) requestAppointments.stream()
                 .filter(a -> "Reschedule-Requested".equalsIgnoreCase(a.getStatus()))
-                .count();
-        int doctorChangeCount = (int) requestAppointments.stream()
-                .filter(a -> "Doctor-Change-Requested".equalsIgnoreCase(a.getStatus()))
                 .count();
 
         List<Appointment> filteredRequests = requestAppointments;
@@ -98,10 +94,6 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
             if ("Reschedule".equalsIgnoreCase(requestType)) {
                 filteredRequests = requestAppointments.stream()
                         .filter(a -> "Reschedule-Requested".equalsIgnoreCase(a.getStatus()))
-                        .collect(Collectors.toList());
-            } else if ("DoctorChange".equalsIgnoreCase(requestType)) {
-                filteredRequests = requestAppointments.stream()
-                        .filter(a -> "Doctor-Change-Requested".equalsIgnoreCase(a.getStatus()))
                         .collect(Collectors.toList());
             }
         }
@@ -180,9 +172,7 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
         java.util.Map<Integer, java.util.Map<String, String>> appointmentDetails = new java.util.HashMap<>();
         for (Appointment appt : filteredRequests) {
             java.util.Map<String, String> details;
-            if ("Doctor-Change-Requested".equalsIgnoreCase(appt.getStatus())) {
-                details = dao.getDoctorChangeRequestDetails(appt.getAppointmentId());
-            } else if ("Reschedule-Requested".equalsIgnoreCase(appt.getStatus())) {
+            if ("Reschedule-Requested".equalsIgnoreCase(appt.getStatus())) {
                 details = dao.getRescheduleRequestDetails(appt.getAppointmentId());
             } else {
                 details = new java.util.HashMap<>();
@@ -195,7 +185,6 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
         request.setAttribute("veterinarians", dao.getAllVeterinarians());
         request.setAttribute("totalRequestCount", requestAppointments.size());
         request.setAttribute("rescheduleCount", rescheduleCount);
-        request.setAttribute("doctorChangeCount", doctorChangeCount);
         request.setAttribute("selectedAppointmentId", selectedAppointmentId);
 
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/ManageAppointmentRequests.jsp")

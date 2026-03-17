@@ -135,8 +135,7 @@ public class ViewListAppointmentServlet extends HttpServlet {
                             case "Pending":
                                 return "Scheduled".equalsIgnoreCase(status)
                                         || "Pending".equalsIgnoreCase(status)
-                                        || "Reschedule-Requested".equalsIgnoreCase(status)
-                                        || "Doctor-Change-Requested".equalsIgnoreCase(status);
+                                        || "Reschedule-Requested".equalsIgnoreCase(status);
                             case "Confirmed":
                                 return "Confirmed".equalsIgnoreCase(status);
                             case "Checked-in":
@@ -168,8 +167,7 @@ public class ViewListAppointmentServlet extends HttpServlet {
             .filter(a -> a.getStatus() != null
                 && ("Scheduled".equalsIgnoreCase(a.getStatus())
                 || "Pending".equalsIgnoreCase(a.getStatus())
-                || "Reschedule-Requested".equalsIgnoreCase(a.getStatus())
-                || "Doctor-Change-Requested".equalsIgnoreCase(a.getStatus())))
+                || "Reschedule-Requested".equalsIgnoreCase(a.getStatus())))
                 .count();
         int confirmedCount = (int) dateFiltered.stream()
                 .filter(a -> a.getStatus() != null && "Confirmed".equalsIgnoreCase(a.getStatus()))

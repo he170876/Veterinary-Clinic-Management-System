@@ -101,7 +101,7 @@ public class NotificationDAO extends DBContext {
                 SELECT TOP (%d) notification_id, user_id, title, message, created_at
                 FROM Notifications
                 WHERE user_id = ?
-                  AND (title IS NULL OR title NOT IN ('Reschedule Request', 'Doctor Change Request'))
+                                    AND (title IS NULL OR title NOT IN ('Reschedule Request'))
                 ORDER BY created_at DESC, notification_id DESC
                 """.formatted(limit);
         } else {
@@ -167,7 +167,7 @@ public class NotificationDAO extends DBContext {
             JOIN Customers c ON a.customer_id = c.customer_id
             JOIN Users u ON c.user_id = u.user_id
             WHERE p.isDeleted = 0
-              AND (a.status = 'Reschedule-Requested' OR a.status = 'Doctor-Change-Requested')
+                            AND a.status = 'Reschedule-Requested'
             ORDER BY a.appointment_time ASC, a.appointment_id DESC
             """.formatted(limit);
 
@@ -181,13 +181,8 @@ public class NotificationDAO extends DBContext {
                 Notification n = new Notification();
                 n.setNotificationId(-appointmentId);
                 n.setUserId(0);
-                if ("Reschedule-Requested".equalsIgnoreCase(status)) {
-                    n.setTitle("Reschedule Request");
-                    n.setMessage("Customer " + safe(customerName) + " requested reschedule for pet " + safe(petName) + " (Appointment #" + appointmentId + ").");
-                } else {
-                    n.setTitle("Doctor Change Request");
-                    n.setMessage("Customer " + safe(customerName) + " requested doctor change for pet " + safe(petName) + " (Appointment #" + appointmentId + ").");
-                }
+                n.setTitle("Reschedule Request");
+                n.setMessage("Customer " + safe(customerName) + " requested reschedule for pet " + safe(petName) + " (Appointment #" + appointmentId + ").");
                 Timestamp ts = rs.getTimestamp("appointment_time");
                 n.setCreatedAt(ts != null ? ts.toLocalDateTime() : (LocalDateTime) null);
                 n.setRead(false);
