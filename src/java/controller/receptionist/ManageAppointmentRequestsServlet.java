@@ -113,7 +113,9 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
                     || (a.getPet() != null && a.getPet().getName() != null && a.getPet().getName().toLowerCase().contains(kw))
                     || (a.getCustomer() != null && a.getCustomer().getUser() != null
                     && a.getCustomer().getUser().getFullName() != null
-                    && a.getCustomer().getUser().getFullName().toLowerCase().contains(kw)))
+                    && a.getCustomer().getUser().getFullName().toLowerCase().contains(kw))
+                    || (a.getVeterinarianName() != null && a.getVeterinarianName().toLowerCase().contains(kw))
+                    || (a.getStatus() != null && a.getStatus().toLowerCase().contains(kw)))
                     .collect(Collectors.toList());
         }
 
