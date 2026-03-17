@@ -217,8 +217,14 @@
                                                 <span class="text-slate-700 dark:text-slate-200">${not empty details['oldTime'] ? details['oldTime'] : appointment.formattedDate}</span>
                                             </div>
                                             <div>
-                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Requested Time:</span>
-                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['requestedTime'] ? details['requestedTime'] : 'N/A'}</span>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Requested Slot:</span>
+                                                <span class="text-slate-700 dark:text-slate-200">
+                                                    <c:choose>
+                                                        <c:when test="${details['requestedSlot'] == 'morning'}">Morning</c:when>
+                                                        <c:when test="${details['requestedSlot'] == 'afternoon'}">Afternoon</c:when>
+                                                        <c:otherwise>${not empty details['requestedTime'] ? details['requestedTime'] : 'N/A'}</c:otherwise>
+                                                    </c:choose>
+                                                </span>
                                             </div>
                                             <div>
                                                 <span class="font-semibold text-slate-600 dark:text-slate-300">Reason:</span>

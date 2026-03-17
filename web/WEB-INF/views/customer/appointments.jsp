@@ -407,8 +407,11 @@
                         <input class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" type="date" name="requestedDate" required/>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold">Preferred New Time</label>
-                        <input class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" type="time" name="requestedTime" required/>
+                        <label class="text-sm font-semibold">Preferred Time Slot</label>
+                        <select class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" name="requestedTimeSlot" required>
+                            <option value="morning">Morning (08:00)</option>
+                            <option value="afternoon">Afternoon (14:00)</option>
+                        </select>
                     </div>
                 </div>
 

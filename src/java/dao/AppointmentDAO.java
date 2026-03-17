@@ -1244,7 +1244,14 @@ public class AppointmentDAO extends DBContext {
     }
 
     public boolean createRescheduleRequest(int appointmentId, int customerId, LocalDateTime requestedAppointmentTime, String reason) {
-        if (requestedAppointmentTime == null || requestedAppointmentTime.isBefore(LocalDateTime.now())) {
+        String derivedSlot = requestedAppointmentTime != null && requestedAppointmentTime.getHour() < 12
+                ? "morning" : "afternoon";
+        return createRescheduleRequest(appointmentId, customerId, requestedAppointmentTime, derivedSlot, reason);
+    }
+
+    public boolean createRescheduleRequest(int appointmentId, int customerId, LocalDateTime requestedAppointmentTime, String requestedTimeSlot, String reason) {
+        String normalizedRequestedSlot = normalizeRequestedTimeSlot(requestedTimeSlot);
+        if (requestedAppointmentTime == null || requestedAppointmentTime.isBefore(LocalDateTime.now()) || normalizedRequestedSlot == null) {
             return false;
         }
 
@@ -1327,6 +1334,7 @@ public class AppointmentDAO extends DBContext {
                     + ";petId=" + petId
                     + ";previousStatus=" + currentStatus
                     + ";oldTime=" + oldTime
+                    + ";requestedSlot=" + normalizedRequestedSlot
                     + ";requestedTime=" + requestedAppointmentTime
                     + ";reason=" + note;
 
@@ -1505,6 +1513,20 @@ public class AppointmentDAO extends DBContext {
             String payloadRaw = getLatestRequestMessage(con, appointmentId, "Reschedule Request");
             if (payloadRaw != null && !payloadRaw.isEmpty()) {
                 details = parseRequestPayload(payloadRaw);
+                String normalizedSlot = normalizeRequestedTimeSlot(details.get("requestedSlot"));
+                if (normalizedSlot == null) {
+                    String requestedTimeRaw = details.get("requestedTime");
+                    if (requestedTimeRaw != null && !requestedTimeRaw.isBlank()) {
+                        try {
+                            LocalDateTime requestedTime = LocalDateTime.parse(requestedTimeRaw);
+                            normalizedSlot = requestedTime.getHour() < 12 ? "morning" : "afternoon";
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+                if (normalizedSlot != null) {
+                    details.put("requestedSlot", normalizedSlot);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1676,6 +1698,31 @@ public class AppointmentDAO extends DBContext {
         return previousStatus;
     }
 
+    private String normalizeRequestedTimeSlot(String requestedTimeSlot) {
+        if (requestedTimeSlot == null || requestedTimeSlot.isBlank()) {
+            return null;
+        }
+        String normalized = requestedTimeSlot.trim().toLowerCase();
+        if ("morning".equals(normalized) || "am".equals(normalized)) {
+            return "morning";
+        }
+        if ("afternoon".equals(normalized) || "pm".equals(normalized)) {
+            return "afternoon";
+        }
+        return null;
+    }
+
+    private String toDisplayTimeSlot(String requestedTimeSlot) {
+        String normalized = normalizeRequestedTimeSlot(requestedTimeSlot);
+        if ("morning".equals(normalized)) {
+            return "Morning";
+        }
+        if ("afternoon".equals(normalized)) {
+            return "Afternoon";
+        }
+        return null;
+    }
+
     public boolean processRescheduleRequest(int appointmentId, boolean approve) {
         String findSql = """
             SELECT customer_id, status
@@ -1728,6 +1775,14 @@ public class AppointmentDAO extends DBContext {
             Map<String, String> payload = parseRequestPayload(payloadRaw);
             String previousStatus = normalizePreviousStatus(payload.get("previousStatus"));
             String requestedTimeRaw = payload.get("requestedTime");
+            String requestedSlot = normalizeRequestedTimeSlot(payload.get("requestedSlot"));
+            if (requestedSlot == null && requestedTimeRaw != null && !requestedTimeRaw.isBlank()) {
+                try {
+                    LocalDateTime requestedTime = LocalDateTime.parse(requestedTimeRaw);
+                    requestedSlot = requestedTime.getHour() < 12 ? "morning" : "afternoon";
+                } catch (Exception ignored) {
+                }
+            }
 
             boolean updated;
             if (approve) {
@@ -1762,14 +1817,16 @@ public class AppointmentDAO extends DBContext {
             String title = approve ? "Reschedule Approved" : "Reschedule Rejected";
             String customerMessage;
             if (approve) {
-                String displayTime = requestedTimeRaw;
+                String displayDate = requestedTimeRaw;
                 try {
                     LocalDateTime approvedTime = LocalDateTime.parse(requestedTimeRaw);
-                    displayTime = approvedTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+                    displayDate = approvedTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 } catch (Exception ignored) {
                 }
+                String displaySlot = toDisplayTimeSlot(requestedSlot);
                 customerMessage = "Your reschedule request for appointment #" + appointmentId
-                        + " has been approved. New time: " + displayTime + ".";
+                        + " has been approved. New slot: " + displayDate
+                        + (displaySlot != null ? " (" + displaySlot + ")" : "") + ".";
             } else {
                 customerMessage = "Your reschedule request for appointment #" + appointmentId
                         + " was rejected. Please keep your current schedule or submit a new request.";

@@ -47,7 +47,7 @@ public class CustomerRescheduleRequestServlet extends HttpServlet {
 
         String appointmentIdRaw = request.getParameter("appointmentId");
         String requestedDateRaw = request.getParameter("requestedDate");
-        String requestedTimeRaw = request.getParameter("requestedTime");
+        String requestedSlotRaw = request.getParameter("requestedTimeSlot");
         String reason = request.getParameter("reason");
         String tab = request.getParameter("tab");
 
@@ -64,15 +64,23 @@ public class CustomerRescheduleRequestServlet extends HttpServlet {
         }
 
         if (requestedDateRaw == null || requestedDateRaw.trim().isEmpty()
-                || requestedTimeRaw == null || requestedTimeRaw.trim().isEmpty()) {
+                || requestedSlotRaw == null || requestedSlotRaw.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=missing_datetime");
             return;
         }
 
+        String requestedSlot = requestedSlotRaw.trim().toLowerCase();
         LocalDateTime requestedDateTime;
         try {
             LocalDate requestedDate = LocalDate.parse(requestedDateRaw.trim());
-            LocalTime requestedTime = LocalTime.parse(requestedTimeRaw.trim());
+            LocalTime requestedTime;
+            if ("morning".equals(requestedSlot)) {
+                requestedTime = LocalTime.of(8, 0);
+            } else if ("afternoon".equals(requestedSlot)) {
+                requestedTime = LocalTime.of(14, 0);
+            } else {
+                throw new IllegalArgumentException("Invalid time slot");
+            }
             requestedDateTime = LocalDateTime.of(requestedDate, requestedTime);
         } catch (Exception ex) {
             response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=invalid_datetime");
@@ -84,6 +92,7 @@ public class CustomerRescheduleRequestServlet extends HttpServlet {
                 appointmentId,
                 customerOpt.get().getCustomerId(),
                 requestedDateTime,
+            requestedSlot,
                 cleanedReason
         );
 
