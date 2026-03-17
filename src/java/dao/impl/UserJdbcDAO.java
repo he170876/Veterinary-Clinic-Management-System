@@ -53,6 +53,35 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
     }
 
     @Override
+    public Optional<User> findByPhone(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        String normalized = phone.trim().replaceAll("[^0-9+]", "");
+        if (normalized.isEmpty()) {
+            return Optional.empty();
+        }
+        String sql = "SELECT u.user_id, u.email, u.password, u.status, u.created_at, u.updated_at, "
+                + "u.full_name, u.phone, u.address, u.profile_picture_url, r.role_id, r.role_name, u.is_google_user "
+                + "FROM Users u "
+                + "JOIN Roles r ON u.role_id = r.role_id "
+                + "WHERE (LTRIM(RTRIM(ISNULL(u.phone, ''))) = ? OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(u.phone,''))), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?)";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, phone.trim());
+            ps.setString(2, normalized);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRowToUser(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<User> findById(int userId) {
         String sql = "SELECT u.user_id, u.email, u.password, u.status, u.created_at, u.updated_at, "
                 + "u.full_name, u.phone, u.address, u.profile_picture_url, r.role_id, r.role_name, u.is_google_user "

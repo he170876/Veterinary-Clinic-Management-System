@@ -33,7 +33,8 @@ public class AppointmentDAO extends DBContext {
         String sql = """
             SELECT
                 a.appointment_id,
-                a.appointment_time,
+                a.appointment_date,
+                a.time_slot,
                 a.status,
                 a.veterinarian_id,
                 a.service_id,
@@ -45,6 +46,7 @@ public class AppointmentDAO extends DBContext {
 
                 c.customer_id,
                 u.full_name AS customer_name,
+                u.phone      AS customer_phone,
                 
                 vet_user.full_name AS veterinarian_name
 
@@ -56,7 +58,7 @@ public class AppointmentDAO extends DBContext {
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
             LEFT JOIN services s ON a.service_id = s.service_id
             WHERE p.isDeleted = 0
-            ORDER BY a.appointment_time
+            ORDER BY a.appointment_date, a.time_slot
         """;
 
         try (
@@ -68,9 +70,29 @@ public class AppointmentDAO extends DBContext {
             while (rs.next()) {
                 Appointment ap = new Appointment();
                 ap.setAppointmentId(rs.getInt("appointment_id"));
-                ap.setAppointmentTime(
-                        rs.getTimestamp("appointment_time").toLocalDateTime()
-                );
+
+                java.sql.Date apptDate = rs.getDate("appointment_date");
+                String timeSlot = rs.getString("time_slot");
+
+                if (apptDate != null) {
+                    ap.setAppointmentDate(apptDate.toLocalDate());
+                }
+                ap.setTimeSlot(timeSlot);
+
+                // Derive a legacy appointmentTime value from date + slot so that
+                // existing code that still relies on appointmentTime continues to work.
+                if (apptDate != null) {
+                    java.time.LocalTime defaultTime;
+                    if (timeSlot != null && timeSlot.equalsIgnoreCase("AM")) {
+                        defaultTime = java.time.LocalTime.of(9, 0);
+                    } else if (timeSlot != null && timeSlot.equalsIgnoreCase("PM")) {
+                        defaultTime = java.time.LocalTime.of(15, 0);
+                    } else {
+                        // If slot is missing, default to midday so it still falls on the correct date
+                        defaultTime = java.time.LocalTime.of(12, 0);
+                    }
+                    ap.setAppointmentTime(java.time.LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+                }
                 ap.setStatus(rs.getString("status"));
                 ap.setVeterinarianId(rs.getInt("veterinarian_id"));
                 ap.setService(rs.getString("service_name"));
@@ -87,8 +109,10 @@ public class AppointmentDAO extends DBContext {
                 cus.setCustomerId(rs.getInt("customer_id"));
                 User customerUser = new User();
                 customerUser.setFullName(rs.getString("customer_name"));
+                customerUser.setPhone(rs.getString("customer_phone"));
                 cus.setUser(customerUser);
                 ap.setCustomer(cus);
+                ap.setCustomerPhone(rs.getString("customer_phone"));
                 
                 String vetName = rs.getString("veterinarian_name");
                 if (vetName != null) {
@@ -512,7 +536,8 @@ public class AppointmentDAO extends DBContext {
         String sql = """
             SELECT
                 a.appointment_id,
-                a.appointment_time,
+                a.appointment_date,
+                a.time_slot,
                 a.status,
                 a.veterinarian_id,
                 a.service_id,
@@ -554,7 +579,25 @@ public class AppointmentDAO extends DBContext {
                 if (rs.next()) {
                     Appointment ap = new Appointment();
                     ap.setAppointmentId(rs.getInt("appointment_id"));
-                    ap.setAppointmentTime(rs.getTimestamp("appointment_time").toLocalDateTime());
+
+                    java.sql.Date apptDate = rs.getDate("appointment_date");
+                    String timeSlot = rs.getString("time_slot");
+                    if (apptDate != null) {
+                        ap.setAppointmentDate(apptDate.toLocalDate());
+                    }
+                    ap.setTimeSlot(timeSlot);
+
+                    if (apptDate != null) {
+                        java.time.LocalTime defaultTime;
+                        if (timeSlot != null && timeSlot.equalsIgnoreCase("AM")) {
+                            defaultTime = java.time.LocalTime.of(9, 0);
+                        } else if (timeSlot != null && timeSlot.equalsIgnoreCase("PM")) {
+                            defaultTime = java.time.LocalTime.of(15, 0);
+                        } else {
+                            defaultTime = java.time.LocalTime.of(12, 0);
+                        }
+                        ap.setAppointmentTime(java.time.LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+                    }
                     ap.setStatus(rs.getString("status"));
                     ap.setVeterinarianId(rs.getInt("veterinarian_id"));
                     ap.setService(rs.getString("service_name"));
@@ -825,6 +868,95 @@ public class AppointmentDAO extends DBContext {
     }
 
     /**
+     * Creates a pending appointment with date + AM/PM slot (receptionist booking).
+     * Table includes phone (NOT NULL). Pass phone from request.
+     */
+    public int createWithDateAndSlot(int petId, int customerId, Integer serviceId, LocalDate appointmentDate, String timeSlot, String notes, String phone) {
+        String sql = """
+            INSERT INTO appointments (
+                pet_id,
+                customer_id,
+                veterinarian_id,
+                appointment_date,
+                time_slot,
+                status,
+                service_id,
+                created_at,
+                notes,
+                phone
+            )
+            OUTPUT INSERTED.appointment_id
+            VALUES (?, ?, NULL, ?, ?, 'Pending', ?, GETDATE(), ?, ?)
+            """;
+
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setInt(1, petId);
+            ps.setInt(2, customerId);
+            ps.setDate(3, java.sql.Date.valueOf(appointmentDate));
+            ps.setString(4, timeSlot != null && (timeSlot.equalsIgnoreCase("AM") || timeSlot.equalsIgnoreCase("PM")) ? timeSlot.toUpperCase() : "AM");
+            ps.setObject(5, serviceId);
+            ps.setString(6, notes != null ? notes : "");
+            ps.setString(7, phone != null ? phone : "");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Creates an emergency appointment: status=Checked-In, service_id=NULL,
+     * appointment_date=today, time_slot=AM if current hour &lt; 12 else PM, type=Emergency.
+     */
+    public int createEmergencyAppointment(int petId, int customerId, String phone) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        String timeSlot = java.time.LocalTime.now().getHour() < 12 ? "AM" : "PM";
+        String sql = """
+            INSERT INTO appointments (
+                pet_id,
+                customer_id,
+                veterinarian_id,
+                appointment_date,
+                time_slot,
+                status,
+                service_id,
+                created_at,
+                notes,
+                phone,
+                type
+            )
+            OUTPUT INSERTED.appointment_id
+            VALUES (?, ?, NULL, ?, ?, 'Checked-In', NULL, GETDATE(), '', ?, 'Emergency')
+            """;
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setInt(1, petId);
+            ps.setInt(2, customerId);
+            ps.setDate(3, java.sql.Date.valueOf(today));
+            ps.setString(4, timeSlot);
+            ps.setString(5, phone != null ? phone : "");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
      * Counts how many active (non-cancelled, non-completed) bookings a customer
      * has already made for a specific date via the customer booking flow.
      * Used to enforce the daily booking cap (MAX_BOOKINGS_PER_DAY).
@@ -1013,7 +1145,7 @@ public class AppointmentDAO extends DBContext {
     }
 
     public boolean rescheduleAppointment(int appointmentId, java.util.Date newDate, java.sql.Time newTime) {
-        String sql = "UPDATE appointments SET appointment_time = ?, status = 'Re-Scheduled' WHERE appointment_id = ?";
+        String sql = "UPDATE appointments SET appointment_time = ?, status = 'Pending' WHERE appointment_id = ?";
         try (
             Connection con = getConnection();
             PreparedStatement ps = con.prepareStatement(sql)
@@ -1164,9 +1296,7 @@ public class AppointmentDAO extends DBContext {
             boolean allowStatus = currentStatus != null
                     && ("Pending".equalsIgnoreCase(currentStatus)
                     || "Scheduled".equalsIgnoreCase(currentStatus)
-                    || "Confirmed".equalsIgnoreCase(currentStatus)
-                    || "Re-Scheduled".equalsIgnoreCase(currentStatus)
-                    || "Rescheduled".equalsIgnoreCase(currentStatus));
+                    || "Confirmed".equalsIgnoreCase(currentStatus));
             if (!allowStatus) {
                 con.rollback();
                 return false;
@@ -1279,8 +1409,6 @@ public class AppointmentDAO extends DBContext {
                     && ("Pending".equalsIgnoreCase(status)
                     || "Scheduled".equalsIgnoreCase(status)
                     || "Confirmed".equalsIgnoreCase(status)
-                    || "Re-Scheduled".equalsIgnoreCase(status)
-                    || "Rescheduled".equalsIgnoreCase(status)
                     || "Reschedule-Requested".equalsIgnoreCase(status));
             if (!allowStatus) {
                 con.rollback();
@@ -1455,8 +1583,6 @@ public class AppointmentDAO extends DBContext {
                     && ("Pending".equalsIgnoreCase(status)
                     || "Scheduled".equalsIgnoreCase(status)
                     || "Confirmed".equalsIgnoreCase(status)
-                    || "Re-Scheduled".equalsIgnoreCase(status)
-                    || "Rescheduled".equalsIgnoreCase(status)
                     || "Reschedule-Requested".equalsIgnoreCase(status));
             if (!allowStatus) {
                 con.rollback();
@@ -1559,7 +1685,7 @@ public class AppointmentDAO extends DBContext {
 
         String updateApproveSql = """
             UPDATE appointments
-            SET appointment_time = ?, status = 'Re-Scheduled'
+            SET appointment_time = ?, status = 'Pending'
             WHERE appointment_id = ?
         """;
 

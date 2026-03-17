@@ -49,27 +49,35 @@
         </div>
         
         <nav class="flex-1 px-4 mt-4 space-y-1">
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="#">
+            <!-- Dashboard -->
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="${pageContext.request.contextPath}/Receptionist/Dashboard">
                 <span class="material-symbols-outlined">dashboard</span>
                 <span class="font-medium">Dashboard</span>
             </a>
+            <!-- Schedule -->
             <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors" href="${pageContext.request.contextPath}/Receptionist/ViewListAppointment">
                 <span class="material-symbols-outlined">calendar_today</span>
                 <span class="font-medium">Schedule</span>
             </a>
+            <!-- Request Center -->
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors" href="${pageContext.request.contextPath}/Receptionist/ManageAppointmentRequests">
+                <span class="material-symbols-outlined">pending_actions</span>
+                <span class="font-medium">Request Center</span>
+            </a>
+            <!-- Settings -->
             <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors" href="#">
                 <span class="material-symbols-outlined">settings</span>
                 <span class="font-medium">Settings</span>
             </a>
         </nav>
 
-        <!-- Clinic Status Widget -->
-        <div class="p-4 m-4 bg-orange-50 rounded-xl border border-orange-100">
-            <p class="text-xs font-bold text-primary uppercase tracking-wider">Clinic Status</p>
-            <div class="flex items-center gap-2 mt-2">
-                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span class="text-sm font-semibold text-slate-700">Open & Operating</span>
-            </div>
+        <!-- Logout button -->
+        <div class="p-4 border-t border-slate-200 mt-4">
+            <a href="${pageContext.request.contextPath}/logout"
+               class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+                Log Out
+            </a>
         </div>
     </aside>
 
@@ -105,11 +113,11 @@
                     <p class="text-slate-500 text-sm mt-1">Welcome back! Here's what's happening at Anipat today.</p>
                 </div>
                 <div class="flex gap-3">
-                    <button class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                    <button type="button" onclick="openBookAppointmentModal()" class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-lg">add</span>
                         <span>New Appointment</span>
                     </button>
-                    <button class="bg-red-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                    <button type="button" onclick="openEmergencyAppointmentModal()" class="bg-red-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-lg">emergency</span>
                         <span>Emergency</span>
                     </button>
@@ -166,11 +174,20 @@
                 </div>
                 
                 <div class="overflow-x-auto">
-                    <table class="w-full">
+                    <div class="px-6 py-3 border-b border-slate-100">
+                        <input
+                            id="liveSearchInput"
+                            type="text"
+                            placeholder="Search by pet name, owner name or phone number..."
+                            class="w-full max-w-md px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                    </div>
+                    <table class="w-full" id="todayAppointmentsTable">
                         <thead class="bg-slate-50 border-b border-slate-100">
                             <tr>
                                 <th class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-6 py-4">Pet Info</th>
                                 <th class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-6 py-4">Owner</th>
+                                <th class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-6 py-4">Phone Number</th>
                                 <th class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-6 py-4">Time</th>
                                 <th class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-6 py-4">Service</th>
                                 <th class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider px-6 py-4">Doctor</th>
@@ -197,13 +214,12 @@
                                         <c:set var="isInExam" value="${status == 'In-Examination' || status == 'In Progress'}"/>
                                         <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
                                         <c:set var="isCanceled" value="${status == 'Canceled' || status == 'Cancelled'}"/>
-                                        <c:set var="isRescheduled" value="${status == 'Re-Scheduled' || status == 'Rescheduled'}"/>
                                         <c:set var="isRescheduleRequested" value="${status == 'Reschedule-Requested'}"/>
                                         <c:set var="isDoctorChangeRequested" value="${status == 'Doctor-Change-Requested'}"/>
                                         <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
-                                        <c:set var="canChangeDoctor" value="${isPending || isConfirmed || isRescheduled || isCheckedIn}"/>
+                                        <c:set var="canChangeDoctor" value="${isPending || isConfirmed || isCheckedIn}"/>
                                         <tr class="hover:bg-slate-50 transition-colors" data-appointment-id="${apt.appointmentId}">
-                                            <td class="px-6 py-4">
+                                            <td class="px-6 py-4 pet-cell">
                                                 <div class="flex items-center gap-3">
                                                     <c:choose>
                                                         <c:when test="${not empty apt.pet.photoURL}">
@@ -221,14 +237,16 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="px-6 py-4">
+                                            <td class="px-6 py-4 owner-cell">
                                                 <p class="text-sm text-slate-700">${apt.customer.user.fullName}</p>
                                             </td>
+                                            <td class="px-6 py-4 phone-cell">
+                                                <p class="text-sm text-slate-700">${not empty apt.customerPhone ? apt.customerPhone : (not empty apt.customer.user.phone ? apt.customer.user.phone : 'N/A')}</p>
+                                            </td>
                                             <td class="px-6 py-4">
-                                                <div class="flex flex-col items-start">
-                                                    <span class="text-sm font-semibold text-slate-700">${apt.formattedTime}</span>
-                                                    <span class="text-xs text-slate-500">${apt.formattedDate}</span>
-                                                </div>
+                                                <span class="text-sm font-semibold text-slate-700">
+                                                    ${apt.formattedDateWithSlot}
+                                                </span>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
@@ -237,22 +255,13 @@
                                             </td>
                                             <td class="px-6 py-4">
                                                 <c:choose>
-                                                    <c:when test="${canChangeDoctor}">
-                                                        <select class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                            style="width: 140px;"
-                                                            data-appointment-id="${apt.appointmentId}"
-                                                            data-original-vet="${apt.veterinarianId}"
-                                                            onchange="showConfirmPopup(${apt.appointmentId}, this, this.value)">
-                                                            <option value="0" ${empty apt.veterinarianName ? 'selected' : ''}>Chưa có</option>
-                                                            <c:forEach var="vet" items="${veterinarians}">
-                                                                <option value="${vet.userId}" ${vet.userId == apt.veterinarianId ? 'selected' : ''}>
-                                                                    ${vet.fullName}
-                                                                </option>
-                                                            </c:forEach>
-                                                        </select>
+                                                    <c:when test="${isInExam || isWaitingForPayment || isCompleted}">
+                                                        <p class="text-sm text-slate-600">
+                                                            ${not empty apt.veterinarianName ? apt.veterinarianName : 'N/A'}
+                                                        </p>
                                                     </c:when>
                                                     <c:otherwise>
-                                                        <p class="text-sm text-slate-600">${not empty apt.veterinarianName ? apt.veterinarianName : 'Not assigned'}</p>
+                                                        <p class="text-sm text-slate-600">N/A</p>
                                                     </c:otherwise>
                                                 </c:choose>
                                             </td>
@@ -283,8 +292,8 @@
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <div class="flex items-center justify-end gap-2">
-                                                    <%-- Pending / Re-Scheduled: Confirm + Reject --%>
-                                                    <c:if test="${isPending || isRescheduled}">
+                                                    <%-- Pending: Confirm + Reject --%>
+                                                    <c:if test="${isPending}">
                                                         <button onclick="confirmAppointment(${apt.appointmentId}, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                                         <button onclick="rejectAppointment(${apt.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">Reject</button>
                                                     </c:if>
@@ -421,17 +430,9 @@
                         </div>
                         <div class="space-y-1">
                             <label class="text-xs font-medium text-slate-500">Assigned Doctor</label>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm">
                                 <span class="material-symbols-outlined text-sm text-primary opacity-60">stethoscope</span>
-                                <select id="d-doctor-select" data-appointment-id="" data-original-vet="" 
-                                    class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
-                                    onchange="handleDoctorChange(this)">
-                                    <option value="0">Chưa có</option>
-                                    <!-- Veterinarians loaded from server -->
-                                    <c:forEach var="vet" items="${veterinarians}">
-                                        <option value="${vet.userId}"><c:out value="${vet.fullName}"/></option>
-                                    </c:forEach>
-                                </select>
+                                <span id="d-doctor-name">N/A</span>
                             </div>
                         </div>
                     </div>
@@ -439,7 +440,7 @@
             </div>
             
             <div id="detailFooter" class="hidden p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2 flex-wrap">
-                <!-- Pending / Re-Scheduled -->
+                <!-- Pending -->
                 <button id="d-btn-confirm" class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl shadow shadow-primary/20 hover:opacity-90 transition-all" onclick="confirmAppointment(currentDetailAppointmentId, this)">Confirm</button>
                 <button id="d-btn-reject" class="hidden px-4 py-2 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-100 transition-all" onclick="rejectAppointment(currentDetailAppointmentId, this)">Reject</button>
                 <!-- Confirmed -->
@@ -524,17 +525,11 @@
             document.getElementById('d-date').textContent = d.date || 'N/A';
             document.getElementById('d-time').textContent = d.time || 'N/A';
             document.getElementById('d-service').textContent = d.service || 'N/A';
-
-            // Populate doctor select
-            const doctorSelect = document.getElementById('d-doctor-select');
-            doctorSelect.setAttribute('data-appointment-id', d.appointmentId);
-            doctorSelect.setAttribute('data-original-vet', d.veterinarianId || 0);
-            doctorSelect.value = d.veterinarianId && d.veterinarianId > 0 ? d.veterinarianId : "0";
+            document.getElementById('d-doctor-name').textContent = d.veterinarianName || 'N/A';
 
             // Show/hide action buttons based on status
             const status = (d.status || '').toLowerCase();
             const isPending = status === 'pending' || status === 'scheduled';
-            const isRescheduled = status === 're-scheduled' || status === 'rescheduled';
             const isConfirmed = status === 'confirmed';
             const isCheckedIn = status === 'checked-in' || status === 'Checked-in' || status === 'checked in';
             const isWaiting = status === 'waiting-for-payment' || status === 'waiting for payment';
@@ -550,7 +545,7 @@
             document.getElementById('d-btn-invoice').classList.add('hidden');
 
             // Show buttons based on status
-            if (isPending || isRescheduled) {
+            if (isPending) {
                 document.getElementById('d-btn-confirm').classList.remove('hidden');
                 document.getElementById('d-btn-reject').classList.remove('hidden');
             }
@@ -570,7 +565,7 @@
             }
 
             // Show footer only if there are visible buttons
-            const hasButtons = isPending || isRescheduled || isConfirmed || isCheckedIn || isWaiting || isDone;
+            const hasButtons = isPending || isConfirmed || isCheckedIn || isWaiting || isDone;
             document.getElementById('detailFooter').classList.toggle('hidden', !hasButtons);
         }
 
@@ -681,6 +676,7 @@
                 toast.style.display = 'none';
             }, 3000);
         }
+        window.showToast = showToast;
 
         // Appointment action functions
         function updateStatus(appointmentId, newStatus, button) {
@@ -828,6 +824,28 @@
                 alert('Error processing request');
             });
         }
+
+        // Live search by pet name, owner name or phone
+        const liveSearchInput = document.getElementById('liveSearchInput');
+        if (liveSearchInput) {
+            liveSearchInput.addEventListener('input', function () {
+                const value = this.value.trim().toLowerCase();
+                const rows = document.querySelectorAll('#todayAppointmentsTable tbody tr');
+                rows.forEach(row => {
+                    const petCell = row.querySelector('.pet-cell');
+                    const ownerCell = row.querySelector('.owner-cell');
+                    const phoneCell = row.querySelector('.phone-cell');
+                    const petText = petCell ? petCell.textContent.toLowerCase() : '';
+                    const ownerText = ownerCell ? ownerCell.textContent.toLowerCase() : '';
+                    const phoneText = phoneCell ? phoneCell.textContent.toLowerCase() : '';
+                    if (!value || petText.includes(value) || ownerText.includes(value) || phoneText.includes(value)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
     </script>
 
     <!-- Confirmation Popup -->
@@ -894,6 +912,8 @@
         }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
     </style>
+    <jsp:include page="book-appointment-modal.jsp"/>
+    <jsp:include page="emergency-appointment-modal.jsp"/>
     </body>
 </html>
 

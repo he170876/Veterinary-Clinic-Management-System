@@ -39,7 +39,7 @@
             }
             .appointment-grid {
                 display: grid;
-                grid-template-columns: 200px 150px 100px 150px 140px 1fr;
+                grid-template-columns: 200px 150px 140px 100px 150px 140px 1fr;
                 align-items: center;
                 gap: 1rem;
             }
@@ -216,6 +216,7 @@
                 toast.classList.add('active');
                 setTimeout(() => { toast.classList.remove('active'); }, 3000);
             }
+            window.showToast = showToast;
 
             function processAppointmentRequest(appointmentId, requestType, decision) {
                 fetch('HandleAppointmentRequest', {
@@ -311,6 +312,7 @@
                 document.getElementById('d-date').textContent = d.date || 'N/A';
                 document.getElementById('d-time').textContent = d.time || 'N/A';
                 document.getElementById('d-service').textContent = d.service || 'N/A';
+                document.getElementById('d-doctor-name').textContent = d.veterinarianName || 'N/A';
 
                 // Populate doctor select in detail panel
                 const doctorSelect = document.getElementById('d-doctor-select');
@@ -325,13 +327,12 @@
                 allBtns.forEach(id => document.getElementById(id).classList.add('hidden'));
 
                 const isPending   = s === 'pending' || s === 'scheduled';
-                const isRescheduled = s === 're-scheduled' || s === 'rescheduled';
                 const isConfirmed = s === 'confirmed';
                 const isCheckedIn = s === 'checked-in' || s === 'Checked-in' || s === 'checked in';
                 const isWaiting   = s === 'waiting-for-payment' || s === 'waiting for payment';
                 const isDone      = s === 'completed' || s === 'done';
 
-                if (isPending || isRescheduled) {
+                if (isPending) {
                     document.getElementById('d-btn-confirm').classList.remove('hidden');
                     document.getElementById('d-btn-reject').classList.remove('hidden');
                 }
@@ -351,7 +352,7 @@
                 }
 
                 // Show footer only if there are visible buttons
-                const hasButtons = isPending || isRescheduled || isConfirmed || isCheckedIn || isWaiting || isDone;
+                const hasButtons = isPending || isConfirmed || isCheckedIn || isWaiting || isDone;
                 document.getElementById('detailFooter').classList.toggle('hidden', !hasButtons);
             }
 
@@ -503,23 +504,34 @@
                 <span class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Anipat</span>
             </div>
             <nav class="flex-1 px-4 mt-4 space-y-1">
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="/Veterinary_Clinic_Management_System/Receptionist/Dashboard">
+                <!-- Dashboard -->
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="${pageContext.request.contextPath}/Receptionist/Dashboard">
                     <span class="material-symbols-outlined">dashboard</span>
                     <span class="font-medium">Dashboard</span>
                 </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment">
+                <!-- Schedule -->
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="${pageContext.request.contextPath}/Receptionist/ViewListAppointment">
                     <span class="material-symbols-outlined">calendar_today</span>
                     <span class="font-medium">Schedule</span>
                 </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="/Veterinary_Clinic_Management_System/Receptionist/ManageAppointmentRequests">
+                <!-- Request Center -->
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="${pageContext.request.contextPath}/Receptionist/ManageAppointmentRequests">
                     <span class="material-symbols-outlined">pending_actions</span>
                     <span class="font-medium">Request Center</span>
                 </a>
+                <!-- Settings -->
                 <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
                     <span class="material-symbols-outlined">settings</span>
                     <span class="font-medium">Settings</span>
                 </a>
             </nav>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800 mt-4">
+                <a href="${pageContext.request.contextPath}/logout"
+                   class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                    Log Out
+                </a>
+            </div>
 
         </aside>
         <main class="flex-1 flex flex-col min-h-screen">
@@ -575,11 +587,11 @@
                                     Apply
                                 </button>
                             </form>
-                            <button class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                            <button type="button" onclick="openBookAppointmentModal()" class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
                                 <span class="material-symbols-outlined text-lg">add</span>
                                 <span>New Appointment</span>
                             </button>
-                            <button class="bg-red-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                            <button type="button" onclick="openEmergencyAppointmentModal()" class="bg-red-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
                                 <span class="material-symbols-outlined text-lg">emergency</span>
                                 <span>Emergency</span>
                             </button>
@@ -591,7 +603,6 @@
                             <a href="?status=All&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-semibold ${statusFilter == 'All' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">All (${totalCount})</a>
                             <a href="?status=Pending&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Pending' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Pending (${pendingCount})</a>
                             <a href="?status=Confirmed&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Confirmed' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Confirmed (${confirmedCount})</a>
-                            <a href="?status=Re-Scheduled&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Re-Scheduled' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Re-Scheduled (${rescheduledCount})</a>
                             <a href="?status=Checked-in&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Checked-in' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Checked-in (${checkedInCount})</a>
                             <a href="?status=In-Examination&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'In-Examination' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">In Examination (${inExaminationCount})</a>
                             <a href="?status=Waiting-for-Payment&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Waiting-for-Payment' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Waiting for Payment (${waitingForPaymentCount})</a>
@@ -607,6 +618,7 @@
                     <div class="px-4 appointment-grid text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                         <div>Pet Info</div>
                         <div>Owner</div>
+                        <div>Phone Number</div>
                         <div>Time</div>
                         <div>Service</div>
                         <div>Doctor</div>
@@ -626,14 +638,12 @@
                             <c:set var="isCompleted" value="${status == 'Completed' || status == 'Done'}"/>
                             <c:set var="isPending" value="${status == 'Pending' || status == 'Scheduled'}"/>
                             <c:set var="isConfirmed" value="${status == 'Confirmed'}"/>
-                            <c:set var="isRescheduled" value="${status == 'Re-Scheduled' || status == 'Rescheduled'}"/>
                             <c:set var="isRescheduleRequested" value="${status == 'Reschedule-Requested'}"/>
                             <c:set var="isDoctorChangeRequested" value="${status == 'Doctor-Change-Requested'}"/>
                             <c:set var="isInExamination" value="${status == 'In-Examination' || status == 'In Progress'}"/>
                             <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
                             <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
                             <c:set var="isCanceled" value="${status == 'Canceled' || status == 'Cancelled'}"/>
-                            <c:set var="canChangeDoctor" value="${isPending || isConfirmed || isRescheduled || isCheckedIn}"/>
                             
                             <c:choose>
                                 <c:when test="${isCompleted}">
@@ -675,9 +685,6 @@
                                             <c:when test="${isConfirmed}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold rounded uppercase tracking-wider">Confirmed</span>
                                             </c:when>
-                                            <c:when test="${isRescheduled}">
-                                                <span class="inline-block px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold rounded uppercase tracking-wider">Re-Scheduled</span>
-                                            </c:when>
                                             <c:when test="${isRescheduleRequested}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[9px] font-bold rounded uppercase tracking-wider">Reschedule Requested</span>
                                             </c:when>
@@ -699,13 +706,18 @@
                                         </c:choose>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
+                                <div class="flex items-center gap-2 text-xs owner-cell ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60">person</span>
                                     <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'N/A'}</span>
                                 </div>
+                                <div class="flex items-center text-xs phone-cell ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
+                                    <span class="material-symbols-outlined text-base opacity-60">call</span>
+                                    <span class="truncate">
+                                        ${not empty appointment.customer.user.phone ? appointment.customer.user.phone : 'N/A'}
+                                    </span>
+                                </div>
                                 <div class="flex flex-col text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
-                                    <span class="font-semibold">${appointment.formattedTime}</span>
-                                    <span>${appointment.formattedDate}</span>
+                                    <span class="font-semibold">${appointment.formattedDateWithSlot}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
                                     <span class="material-symbols-outlined text-base opacity-60 text-primary">medical_services</span>
@@ -713,28 +725,19 @@
                                 </div>
                                 <div>
                                     <c:choose>
-                                        <c:when test="${canChangeDoctor}">
-                                            <select
-                                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                data-appointment-id="${appointment.appointmentId}"
-                                                data-original-vet="${appointment.veterinarianId}"
-                                                onchange="showConfirmPopup(this.dataset.appointmentId, this, this.value)">
-                                                <option value="0" ${empty appointment.veterinarianName ? 'selected' : ''}>Chưa có</option>
-                                                <c:forEach var="vet" items="${veterinarians}">
-                                                    <option value="${vet.userId}" ${vet.userId == appointment.veterinarianId ? 'selected' : ''}>
-                                                        ${vet.fullName}
-                                                    </option>
-                                                </c:forEach>
-                                            </select>
+                                        <c:when test="${isInExamination || isWaitingForPayment || isCompleted}">
+                                            <p class="text-xs text-slate-600 dark:text-slate-400">
+                                                ${not empty appointment.veterinarianName ? appointment.veterinarianName : 'N/A'}
+                                            </p>
                                         </c:when>
                                         <c:otherwise>
-                                            <p class="text-xs text-slate-600 dark:text-slate-400">${not empty appointment.veterinarianName ? appointment.veterinarianName : 'Chưa có'}</p>
+                                            <p class="text-xs text-slate-600 dark:text-slate-400">N/A</p>
                                         </c:otherwise>
                                     </c:choose>
                                 </div>
                                 <div class="flex items-center justify-end gap-2 pr-2">
-                                    <%-- Pending / Re-Scheduled: Confirm + Reject --%>
-                                    <c:if test="${isPending || isRescheduled}">
+                                    <%-- Pending: Confirm + Reject --%>
+                                    <c:if test="${isPending}">
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="confirmAppointment(this.dataset.appointmentId, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="rejectAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
                                     </c:if>
@@ -939,23 +942,16 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-slate-500">Assigned Doctor</label>
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm">
                                     <span class="material-symbols-outlined text-sm text-primary opacity-60">stethoscope</span>
-                                    <select id="d-doctor-select" data-appointment-id="" data-original-vet="" 
-                                        class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
-                                        onchange="showDoctorChangeConfirm(this)">
-                                        <option value="0">Unassigned</option>
-                                        <c:forEach var="vet" items="${veterinarians}">
-                                            <option value="${vet.userId}"><c:out value="${vet.fullName}"/></option>
-                                        </c:forEach>
-                                    </select>
+                                    <span id="d-doctor-name">N/A</span>
                                 </div>
                             </div>
                         </div>
                     </section>
                 </div>
                 <div id="detailFooter" class="hidden p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-end gap-2 flex-wrap">
-                    <!-- Pending / Re-Scheduled -->
+                    <!-- Pending -->
                     <button id="d-btn-confirm"     class="hidden px-4 py-2 bg-primary text-white text-sm font-semibold rounded-xl shadow shadow-primary/20 hover:opacity-90 transition-all" onclick="confirmAppointment(currentDetailAppointmentId, this)">Confirm</button>
                     <button id="d-btn-reject"      class="hidden px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" onclick="rejectAppointment(currentDetailAppointmentId, this)">Reject</button>
                     <!-- Confirmed -->
@@ -1056,5 +1052,6 @@
                 </div>
             </div>
         </div>
-
+    <jsp:include page="book-appointment-modal.jsp"/>
+    <jsp:include page="emergency-appointment-modal.jsp"/>
     </body></html>
