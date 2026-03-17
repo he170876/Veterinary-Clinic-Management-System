@@ -79,49 +79,86 @@
             <span class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Anipat</span>
         </div>
         <nav class="flex-1 px-4 mt-4 space-y-1">
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="/Veterinary_Clinic_Management_System/Receptionist/Dashboard">
+            <!-- Dashboard -->
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="${pageContext.request.contextPath}/Receptionist/Dashboard">
                 <span class="material-symbols-outlined">dashboard</span>
                 <span class="font-medium">Dashboard</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment">
+            <!-- Schedule -->
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="${pageContext.request.contextPath}/Receptionist/ViewListAppointment">
                 <span class="material-symbols-outlined">calendar_today</span>
                 <span class="font-medium">Schedule</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="/Veterinary_Clinic_Management_System/Receptionist/ManageAppointmentRequests">
+            <!-- Request Center -->
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20" href="${pageContext.request.contextPath}/Receptionist/ManageAppointmentRequests">
                 <span class="material-symbols-outlined">pending_actions</span>
                 <span class="font-medium">Request Center</span>
             </a>
+            <!-- Settings -->
+            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="font-medium">Settings</span>
+            </a>
         </nav>
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 mt-4">
+            <a href="${pageContext.request.contextPath}/logout"
+               class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+                Log Out
+            </a>
+        </div>
     </aside>
 
     <main class="flex-1 flex flex-col min-h-screen">
         <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 sticky top-0 z-10">
             <div>
                 <h1 class="text-xl font-bold text-slate-800 dark:text-white">Appointment Requests</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Approve/Reject reschedule and doctor-change requests</p>
             </div>
             <div class="flex items-center gap-4">
                 <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-                <a href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Back to Appointments</a>
+                <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-slate-800 dark:text-white">
+                            <c:out value="${not empty sessionScope.currentUser ? sessionScope.currentUser.fullName : 'User'}"/>
+                        </p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            <c:out value="${not empty sessionScope.currentUser.role ? sessionScope.currentUser.role.roleName : 'User'}"/>
+                        </p>
+                    </div>
+                    <img alt="Profile" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbM3tqKcwxIsoi5slYj6Kdkox1ysp7KyLPDUH241MYJyDiLgGIKJ9QfoxuwyxV7s__5dZyVili1E1pp7xhQFoF-V8TeZNJinkVaQLjApB2--PT016uBomLlR7k5ltY6L9ulS8rA6R9XrEDYfPiKRJAXNwpDWjOg_9KCYs2yO3_5n8QJ1kKKmQloVoxUx4kSNIbI7UBGluY2j-V8Oysu6VNuosQ1slgZWJMFmS4Rk4Ivn1Jv10A3YoUxgz9L5k5j8p-uVqiMJH_3EY"/>
+                </div>
             </div>
         </header>
 
         <div class="p-8 flex-1 overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-between mb-6">
-                <div class="flex gap-6 border-b border-slate-200 dark:border-slate-800">
-                    <a href="?requestType=All&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;keyword=${keyword}&amp;customerName=${customerName}" class="pb-3 text-sm font-semibold ${requestType == 'All' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}">All (${totalRequestCount})</a>
-                    <a href="?requestType=Reschedule&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;keyword=${keyword}&amp;customerName=${customerName}" class="pb-3 text-sm font-semibold ${requestType == 'Reschedule' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}">Reschedule (${rescheduleCount})</a>
-                    <a href="?requestType=DoctorChange&amp;fromDate=${fromDate}&amp;toDate=${toDate}&amp;keyword=${keyword}&amp;customerName=${customerName}" class="pb-3 text-sm font-semibold ${requestType == 'DoctorChange' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}">Doctor Change (${doctorChangeCount})</a>
-                </div>
-
-                <form method="get" class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 gap-2">
-                    <input type="hidden" name="requestType" value="${requestType}"/>
-                    <input type="text" name="keyword" value="${keyword}" placeholder="Search by appointment ID, pet, owner..." class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 w-60"/>
-                    <input type="text" name="customerName" value="${customerName}" placeholder="Filter customer name..." class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 w-52"/>
-                    <input type="date" name="fromDate" value="${fromDate}" class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"/>
-                    <span class="text-xs text-slate-400">to</span>
-                    <input type="date" name="toDate" value="${toDate}" class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"/>
-                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold">Apply</button>
+                <div></div>
+                <form method="get" class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 gap-3">
+                    <span class="material-symbols-outlined text-slate-400 text-xl">calendar_month</span>
+                    <div class="flex flex-col">
+                        <span class="text-xs text-slate-400 dark:text-slate-500">Date range</span>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            ${displayDateRange}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 ml-3">
+                        <input
+                                type="date"
+                                name="fromDate"
+                                value="${fromDate}"
+                                class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+                        <span class="text-xs text-slate-400 dark:text-slate-500">to</span>
+                        <input
+                                type="date"
+                                name="toDate"
+                                value="${toDate}"
+                                class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+                    </div>
+                    <button
+                            type="submit"
+                            class="ml-2 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:opacity-90 transition-all">
+                        Apply
+                    </button>
                 </form>
             </div>
 

@@ -6,6 +6,8 @@ package controller.receptionist;
 
 import dao.AppointmentDAO;
 import dao.NotificationDAO;
+import dao.ServiceDAO;
+import dao.impl.ServiceJdbcDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
@@ -137,8 +139,6 @@ public class ViewListAppointmentServlet extends HttpServlet {
                                         || "Doctor-Change-Requested".equalsIgnoreCase(status);
                             case "Confirmed":
                                 return "Confirmed".equalsIgnoreCase(status);
-                            case "Re-Scheduled":
-                                return "Re-Scheduled".equalsIgnoreCase(status) || "Rescheduled".equalsIgnoreCase(status);
                             case "Checked-in":
                                 return "Checked-in".equalsIgnoreCase(status);
                             case "In-Examination":
@@ -173,9 +173,6 @@ public class ViewListAppointmentServlet extends HttpServlet {
                 .count();
         int confirmedCount = (int) dateFiltered.stream()
                 .filter(a -> a.getStatus() != null && "Confirmed".equalsIgnoreCase(a.getStatus()))
-                .count();
-        int rescheduledCount = (int) dateFiltered.stream()
-                .filter(a -> a.getStatus() != null && ("Re-Scheduled".equalsIgnoreCase(a.getStatus()) || "Rescheduled".equalsIgnoreCase(a.getStatus())))
                 .count();
         int checkedInCount = (int) dateFiltered.stream()
                 .filter(a -> a.getStatus() != null && "Checked-in".equalsIgnoreCase(a.getStatus()))
@@ -257,12 +254,13 @@ public class ViewListAppointmentServlet extends HttpServlet {
         request.setAttribute("totalCount", totalCount);
         request.setAttribute("pendingCount", pendingCount);
         request.setAttribute("confirmedCount", confirmedCount);
-        request.setAttribute("rescheduledCount", rescheduledCount);
         request.setAttribute("checkedInCount", checkedInCount);
         request.setAttribute("inExaminationCount", inExaminationCount);
         request.setAttribute("doneCount", doneCount);
         request.setAttribute("waitingForPaymentCount", waitingForPaymentCount);
         request.setAttribute("canceledCount", canceledCount);
+        ServiceDAO serviceDAO = new ServiceJdbcDAO();
+        request.setAttribute("services", serviceDAO.findAll());
         
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/ViewListAppointment.jsp")
                 .forward(request, response);

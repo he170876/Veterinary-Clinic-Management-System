@@ -1,5 +1,6 @@
 package model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -13,8 +14,11 @@ public class Appointment {
     private Customer customer;
     private Integer veterinarianId; // keep as id for now to avoid circular model explosion
     private String veterinarianName; // for display purposes
+    private String customerPhone; // customer's phone for receptionist views
     private String service; // service name
     private Integer serviceId; // for saving record services
+    private LocalDate appointmentDate; // new: date-only column
+    private String timeSlot;           // new: "AM" or "PM"
     private LocalDateTime appointmentTime;
     private String status; // Pending, Confirmed, Completed, Cancelled...
     private LocalDateTime createdAt;
@@ -71,6 +75,14 @@ public class Appointment {
         this.service = service;
     }
 
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+
+    public void setCustomerPhone(String customerPhone) {
+        this.customerPhone = customerPhone;
+    }
+
     public Integer getServiceId() {
         return serviceId;
     }
@@ -99,6 +111,37 @@ public class Appointment {
             return "N/A";
         }
         return appointmentTime.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"));
+    }
+
+    public LocalDate getAppointmentDate() {
+        return appointmentDate;
+    }
+
+    public void setAppointmentDate(LocalDate appointmentDate) {
+        this.appointmentDate = appointmentDate;
+    }
+
+    public String getTimeSlot() {
+        return timeSlot;
+    }
+
+    public void setTimeSlot(String timeSlot) {
+        this.timeSlot = timeSlot;
+    }
+
+    /**
+     * Returns a compact representation of the appointment slot using the new
+     * (appointment_date, time_slot) schema, for example "2026-03-16 AM".
+     * Falls back to the legacy appointmentTime field if needed.
+     */
+    public String getFormattedDateWithSlot() {
+        if (appointmentDate != null && timeSlot != null && !timeSlot.isBlank()) {
+            return appointmentDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " " + timeSlot.trim().toUpperCase();
+        }
+        if (appointmentTime != null) {
+            return appointmentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd a"));
+        }
+        return "N/A";
     }
 
     public String getStatus() {

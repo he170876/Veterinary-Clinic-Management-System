@@ -12,6 +12,8 @@ public interface UserDAO {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByPhone(String phone);
+
     Optional<User> findById(int userId);
 
     boolean existsByEmail(String email);

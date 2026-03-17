@@ -71,16 +71,16 @@ public class GetAppointmentDetailServlet extends HttpServlet {
             }
         }
 
-        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("MMM dd, yyyy");
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
+        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         StringBuilder json = new StringBuilder();
         json.append("{");
         json.append("\"success\":true,");
         json.append("\"appointmentId\":").append(ap.getAppointmentId()).append(",");
         json.append("\"status\":\"").append(esc(ap.getStatus())).append("\",");
-        json.append("\"date\":\"").append(ap.getAppointmentTime() != null ? ap.getAppointmentTime().format(dateFmt) : "").append("\",");
-        json.append("\"time\":\"").append(ap.getAppointmentTime() != null ? ap.getAppointmentTime().format(timeFmt) : "").append("\",");
+        // Use new date + slot representation
+        json.append("\"date\":\"").append(ap.getAppointmentDate() != null ? ap.getAppointmentDate().format(dateFmt) : "").append("\",");
+        json.append("\"time\":\"").append(esc(ap.getTimeSlot())).append("\",");
         json.append("\"service\":\"").append(esc(ap.getService())).append("\",");
         json.append("\"veterinarianId\":").append(ap.getVeterinarianId()).append(",");
         json.append("\"veterinarianName\":\"").append(esc(ap.getVeterinarianName())).append("\",");

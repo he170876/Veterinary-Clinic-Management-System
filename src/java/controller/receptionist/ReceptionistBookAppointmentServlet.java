@@ -1,0 +1,188 @@
+package controller.receptionist;
+
+import dao.AppointmentDAO;
+import dao.CustomerDAO;
+import dao.PetDAO;
+import dao.UserDAO;
+import dao.impl.CustomerJdbcDAO;
+import dao.impl.PetJdbcDAO;
+import dao.impl.UserJdbcDAO;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import model.Customer;
+import model.Pet;
+import model.Role;
+import model.User;
+import org.mindrot.jbcrypt.BCrypt;
+import utils.ValidationUtil;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.Optional;
+
+/**
+ * POST from receptionist Book Appointment modal.
+ * Creates appointment with appointment_date + time_slot (AM/PM).
+ * Params: ownerName, email, phone, serviceId, petId (optional), petName, petType, appointmentDate, timeSlot (AM|PM), notes.
+ */
+@WebServlet("/Receptionist/BookAppointment")
+public class ReceptionistBookAppointmentServlet extends HttpServlet {
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String ownerName = ValidationUtil.trim(request.getParameter("ownerName"));
+        String email = ValidationUtil.trim(request.getParameter("email"));
+        String phone = ValidationUtil.trim(request.getParameter("phone"));
+        String serviceIdStr = ValidationUtil.trim(request.getParameter("serviceId"));
+        String petIdStr = ValidationUtil.trim(request.getParameter("petId"));
+        String petName = ValidationUtil.trim(request.getParameter("petName"));
+        String petType = ValidationUtil.trim(request.getParameter("petType"));
+        String appointmentDateStr = ValidationUtil.trim(request.getParameter("appointmentDate"));
+        String timeSlot = ValidationUtil.trim(request.getParameter("timeSlot"));
+        String notes = ValidationUtil.trim(request.getParameter("notes"));
+
+        if (ownerName == null || ownerName.isEmpty() || email == null || email.isEmpty()
+                || phone == null || phone.isEmpty() || serviceIdStr == null || serviceIdStr.isEmpty()
+                || appointmentDateStr == null || appointmentDateStr.isEmpty()
+                || timeSlot == null || timeSlot.isEmpty()) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Please fill in all required fields.\"}");
+            return;
+        }
+
+        boolean useExistingPet = petIdStr != null && !petIdStr.isEmpty() && !"0".equals(petIdStr);
+        if (!useExistingPet && (petName == null || petName.isEmpty() || petType == null || petType.isEmpty())) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Pet name and type are required for new customers.\"}");
+            return;
+        }
+
+        if (!ValidationUtil.isValidPhone(phone)) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Phone must be 10 digits starting with 0.\"}");
+            return;
+        }
+
+        if (!ValidationUtil.isValidEmailFormat(email)) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Please enter a valid email address.\"}");
+            return;
+        }
+
+        int serviceId;
+        LocalDate appointmentDate;
+        try {
+            serviceId = Integer.parseInt(serviceIdStr);
+            if (serviceId <= 0) throw new IllegalArgumentException("Invalid service");
+            appointmentDate = LocalDate.parse(appointmentDateStr);
+        } catch (NumberFormatException | DateTimeParseException e) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Invalid date or service.\"}");
+            return;
+        }
+
+        String slot = "AM".equalsIgnoreCase(timeSlot) || "PM".equalsIgnoreCase(timeSlot) ? timeSlot.toUpperCase() : "AM";
+
+        UserDAO userDAO = new UserJdbcDAO();
+        CustomerDAO customerDAO = new CustomerJdbcDAO();
+        PetDAO petDAO = new PetJdbcDAO();
+        AppointmentDAO appointmentDAO = new AppointmentDAO();
+
+        int customerId;
+        int petId;
+
+        if (useExistingPet) {
+            try {
+                petId = Integer.parseInt(petIdStr);
+                Optional<Pet> petOpt = petDAO.findById(petId);
+                if (petOpt.isEmpty()) {
+                    response.getWriter().print("{\"success\":false,\"message\":\"Selected pet not found.\"}");
+                    return;
+                }
+                Pet pet = petOpt.get();
+                petId = pet.getPetId();
+                customerId = pet.getOwner() != null ? pet.getOwner().getCustomerId() : 0;
+                if (customerId == 0) {
+                    response.getWriter().print("{\"success\":false,\"message\":\"Invalid pet data.\"}");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                response.getWriter().print("{\"success\":false,\"message\":\"Invalid pet selection.\"}");
+                return;
+            }
+        } else {
+            Optional<User> userOpt = userDAO.findByPhone(phone);
+            if (userOpt.isEmpty()) {
+                userOpt = userDAO.findByEmail(email);
+            }
+            User user;
+            if (userOpt.isPresent()) {
+                user = userOpt.get();
+                Optional<Customer> custOpt = customerDAO.findByUserId(user.getUserId());
+                if (custOpt.isEmpty()) {
+                    Customer newCust = new Customer();
+                    newCust.setUser(user);
+                    newCust = customerDAO.create(newCust);
+                    customerId = newCust.getCustomerId();
+                } else {
+                    customerId = custOpt.get().getCustomerId();
+                }
+            } else {
+                user = createCustomerUser(ownerName, email, phone);
+                if (user == null) {
+                    response.getWriter().print("{\"success\":false,\"message\":\"Could not create customer account.\"}");
+                    return;
+                }
+                Optional<Customer> newCustOpt = customerDAO.findByUserId(user.getUserId());
+                if (newCustOpt.isEmpty()) {
+                    response.getWriter().print("{\"success\":false,\"message\":\"Customer record not found after signup.\"}");
+                    return;
+                }
+                customerId = newCustOpt.get().getCustomerId();
+            }
+
+            Optional<Pet> existingPet = petDAO.findByCustomerId(customerId).stream()
+                    .filter(p -> petName.equalsIgnoreCase(p.getName())).findFirst();
+            if (existingPet.isPresent()) {
+                petId = existingPet.get().getPetId();
+            } else {
+                Pet newPet = new Pet();
+                newPet.setName(petName);
+                newPet.setSpecies(petType);
+                Customer c = new Customer();
+                c.setCustomerId(customerId);
+                newPet.setOwner(c);
+                newPet = petDAO.create(newPet);
+                petId = newPet.getPetId();
+            }
+        }
+
+        int appointmentId = appointmentDAO.createWithDateAndSlot(petId, customerId, serviceId, appointmentDate, slot, notes, phone);
+        if (appointmentId > 0) {
+            response.getWriter().print("{\"success\":true,\"message\":\"Appointment booked successfully.\",\"appointmentId\":" + appointmentId + "}");
+        } else {
+            response.getWriter().print("{\"success\":false,\"message\":\"Could not save appointment. Please try again.\"}");
+        }
+    }
+
+    private User createCustomerUser(String fullName, String email, String phone) {
+        String hashed = BCrypt.hashpw("DefaultPassword123", BCrypt.gensalt());
+        User user = new User();
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setPasswordHash(hashed);
+        user.setStatus("Active");
+        Role customerRole = new Role();
+        customerRole.setRoleId(1); // Customer
+        user.setRole(customerRole);
+        UserDAO uDao = new UserJdbcDAO();
+        User created = uDao.createCustomerUser(user);
+        return created;
+    }
+}

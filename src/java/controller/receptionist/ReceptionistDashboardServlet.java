@@ -1,6 +1,8 @@
 package controller.receptionist;
 
 import dao.AppointmentDAO;
+import dao.ServiceDAO;
+import dao.impl.ServiceJdbcDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
@@ -81,6 +83,8 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         request.setAttribute("emergencyResolved", emergencyResolved);
         request.setAttribute("recentAppointments", recentAppointments);
         request.setAttribute("veterinarians", veterinarians);
+        ServiceDAO serviceDAO = new ServiceJdbcDAO();
+        request.setAttribute("services", serviceDAO.findAll());
         
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/dashboard.jsp")
                 .forward(request, response);

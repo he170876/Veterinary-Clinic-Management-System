@@ -39,6 +39,7 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
         }
 
         DateTimeFormatter paramFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate today = LocalDate.now();
         LocalDate fromDate = null;
         LocalDate toDate = null;
 
@@ -54,8 +55,19 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
             toDate = null;
         }
 
-        // If user does not pick a date range, show all pending requests.
-        // If user picks only one bound, keep the other side open-ended.
+        // Default date range behavior should mirror ViewListAppointment:
+        // If user does not provide any range, use today -> today + 6 days.
+        // If only one bound is provided, infer the other as +/- 1 week.
+        if (fromDate == null && toDate == null) {
+            fromDate = today;
+            toDate = today.plusDays(6);
+        }
+
+        if (fromDate == null && toDate != null) {
+            fromDate = toDate.minusWeeks(1);
+        } else if (fromDate != null && toDate == null) {
+            toDate = fromDate.plusWeeks(1);
+        }
 
         final LocalDate rangeStart = fromDate;
         final LocalDate rangeEnd = toDate;
