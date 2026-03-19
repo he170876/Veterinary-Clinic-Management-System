@@ -93,8 +93,12 @@ Booking form fragment - included in index.jsp modal.
                 <input type="date" class="form-control" id="appointmentDate" name="appointmentDate" required>
             </div>
             <div class="form-group">
-                <label for="appointmentTime">Preferred Time *</label>
-                <input type="time" class="form-control" id="appointmentTime" name="appointmentTime" required>
+                <label for="timeSlot">Preferred Slot *</label>
+                <select class="form-control form-select" id="timeSlot" name="timeSlot" required>
+                    <option value="">Choose a slot</option>
+                    <option value="morning">Morning (08:00)</option>
+                    <option value="afternoon">Afternoon (14:00)</option>
+                </select>
             </div>
         </div>
         <div class="form-row full">

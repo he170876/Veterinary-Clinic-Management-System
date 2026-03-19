@@ -11,8 +11,10 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.mindrot.jbcrypt.BCrypt;
 import utils.ValidationUtil;
@@ -37,7 +39,7 @@ public class BookAppointmentServlet extends HttpServlet {
         String petName = trim(request.getParameter("petName"));
         String petType = trim(request.getParameter("petType"));
         String appointmentDate = trim(request.getParameter("appointmentDate"));
-        String appointmentTime = trim(request.getParameter("appointmentTime"));
+        String timeSlotRaw = trim(request.getParameter("timeSlot"));
         String notes = trim(request.getParameter("notes"));
 
         String ctx = request.getContextPath();
@@ -47,7 +49,7 @@ public class BookAppointmentServlet extends HttpServlet {
                 || phone == null || phone.isEmpty() || serviceIdStr == null || serviceIdStr.isEmpty()
                 || petName == null || petName.isEmpty() || petType == null || petType.isEmpty()
                 || appointmentDate == null || appointmentDate.isEmpty()
-                || appointmentTime == null || appointmentTime.isEmpty()) {
+                || timeSlotRaw == null || timeSlotRaw.isEmpty()) {
             response.sendRedirect(redirect + "?bookError=1&bookMessage="
                     + URLEncoder.encode("Please fill in all required fields.", StandardCharsets.UTF_8));
             return;
@@ -83,18 +85,24 @@ public class BookAppointmentServlet extends HttpServlet {
             return;
         }
 
+        String normalizedTimeSlot = normalizeTimeSlot(timeSlotRaw);
+        if (normalizedTimeSlot == null) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    + URLEncoder.encode("Please choose a valid booking slot (Morning or Afternoon).", StandardCharsets.UTF_8));
+            return;
+        }
+
         int serviceId;
-        LocalDateTime preferredDateTime;
+        LocalDate preferredDate;
         try {
             serviceId = Integer.parseInt(serviceIdStr);
-            // Combine date and time from form into a single LocalDateTime object
-            preferredDateTime = LocalDateTime.parse(appointmentDate + "T" + appointmentTime);
+            preferredDate = LocalDate.parse(appointmentDate);
             if (serviceId <= 0) {
                 throw new IllegalArgumentException("Invalid service selected.");
             }
-        } catch (IllegalArgumentException | DateTimeParseException e) {
+        } catch (Exception e) {
             response.sendRedirect(redirect + "?bookError=1&bookMessage="
-                    + URLEncoder.encode("Invalid data format for date or service.", StandardCharsets.UTF_8));
+                    + URLEncoder.encode("Invalid data format for date, slot or service.", StandardCharsets.UTF_8));
             return;
         }
 
@@ -199,16 +207,96 @@ public class BookAppointmentServlet extends HttpServlet {
 
             if (petId == null) throw new SQLException("Failed to find or create pet.");
 
-            // Step 3: Create the Appointment
-            // veterinarian_id is left NULL to be assigned by a receptionist.
-            // Assuming 'Appointments' table has a 'notes' column.
-            String sqlCreateAppointment = "INSERT INTO dbo.Appointments (customer_id, pet_id, service_id, appointment_time, status, created_at, notes) VALUES (?, ?, ?, ?, 'Pending', GETDATE(), ?)";
+            // Step 3: Create appointment using whichever schema exists in this environment.
+            Set<String> appointmentColumns = getAppointmentsTableColumns(conn);
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+            boolean hasTimeSlotColumn = appointmentColumns.contains("time_slot");
+            boolean hasServiceId = appointmentColumns.contains("service_id");
+            boolean hasNotes = appointmentColumns.contains("notes");
+            boolean hasPhone = appointmentColumns.contains("phone");
+            boolean hasVeterinarianId = appointmentColumns.contains("veterinarian_id");
+            boolean hasCreatedAt = appointmentColumns.contains("created_at");
+
+            if (!hasAppointmentTime && !hasAppointmentDate) {
+                throw new SQLException("Appointments table is missing appointment date/time columns.");
+            }
+
+            if (!hasAppointmentTime && hasAppointmentDate && !hasTimeSlotColumn) {
+                throw new SQLException("Appointments table is missing time_slot column for slot booking.");
+            }
+
+            StringBuilder columnSql = new StringBuilder("customer_id, pet_id");
+            StringBuilder valueSql = new StringBuilder("?, ?");
+
+            if (hasVeterinarianId) {
+                columnSql.append(", veterinarian_id");
+                valueSql.append(", NULL");
+            }
+
+            if (hasServiceId) {
+                columnSql.append(", service_id");
+                valueSql.append(", ?");
+            }
+
+            if (hasAppointmentTime) {
+                columnSql.append(", appointment_time");
+                valueSql.append(", ?");
+            } else {
+                columnSql.append(", appointment_date");
+                valueSql.append(", ?");
+                if (hasTimeSlotColumn) {
+                    columnSql.append(", time_slot");
+                    valueSql.append(", ?");
+                }
+            }
+
+            columnSql.append(", status");
+            valueSql.append(", ?");
+
+            if (hasCreatedAt) {
+                columnSql.append(", created_at");
+                valueSql.append(", GETDATE()");
+            }
+
+            if (hasNotes) {
+                columnSql.append(", notes");
+                valueSql.append(", ?");
+            }
+
+            if (hasPhone) {
+                columnSql.append(", phone");
+                valueSql.append(", ?");
+            }
+
+            String sqlCreateAppointment = "INSERT INTO dbo.Appointments (" + columnSql + ") VALUES (" + valueSql + ")";
             try (PreparedStatement psCreateAppt = conn.prepareStatement(sqlCreateAppointment)) {
-                psCreateAppt.setInt(1, customerId);
-                psCreateAppt.setInt(2, petId);
-                psCreateAppt.setInt(3, serviceId);
-                psCreateAppt.setTimestamp(4, Timestamp.valueOf(preferredDateTime));
-                psCreateAppt.setString(5, notes == null ? "" : notes);
+                int index = 1;
+                psCreateAppt.setInt(index++, customerId);
+                psCreateAppt.setInt(index++, petId);
+
+                if (hasServiceId) {
+                    psCreateAppt.setInt(index++, serviceId);
+                }
+
+                if (hasAppointmentTime) {
+                    psCreateAppt.setTimestamp(index++, Timestamp.valueOf(toSlotDateTime(preferredDate, normalizedTimeSlot)));
+                } else {
+                    psCreateAppt.setDate(index++, java.sql.Date.valueOf(preferredDate));
+                    if (hasTimeSlotColumn) {
+                        psCreateAppt.setString(index++, normalizedTimeSlot);
+                    }
+                }
+
+                psCreateAppt.setString(index++, "Pending");
+
+                if (hasNotes) {
+                    psCreateAppt.setString(index++, notes == null ? "" : notes);
+                }
+
+                if (hasPhone) {
+                    psCreateAppt.setString(index++, phone);
+                }
 
                 int rowsAffected = psCreateAppt.executeUpdate();
                 if (rowsAffected == 0) {
@@ -249,5 +337,42 @@ public class BookAppointmentServlet extends HttpServlet {
 
     private String trim(String s) {
         return s == null ? null : s.trim();
+    }
+
+    private String normalizeTimeSlot(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim().toLowerCase();
+        if ("morning".equals(normalized) || "am".equals(normalized)) {
+            return "AM";
+        }
+        if ("afternoon".equals(normalized) || "pm".equals(normalized)) {
+            return "PM";
+        }
+        return null;
+    }
+
+    private LocalDateTime toSlotDateTime(LocalDate date, String normalizedTimeSlot) {
+        int hour = "PM".equalsIgnoreCase(normalizedTimeSlot) ? 14 : 8;
+        return date.atTime(hour, 0);
+    }
+
+    private Set<String> getAppointmentsTableColumns(Connection con) {
+        Set<String> columns = new HashSet<>();
+        String probeSql = "SELECT TOP 0 * FROM dbo.Appointments";
+        try (PreparedStatement ps = con.prepareStatement(probeSql);
+             ResultSet rs = ps.executeQuery()) {
+            ResultSetMetaData meta = rs.getMetaData();
+            for (int i = 1; i <= meta.getColumnCount(); i++) {
+                String column = meta.getColumnName(i);
+                if (column != null) {
+                    columns.add(column.trim().toLowerCase());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return columns;
     }
 }
