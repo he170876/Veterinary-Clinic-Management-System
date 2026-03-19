@@ -39,8 +39,7 @@ public class VetDashboardServlet extends HttpServlet {
         LabTestRequestDAO labDao = new LabTestRequestDAO();
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
 
-        // Shared vet queue should also appear on dashboard.
-        List<Appointment> todayAppointments = appDao.getVetQueueAppointmentsForDate(java.time.LocalDate.now());
+        List<Appointment> todayAppointments = vetId > 0 ? appDao.getTodayAppointmentsByVeterinarianForDashboard(vetId) : Collections.emptyList();
         int totalToday = vetId > 0 ? appDao.countTodayAppointmentsByVet(vetId) : 0;
         int surgeriesToday = vetId > 0 ? appDao.countSurgeriesTodayByVet(vetId) : 0;
         int pendingLab = vetId > 0 ? labDao.countPendingByVeterinarian(vetId) : 0;
@@ -52,7 +51,6 @@ public class VetDashboardServlet extends HttpServlet {
         request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
         request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("todayAppointments", todayAppointments);
-        request.setAttribute("currentVetId", vetId);
         request.setAttribute("totalToday", totalToday);
         request.setAttribute("surgeriesToday", surgeriesToday);
         request.setAttribute("pendingLab", pendingLab);
