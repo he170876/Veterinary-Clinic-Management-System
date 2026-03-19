@@ -1,4 +1,4 @@
-ï»¿<%@ page import="model.Pet" %>
+<%@ page import="model.Pet" %>
 <%@ page import="java.time.LocalDate" %>
 <%@ page import="java.time.YearMonth" %>
 <%@ page import="java.time.temporal.ChronoUnit" %>
