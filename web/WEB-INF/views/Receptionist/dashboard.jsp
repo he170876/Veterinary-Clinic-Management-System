@@ -85,10 +85,7 @@
     <main class="flex-1 flex flex-col min-h-screen">
         <!-- Top Bar -->
         <header class="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 sticky top-0 z-10">
-            <div class="relative w-96">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
-                <input class="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder-slate-500" placeholder="Search patients, owners or records..." type="text"/>
-            </div>
+            <div class="flex-1"></div>
             <div class="flex items-center gap-4">
                 <button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 relative">
                     <span class="material-symbols-outlined">notifications</span>

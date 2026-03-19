@@ -79,21 +79,40 @@ public class VetExaminationServlet extends HttpServlet {
         }
 
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
-        if (vetId > 0 && ap.getVeterinarianId() != vetId) {
-            response.sendRedirect(request.getContextPath() + "/vet/queue?error=notassigned");
+        if (vetId <= 0) {
+            response.sendRedirect(request.getContextPath() + "/vet/queue?error=unauthorized");
+            return;
+        }
+
+        String apStatus = ap.getStatus() != null ? ap.getStatus() : "";
+        // Shared queue flow:
+        // - First vet who starts from Checked-in will atomically claim and move to In-Examination.
+        // - If already In-Examination and assigned to another vet, deny.
+        if ("Checked-in".equalsIgnoreCase(apStatus)) {
+            boolean claimed = appDao.startExamination(appointmentId, vetId);
+            if (!claimed) {
+                Appointment latest = appDao.getAppointmentDetail(appointmentId);
+                if (latest != null
+                        && "In-Examination".equalsIgnoreCase(latest.getStatus())
+                        && latest.getVeterinarianId() != null
+                        && latest.getVeterinarianId() != vetId) {
+                    response.sendRedirect(request.getContextPath() + "/vet/queue?error=locked");
+                    return;
+                }
+            }
+            ap = appDao.getAppointmentDetail(appointmentId);
+        } else if ("In-Examination".equalsIgnoreCase(apStatus)) {
+            if (ap.getVeterinarianId() != null && ap.getVeterinarianId() > 0 && ap.getVeterinarianId() != vetId) {
+                response.sendRedirect(request.getContextPath() + "/vet/queue?error=locked");
+                return;
+            }
+        } else {
+            response.sendRedirect(request.getContextPath() + "/vet/queue?error=invalidstatus");
             return;
         }
 
         VisitDAO visitDao = new VisitDAO();
         Visit visit = visitDao.getByAppointmentId(appointmentId);
-        if (visit == null) {
-            response.sendRedirect(request.getContextPath() + "/vet/queue?error=notcheckedin");
-            return;
-        }
-        if ("Checked-in".equals(visit.getVisitStatus())) {
-            visitDao.updateStatus(visit.getVisitId(), "In-Examination");
-            visit.setVisitStatus("In-Examination");
-        }
 
         MedicalRecord record = null;
         List<RecordServiceLine> recordServices = List.of();
@@ -179,10 +198,6 @@ public class VetExaminationServlet extends HttpServlet {
 
         VisitDAO visitDao = new VisitDAO();
         Visit visit = visitDao.getByAppointmentId(appointmentId);
-        if (visit == null) {
-            response.sendRedirect(request.getContextPath() + "/vet/queue?error=notcheckedin");
-            return;
-        }
 //  lưu lại diagnosis, treatment, note
         String diagnosis = request.getParameter("diagnosis");
         String treatment = request.getParameter("treatment");
@@ -192,11 +207,14 @@ public class VetExaminationServlet extends HttpServlet {
         if (note == null) note = "";
 // tạo ra medical record theo visitid, nếu đã có sẽ update
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
-        MedicalRecord record = recordDao.getByVisitId(visit.getVisitId());
-        if (record == null) {
-            record = recordDao.create(visit.getVisitId(), visit.getVeterinarianId(), diagnosis, treatment, note);
-        } else {
-            recordDao.update(record.getRecordId(), diagnosis, treatment, note);
+        MedicalRecord record = null;
+        if (visit != null) {
+            record = recordDao.getByVisitId(visit.getVisitId());
+            if (record == null) {
+                record = recordDao.create(visit.getVisitId(), visit.getVeterinarianId(), diagnosis, treatment, note);
+            } else {
+                recordDao.update(record.getRecordId(), diagnosis, treatment, note);
+            }
         }
 
         if (record != null) {
@@ -236,11 +254,13 @@ public class VetExaminationServlet extends HttpServlet {
         }
 //sau khi hoàn thành examation sẽ xóa cái recordservices đi và tính số tiền 
         String action = request.getParameter("action");
-        if ("complete".equals(action) && visit != null) {
-            visitDao.completeVisit(visit.getVisitId());
-            appDao.updateAppointmentStatus(appointmentId, "Completed");
+        if ("complete".equals(action)) {
+            if (visit != null) {
+                visitDao.completeVisit(visit.getVisitId());
+            }
+            appDao.updateAppointmentStatus(appointmentId, "Waiting for Payment");
             // Record amount spent (from medical record services)
-            if (record != null) {
+            if (record != null && visit != null) {
                 List<RecordServiceLine> lines = recordDao.getServicesForRecord(record.getRecordId());
                 double total = 0;
                 for (RecordServiceLine line : lines) {

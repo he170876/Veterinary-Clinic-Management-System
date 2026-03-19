@@ -24,6 +24,10 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
             boolean success = dao.updateAppointmentStatus(appointmentId, status);
             
             if (success) {
+                if (status != null && status.equalsIgnoreCase("Checked-in")) {
+                    // Save real arrival time when receptionist checks in
+                    dao.setArrivalTimeNow(appointmentId);
+                }
                 response.getWriter().write("{\"success\": true, \"message\": \"Status updated successfully!\"}");
             } else {
                 response.getWriter().write("{\"success\": false, \"message\": \"Unable to update status\"}");

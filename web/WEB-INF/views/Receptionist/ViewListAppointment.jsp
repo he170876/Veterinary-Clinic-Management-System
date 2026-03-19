@@ -493,6 +493,26 @@
             function viewInvoice(appointmentId) {
                 window.open('ViewInvoice?appointmentId=' + appointmentId, '_blank');
             }
+            
+            // Live search by Pet, Owner, Phone (client-side)
+            document.addEventListener('DOMContentLoaded', function () {
+                const searchInput = document.getElementById('appointmentSearchInput');
+                if (!searchInput) return;
+                searchInput.addEventListener('input', function () {
+                    const term = this.value.trim().toLowerCase();
+                    const rows = document.querySelectorAll('.appointment-row');
+                    rows.forEach(function (row) {
+                        const pet = (row.getAttribute('data-pet-name') || '').toLowerCase();
+                        const owner = (row.getAttribute('data-owner-name') || '').toLowerCase();
+                        const phone = (row.getAttribute('data-phone') || '').toLowerCase();
+                        const match = !term || pet.includes(term) || owner.includes(term) || phone.includes(term);
+                        row.closest('.appointment-grid-item, .bg-white, .dark\\:bg-slate-900')?.classList?.toggle('hidden', !match);
+                        if (!row.closest('.appointment-grid-item, .bg-white, .dark\\:bg-slate-900')) {
+                            row.parentElement.classList.toggle('hidden', !match);
+                        }
+                    });
+                });
+            });
         </script>
     </head>
     <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex">
@@ -536,10 +556,7 @@
         </aside>
         <main class="flex-1 flex flex-col min-h-screen">
             <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 sticky top-0 z-10">
-                <div class="relative w-96">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
-                    <input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder-slate-500 dark:placeholder-slate-400" placeholder="Search patients, owners or records..." type="text"/>
-                </div>
+                <div class="flex-1"></div>
                 <div class="flex items-center gap-4">
                     <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
@@ -557,17 +574,21 @@
                         <div>
                             <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Appointments</h1>
                             <p class="text-slate-500 dark:text-slate-400 text-sm">Manage and monitor today's scheduled visits</p>
+                            <div class="mt-4">
+                                <div class="relative w-96 max-w-full">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+                                    <input 
+                                        class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder-slate-500 text-slate-800 dark:text-slate-100" 
+                                        type="text" 
+                                        id="appointmentSearchInput"
+                                        placeholder="Search patients, owners or records..."/>
+                                </div>
+                            </div>
                         </div>
                         <div class="flex gap-3">
                             <form method="get" class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 gap-3">
                                 <input type="hidden" name="status" value="${statusFilter}"/>
                                 <span class="material-symbols-outlined text-slate-400 text-xl">calendar_month</span>
-                                <div class="flex flex-col">
-                                    <span class="text-xs text-slate-400 dark:text-slate-500">Date range</span>
-                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        ${displayDateRange}
-                                    </span>
-                                </div>
                                 <div class="flex items-center gap-2 ml-3">
                                     <input 
                                         type="date" 
@@ -609,11 +630,7 @@
                             <a href="?status=Done&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Done' || statusFilter == 'Completed' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Done (${doneCount})</a>
                             <a href="?status=Canceled&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Canceled' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Canceled (${canceledCount})</a>
                         </div>
-                        <div class="flex items-center gap-3 pb-2">
-                            <button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                                <span class="material-symbols-outlined">tune</span>
-                            </button>
-                        </div>
+                        <div class="flex items-center gap-3 pb-2"></div>
                     </div>
                     <div class="px-4 appointment-grid text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                         <div>Pet Info</div>
@@ -706,7 +723,10 @@
                                         </c:choose>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-xs owner-cell ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}">
+                                <div class="flex items-center gap-2 text-xs owner-cell ${isCompleted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'} appointment-row"
+                                     data-pet-name="${appointment.pet.name}"
+                                     data-owner-name="${appointment.customer.user.fullName}"
+                                     data-phone="${appointment.customer.user.phone}">
                                     <span class="material-symbols-outlined text-base opacity-60">person</span>
                                     <span class="truncate">${not empty appointment.customer.user.fullName ? appointment.customer.user.fullName : 'N/A'}</span>
                                 </div>

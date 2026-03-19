@@ -35,15 +35,16 @@ public class VetPatientsQueueServlet extends HttpServlet {
         User user = (User) session.getAttribute("currentUser");
         AppointmentDAO dao = new AppointmentDAO();
         LocalDate today = LocalDate.now();
-        // Only show appointments assigned to this doctor (receptionist assigns vet per appointment)
-        int veterinarianId = dao.getVeterinarianIdByUserId(user.getUserId());
-        List<Appointment> appointments = dao.getAppointmentsForDateByVeterinarian(today, veterinarianId);
+        int currentVetId = dao.getVeterinarianIdByUserId(user.getUserId());
+        // Shared queue across vets
+        List<Appointment> appointments = dao.getVetQueueAppointmentsForDate(today);
 
         request.setAttribute("user", user);
         NotificationDAO ndao = new NotificationDAO();
         request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
         request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("appointments", appointments);
+        request.setAttribute("currentVetId", currentVetId);
         request.setAttribute("queueDate", today);
         request.getRequestDispatcher("/WEB-INF/views/vet/patients-queue.jsp").forward(request, response);
     }

@@ -13,6 +13,7 @@
     @SuppressWarnings("unchecked")
     List<Appointment> appointments = (List<Appointment>) request.getAttribute("appointments");
     if (appointments == null) appointments = java.util.Collections.emptyList();
+    int currentVetId = request.getAttribute("currentVetId") != null ? (Integer) request.getAttribute("currentVetId") : 0;
     String roleTitle = (user.getRole() != null && user.getRole().getRoleName() != null)
         ? user.getRole().getRoleName() : "Veterinarian";
     DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
@@ -92,8 +93,8 @@
     if ("notfound".equals(examError)) {
 %>
 <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Could not open examination: appointment not found.</div>
-<% } else if ("notassigned".equals(examError)) { %>
-<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">This appointment is not assigned to you.</div>
+<% } else if ("locked".equals(examError)) { %>
+<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Another veterinarian has already started this examination.</div>
 <% } else if ("1".equals(completed)) { %>
 <div class="mb-4 rounded-lg border border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700 px-4 py-3 text-sm text-green-800 dark:text-green-200">Examination completed. Visit and appointment have been marked as completed.</div>
 <% } else if ("ok".equals(revisit)) { %>
@@ -144,17 +145,22 @@
         String breed = ap.getPet() != null && ap.getPet().getBreed() != null ? ap.getPet().getBreed() : "";
         String speciesBreed = (species + " / " + breed).trim();
         if (speciesBreed.equals("/")) speciesBreed = "—";
-        String timeStr = ap.getAppointmentTime() != null ? ap.getAppointmentTime().format(timeFmt) : "—";
+        String timeStr = ap.getArrivalTime() != null ? ap.getArrivalTime().format(timeFmt) : "—";
         String service = ap.getService() != null ? ap.getService() : "—";
         String status = ap.getStatus() != null ? ap.getStatus() : "—";
         int petId = ap.getPet() != null ? ap.getPet().getPetId() : 0;
         String patientId = "P-" + petId;
         String queueNo = String.format("%03d", rowNum);
-        String statusClass = "READY".equalsIgnoreCase(status) || "Confirmed".equalsIgnoreCase(status)
-            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+        String statusClass = "Checked-in".equalsIgnoreCase(status)
+            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
             : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300";
 %>
-<tr class="queue-row hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors" data-pet-name="<%= petName %>" data-owner="<%= ownerName %>" data-id="<%= patientId %>">
+<%
+        boolean isInExam = "In-Examination".equalsIgnoreCase(status);
+        Integer rowVetId = ap.getVeterinarianId();
+        boolean lockedByOtherVet = isInExam && rowVetId != null && rowVetId > 0 && rowVetId != currentVetId;
+%>
+<tr class="queue-row hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors <%= lockedByOtherVet ? "opacity-40" : "" %>" data-pet-name="<%= petName %>" data-owner="<%= ownerName %>" data-id="<%= patientId %>">
 <td class="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100"><%= queueNo %></td>
 <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= patientId %></td>
 <td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100"><%= petName %></td>
@@ -165,8 +171,16 @@
 <td class="px-6 py-4">
 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= statusClass %>"><%= status %></span>
 </td>
-<td class="px-6 py-4 text-right">
-<a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" class="inline-block bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm">Start Examination</a>
+<td class="px-6 py-4 text-right space-x-2">
+<% if (lockedByOtherVet) { %>
+<span class="inline-block bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-lg text-sm font-bold">In Progress</span>
+<% } else { %>
+<a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" class="inline-block bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm"><%= isInExam ? "Continue" : "Start Examination" %></a>
+<% } %>
+<button type="button" class="inline-block bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm"
+        onclick="openAppointmentDetail(<%= ap.getAppointmentId() %>)">
+    Details
+</button>
 </td>
 </tr>
 <%
@@ -189,6 +203,55 @@
 </div>
 </main>
 </div>
+
+<!-- Appointment Detail Modal -->
+<div id="vetAppointmentDetailModal" class="fixed inset-0 bg-black/40 z-[2000] items-center justify-center px-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100" id="v-detail-pet-name">Pet name</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="v-detail-status">Status</p>
+            </div>
+            <button type="button" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onclick="closeVetDetailModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="space-y-4 text-sm">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-slate-400">Owner</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-name"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400">Phone</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-phone"></p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-slate-400">Date</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-date"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400">Service</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-service"></p>
+                </div>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Address</p>
+                <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-address"></p>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Notes</p>
+                <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-notes"></p>
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end">
+            <button type="button" class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90" onclick="closeVetDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     var search = document.getElementById('searchQueue');
@@ -206,6 +269,42 @@
         });
     }
 })();
+
+function openAppointmentDetail(appointmentId) {
+    fetch('<%= ctx %>/Receptionist/GetAppointmentDetail?appointmentId=' + appointmentId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                alert(data.message || 'Could not load appointment detail.');
+                return;
+            }
+            var d = data.data || {};
+            var pet = d.pet || {};
+            var customer = d.customer || {};
+            var user = customer.user || {};
+
+            document.getElementById('v-detail-pet-name').textContent = pet.name || 'N/A';
+            document.getElementById('v-detail-status').textContent = d.status || 'N/A';
+            document.getElementById('v-detail-owner-name').textContent = user.fullName || 'N/A';
+            document.getElementById('v-detail-owner-phone').textContent = user.phone || 'N/A';
+            document.getElementById('v-detail-owner-address').textContent = user.address || 'N/A';
+            document.getElementById('v-detail-date').textContent = d.formattedDateWithSlot || 'N/A';
+            document.getElementById('v-detail-service').textContent = d.service || 'N/A';
+            document.getElementById('v-detail-notes').textContent = d.notes || 'N/A';
+
+            document.getElementById('vetAppointmentDetailModal').classList.remove('hidden');
+            document.getElementById('vetAppointmentDetailModal').classList.add('flex');
+        })
+        .catch(function() {
+            alert('An error occurred while loading details.');
+        });
+}
+
+function closeVetDetailModal() {
+    var modal = document.getElementById('vetAppointmentDetailModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
 </script>
 </body>
 </html>

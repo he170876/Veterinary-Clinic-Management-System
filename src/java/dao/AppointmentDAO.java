@@ -362,6 +362,187 @@ public class AppointmentDAO extends DBContext {
         return getAppointmentsForDateByVeterinarianAllStatuses(LocalDate.now(), veterinarianId);
     }
 
+    /**
+     * Returns all Checked-in appointments for a given date (any veterinarian),
+     * ordered by arrival_time if present, otherwise by appointment slot.
+     *
+     * Assumption: Appointments.arrival_time is NULL at create time and set when receptionist checks in.
+     * For existing data with NULL arrival_time, we temporarily derive:
+     * - AM -> 09:00
+     * - PM -> 15:00
+     */
+    public List<Appointment> getCheckedInAppointmentsForDate(LocalDate date) {
+        List<Appointment> list = new ArrayList<>();
+        String sql = """
+            SELECT a.appointment_id,
+                   a.arrival_time,
+                   a.appointment_date,
+                   a.time_slot,
+                   a.status,
+                   a.veterinarian_id,
+                   a.service_id,
+                   s.name AS service_name,
+                   p.pet_id,
+                   p.name AS pet_name,
+                   p.photoUrl AS pet_photo,
+                   p.species,
+                   p.breed,
+                   c.customer_id,
+                   u.full_name AS customer_name,
+                   vet_user.full_name AS veterinarian_name
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE p.isDeleted = 0
+              AND a.appointment_date = ?
+              AND a.status = 'Checked-in'
+            ORDER BY COALESCE(
+                a.arrival_time,
+                DATEADD(hour, CASE WHEN UPPER(COALESCE(a.time_slot, 'AM')) = 'PM' THEN 15 ELSE 9 END, CAST(a.appointment_date AS datetime))
+            )
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setObject(1, date);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Appointment ap = new Appointment();
+                    ap.setAppointmentId(rs.getInt("appointment_id"));
+                    java.sql.Timestamp at = rs.getTimestamp("arrival_time");
+                    java.sql.Date d = rs.getDate("appointment_date");
+                    String slot = rs.getString("time_slot");
+                    if (at != null) {
+                        ap.setArrivalTime(at.toLocalDateTime());
+                    } else if (d != null) {
+                        boolean isPm = slot != null && slot.equalsIgnoreCase("PM");
+                        ap.setArrivalTime(d.toLocalDate().atTime(isPm ? 15 : 9, 0));
+                    }
+                    ap.setStatus(rs.getString("status"));
+                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+                    ap.setService(rs.getString("service_name"));
+                    if (d != null) ap.setAppointmentDate(d.toLocalDate());
+                    ap.setTimeSlot(slot);
+
+                    Pet pet = new Pet();
+                    pet.setPetId(rs.getInt("pet_id"));
+                    pet.setName(rs.getString("pet_name"));
+                    pet.setPhotoURL(rs.getString("pet_photo"));
+                    pet.setSpecies(rs.getString("species"));
+                    pet.setBreed(rs.getString("breed"));
+                    ap.setPet(pet);
+
+                    Customer cus = new Customer();
+                    cus.setCustomerId(rs.getInt("customer_id"));
+                    User customerUser = new User();
+                    customerUser.setFullName(rs.getString("customer_name"));
+                    cus.setUser(customerUser);
+                    ap.setCustomer(cus);
+
+                    String vetName = rs.getString("veterinarian_name");
+                    if (vetName != null) {
+                        ap.setVeterinarianName(vetName);
+                    }
+
+                    list.add(ap);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Shared veterinarian queue for today:
+     * - Checked-in appointments (actionable)
+     * - In-Examination appointments (visible, may be locked by another vet)
+     * Ordered by arrival_time.
+     */
+    public List<Appointment> getVetQueueAppointmentsForDate(LocalDate date) {
+        List<Appointment> list = new ArrayList<>();
+        String sql = """
+            SELECT a.appointment_id,
+                   a.arrival_time,
+                   a.appointment_date,
+                   a.time_slot,
+                   a.status,
+                   a.veterinarian_id,
+                   a.service_id,
+                   s.name AS service_name,
+                   p.pet_id,
+                   p.name AS pet_name,
+                   p.photoUrl AS pet_photo,
+                   p.species,
+                   p.breed,
+                   c.customer_id,
+                   u.full_name AS customer_name,
+                   vet_user.full_name AS veterinarian_name
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE p.isDeleted = 0
+              AND a.appointment_date = ?
+              AND a.status IN ('Checked-in', 'In-Examination')
+            ORDER BY COALESCE(
+                a.arrival_time,
+                DATEADD(hour, CASE WHEN UPPER(COALESCE(a.time_slot, 'AM')) = 'PM' THEN 15 ELSE 9 END, CAST(a.appointment_date AS datetime))
+            )
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setObject(1, date);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Appointment ap = new Appointment();
+                    ap.setAppointmentId(rs.getInt("appointment_id"));
+                    java.sql.Timestamp at = rs.getTimestamp("arrival_time");
+                    java.sql.Date d = rs.getDate("appointment_date");
+                    String slot = rs.getString("time_slot");
+                    if (at != null) {
+                        ap.setArrivalTime(at.toLocalDateTime());
+                    } else if (d != null) {
+                        boolean isPm = slot != null && slot.equalsIgnoreCase("PM");
+                        ap.setArrivalTime(d.toLocalDate().atTime(isPm ? 15 : 9, 0));
+                    }
+                    ap.setStatus(rs.getString("status"));
+                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+                    ap.setService(rs.getString("service_name"));
+                    if (d != null) ap.setAppointmentDate(d.toLocalDate());
+                    ap.setTimeSlot(slot);
+
+                    Pet pet = new Pet();
+                    pet.setPetId(rs.getInt("pet_id"));
+                    pet.setName(rs.getString("pet_name"));
+                    pet.setPhotoURL(rs.getString("pet_photo"));
+                    pet.setSpecies(rs.getString("species"));
+                    pet.setBreed(rs.getString("breed"));
+                    ap.setPet(pet);
+
+                    Customer cus = new Customer();
+                    cus.setCustomerId(rs.getInt("customer_id"));
+                    User customerUser = new User();
+                    customerUser.setFullName(rs.getString("customer_name"));
+                    cus.setUser(customerUser);
+                    ap.setCustomer(cus);
+
+                    String vetName = rs.getString("veterinarian_name");
+                    if (vetName != null) ap.setVeterinarianName(vetName);
+
+                    list.add(ap);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     private List<Appointment> getAppointmentsForDateByVeterinarianAllStatuses(LocalDate date, int veterinarianId) {
         if (veterinarianId <= 0) return new ArrayList<>();
         List<Appointment> list = new ArrayList<>();
@@ -729,6 +910,40 @@ public class AppointmentDAO extends DBContext {
         return false;
     }
 
+    /** Sets arrival_time = NOW for check-in flow. */
+    public boolean setArrivalTimeNow(int appointmentId) {
+        String sql = "UPDATE appointments SET arrival_time = GETDATE() WHERE appointment_id = ?";
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Atomically starts an examination from shared queue.
+     * Only the first vet who clicks Start on a Checked-in appointment can claim it.
+     */
+    public boolean startExamination(int appointmentId, int veterinarianId) {
+        String sql = """
+            UPDATE appointments
+            SET status = 'In-Examination',
+                veterinarian_id = ?
+            WHERE appointment_id = ?
+              AND status = 'Checked-in'
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, veterinarianId);
+            ps.setInt(2, appointmentId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     /** Creates a new appointment (e.g. for schedule revisit). Returns the new appointment_id or 0 on failure. */
     public int create(int petId, int customerId, int veterinarianId, LocalDateTime appointmentTime, String status, Integer serviceId) {
         String sql = "INSERT INTO appointments (pet_id, customer_id, veterinarian_id, appointment_time, status, service_id) OUTPUT INSERTED.appointment_id VALUES (?, ?, ?, ?, ?, ?)";
@@ -799,6 +1014,7 @@ public class AppointmentDAO extends DBContext {
 
     /**
      * Creates a pending appointment with date + AM/PM slot (receptionist booking).
+     * arrival_time is NULL by default and only set on receptionist check-in.
      * Table includes phone (NOT NULL). Pass phone from request.
      */
     public int createWithDateAndSlot(int petId, int customerId, Integer serviceId, LocalDate appointmentDate, String timeSlot, String notes, String phone) {
@@ -849,6 +1065,7 @@ public class AppointmentDAO extends DBContext {
     public int createEmergencyAppointment(int petId, int customerId, String phone) {
         java.time.LocalDate today = java.time.LocalDate.now();
         String timeSlot = java.time.LocalTime.now().getHour() < 12 ? "AM" : "PM";
+
         String sql = """
             INSERT INTO appointments (
                 pet_id,
@@ -856,6 +1073,7 @@ public class AppointmentDAO extends DBContext {
                 veterinarian_id,
                 appointment_date,
                 time_slot,
+                arrival_time,
                 status,
                 service_id,
                 created_at,
@@ -864,7 +1082,7 @@ public class AppointmentDAO extends DBContext {
                 type
             )
             OUTPUT INSERTED.appointment_id
-            VALUES (?, ?, NULL, ?, ?, 'Checked-In', NULL, GETDATE(), '', ?, 'Emergency')
+            VALUES (?, ?, NULL, ?, ?, GETDATE(), 'Checked-in', NULL, GETDATE(), '', ?, 'Emergency')
             """;
         try (
             Connection con = getConnection();
