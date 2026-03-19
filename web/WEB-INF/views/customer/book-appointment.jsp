@@ -78,12 +78,104 @@
             
             document.addEventListener('DOMContentLoaded', function () {
                 var dateInput = document.getElementById('appointmentDate');
-                if (!dateInput) return;
-                var now = new Date();
-                var yyyy = now.getFullYear();
-                var mm = String(now.getMonth() + 1).padStart(2, '0');
-                var dd = String(now.getDate()).padStart(2, '0');
-                dateInput.min = yyyy + '-' + mm + '-' + dd;
+                if (dateInput) {
+                    var now = new Date();
+                    var yyyy = now.getFullYear();
+                    var mm = String(now.getMonth() + 1).padStart(2, '0');
+                    var dd = String(now.getDate()).padStart(2, '0');
+                    dateInput.min = yyyy + '-' + mm + '-' + dd;
+                }
+
+                var bookingForm = document.getElementById('bookingForm');
+                var serviceSearch = document.getElementById('serviceSearch');
+                var serviceOptions = Array.prototype.slice.call(document.querySelectorAll('.service-option'));
+                var serviceCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.service-checkbox'));
+                var serviceSelectionError = document.getElementById('serviceSelectionError');
+                var serviceSearchEmpty = document.getElementById('serviceSearchEmpty');
+                var selectedCount = document.getElementById('serviceSelectedCount');
+                var selectedDuration = document.getElementById('serviceSelectedDuration');
+
+                function updateServiceSummary() {
+                    var count = 0;
+                    var totalDuration = 0;
+
+                    for (var i = 0; i < serviceCheckboxes.length; i++) {
+                        var checkbox = serviceCheckboxes[i];
+                        if (!checkbox.checked) {
+                            continue;
+                        }
+                        count++;
+
+                        var duration = parseInt(checkbox.getAttribute('data-service-duration') || '0', 10);
+                        if (!isNaN(duration) && duration > 0) {
+                            totalDuration += duration;
+                        }
+                    }
+
+                    if (selectedCount) {
+                        selectedCount.textContent = count + (count === 1 ? ' service selected' : ' services selected');
+                    }
+                    if (selectedDuration) {
+                        selectedDuration.textContent = totalDuration > 0 ? (totalDuration + ' min') : 'N/A';
+                    }
+
+                    if (count > 0 && serviceSelectionError) {
+                        serviceSelectionError.classList.add('hidden');
+                    }
+                }
+
+                function filterServices() {
+                    var keyword = serviceSearch ? serviceSearch.value.trim().toLowerCase() : '';
+                    var visibleCount = 0;
+
+                    for (var i = 0; i < serviceOptions.length; i++) {
+                        var option = serviceOptions[i];
+                        var haystack = option.textContent.toLowerCase();
+                        var matched = keyword.length === 0 || haystack.indexOf(keyword) !== -1;
+
+                        option.classList.toggle('hidden', !matched);
+                        if (matched) {
+                            visibleCount++;
+                        }
+                    }
+
+                    if (serviceSearchEmpty) {
+                        serviceSearchEmpty.classList.toggle('hidden', visibleCount > 0);
+                    }
+                }
+
+                for (var i = 0; i < serviceCheckboxes.length; i++) {
+                    serviceCheckboxes[i].addEventListener('change', updateServiceSummary);
+                }
+
+                if (serviceSearch) {
+                    serviceSearch.addEventListener('input', filterServices);
+                }
+
+                if (bookingForm) {
+                    bookingForm.addEventListener('submit', function (event) {
+                        var hasChecked = false;
+                        for (var i = 0; i < serviceCheckboxes.length; i++) {
+                            if (serviceCheckboxes[i].checked) {
+                                hasChecked = true;
+                                break;
+                            }
+                        }
+
+                        if (!hasChecked && serviceCheckboxes.length > 0) {
+                            event.preventDefault();
+                            if (serviceSelectionError) {
+                                serviceSelectionError.classList.remove('hidden');
+                            }
+                            if (serviceSearch) {
+                                serviceSearch.focus();
+                            }
+                        }
+                    });
+                }
+
+                updateServiceSummary();
+                filterServices();
             });
         </script>
         <style>
@@ -135,7 +227,7 @@
                             </div>
                             <% } %>
 
-                            <form method="post" action="<%= ctx %>/customer/appointments/book" class="space-y-6">
+                            <form id="bookingForm" method="post" action="<%= ctx %>/customer/appointments/book" class="space-y-6">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div class="flex flex-col gap-2">
                                         <label for="petId" class="text-sm font-bold text-slate-700 dark:text-slate-200">Pet</label>
@@ -156,21 +248,62 @@
                                         </select>
                                     </div>
 
-                                    <div class="flex flex-col gap-2">
-                                        <label for="serviceIds" class="text-sm font-bold text-slate-700 dark:text-slate-200">Services</label>
-                                        <select id="serviceIds" name="serviceIds" multiple size="6" class="rounded-xl border-slate-200 text-sm" required <%= services.isEmpty() ? "disabled" : "" %>>
+                                    <div class="flex flex-col gap-3 md:col-span-2">
+                                        <label for="serviceSearch" class="text-sm font-bold text-slate-700 dark:text-slate-200">Services</label>
+                                        <div class="relative">
+                                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base">search</span>
+                                            <input id="serviceSearch" type="text" placeholder="Search services by name, category, or description" class="w-full rounded-xl border-slate-200 pl-10 text-sm" <%= services.isEmpty() ? "disabled" : "" %>/>
+                                        </div>
+
+                                        <div id="serviceSelectionError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+                                            Please choose at least one service.
+                                        </div>
+
+                                        <div class="rounded-xl border border-slate-200 p-2 max-h-72 overflow-y-auto space-y-2 bg-slate-50/40 dark:bg-slate-900/30">
                                             <% for (Service service : services) {
                                                 String optionValue = String.valueOf(service.getServiceId());
-                                                String optionLabel = service.getName() != null ? service.getName() : "Service";
-                                                optionLabel += " - $" + String.format(java.util.Locale.US, "%.2f", service.getPrice());
-                                                if (service.getDuration() > 0) {
-                                                    optionLabel += " - " + service.getDuration() + " min";
-                                                }
+                                                String serviceName = service.getName() != null ? service.getName() : "Service";
+                                                String serviceCategory = service.getCategory() != null && !service.getCategory().trim().isEmpty()
+                                                        ? service.getCategory().trim() : "General";
+                                                String serviceDescription = service.getDescription() != null ? service.getDescription().trim() : "";
                                             %>
-                                            <option value="<%= optionValue %>" <%= selectedServiceIdSet.contains(optionValue) ? "selected" : "" %>><%= optionLabel %></option>
+                                            <label class="service-option block cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    class="peer sr-only service-checkbox"
+                                                    name="serviceIds"
+                                                    value="<%= optionValue %>"
+                                                    data-service-duration="<%= service.getDuration() %>"
+                                                    <%= selectedServiceIdSet.contains(optionValue) ? "checked" : "" %>
+                                                    <%= services.isEmpty() ? "disabled" : "" %>
+                                                />
+                                                <div class="rounded-xl border-2 border-slate-200 bg-white dark:bg-slate-900/50 p-4 transition-all peer-checked:border-primary peer-checked:bg-primary/5 hover:border-primary/40">
+                                                    <div class="flex items-start justify-between gap-3">
+                                                        <div class="min-w-0">
+                                                            <p class="service-name text-sm font-bold text-slate-800 dark:text-slate-100"><%= serviceName %></p>
+                                                            <p class="text-xs text-slate-500 mt-1"><%= serviceCategory %> <% if (service.getDuration() > 0) { %>- <%= service.getDuration() %> min<% } %></p>
+                                                            <% if (!serviceDescription.isEmpty()) { %>
+                                                            <p class="text-xs text-slate-500 mt-2"><%= serviceDescription %></p>
+                                                            <% } %>
+                                                        </div>
+                                                        <div class="text-right shrink-0">
+                                                            <span class="inline-flex rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 peer-checked:bg-primary peer-checked:text-white">Select</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </label>
                                             <% } %>
-                                        </select>
-                                        <p class="text-xs text-slate-500">You can select multiple services.</p>
+                                            <p id="serviceSearchEmpty" class="hidden px-3 py-6 text-center text-xs text-slate-500">No services match your search.</p>
+                                        </div>
+
+                                        <div class="rounded-xl border border-slate-200 bg-white dark:bg-slate-900/40 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                            <p id="serviceSelectedCount" class="text-sm font-bold text-slate-700 dark:text-slate-200">0 services selected</p>
+                                            <div class="flex items-center gap-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                                <span>Total duration: <strong id="serviceSelectedDuration" class="text-slate-900 dark:text-slate-100">N/A</strong></span>
+                                            </div>
+                                        </div>
+
+                                        <p class="text-xs text-slate-500">Click one or more service cards to build your visit request.</p>
                                     </div>
 
                                     <div class="flex flex-col gap-2">

@@ -17,6 +17,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1174,8 +1176,6 @@ public class AppointmentDAO extends DBContext {
 
                     ap.setStatus(rs.getString("status"));
                     ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                    ap.setService(rs.getString("service_name"));
-                    ap.setServiceId(rs.getObject("service_id") != null ? rs.getInt("service_id") : null);
                     ap.setNotes(rs.getString("notes"));
                     ap.setVeterinarianName(rs.getString("veterinarian_name"));
 
@@ -1201,6 +1201,25 @@ public class AppointmentDAO extends DBContext {
                     customerUser.setAddress(rs.getString("customer_address"));
                     cus.setUser(customerUser);
                     ap.setCustomer(cus);
+
+                    LinkedHashSet<String> serviceNames = new LinkedHashSet<>();
+                    Integer primaryServiceId = null;
+                    do {
+                        String serviceName = rs.getString("service_name");
+                        if (serviceName != null && !serviceName.trim().isEmpty()) {
+                            serviceNames.add(serviceName.trim());
+                        }
+
+                        if (primaryServiceId == null) {
+                            Integer currentServiceId = rs.getObject("service_id") != null ? rs.getInt("service_id") : null;
+                            if (currentServiceId != null && currentServiceId > 0) {
+                                primaryServiceId = currentServiceId;
+                            }
+                        }
+                    } while (rs.next());
+
+                    ap.setService(serviceNames.isEmpty() ? null : String.join(", ", serviceNames));
+                    ap.setServiceId(primaryServiceId);
 
                     return ap;
                 }
@@ -1230,8 +1249,6 @@ public class AppointmentDAO extends DBContext {
 
                     ap.setStatus(rs.getString("status"));
                     ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                    ap.setService(rs.getString("service_name"));
-                    ap.setServiceId(rs.getObject("service_id") != null ? rs.getInt("service_id") : null);
                     ap.setNotes(rs.getString("notes"));
                     ap.setVeterinarianName(rs.getString("veterinarian_name"));
 
@@ -1257,6 +1274,25 @@ public class AppointmentDAO extends DBContext {
                     customerUser.setAddress(rs.getString("customer_address"));
                     cus.setUser(customerUser);
                     ap.setCustomer(cus);
+
+                    LinkedHashSet<String> serviceNames = new LinkedHashSet<>();
+                    Integer primaryServiceId = null;
+                    do {
+                        String serviceName = rs.getString("service_name");
+                        if (serviceName != null && !serviceName.trim().isEmpty()) {
+                            serviceNames.add(serviceName.trim());
+                        }
+
+                        if (primaryServiceId == null) {
+                            Integer currentServiceId = rs.getObject("service_id") != null ? rs.getInt("service_id") : null;
+                            if (currentServiceId != null && currentServiceId > 0) {
+                                primaryServiceId = currentServiceId;
+                            }
+                        }
+                    } while (rs.next());
+
+                    ap.setService(serviceNames.isEmpty() ? null : String.join(", ", serviceNames));
+                    ap.setServiceId(primaryServiceId);
 
                     return ap;
                 }
@@ -1819,21 +1855,26 @@ public class AppointmentDAO extends DBContext {
             return false;
         }
 
-        String sql = "INSERT INTO appointment_service (appointment_id, service_id) VALUES (?, ?)";
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)
-        ) {
-            for (Integer serviceId : serviceIds) {
-                if (serviceId == null || serviceId <= 0) {
-                    continue;
-                }
-                ps.setInt(1, appointmentId);
-                ps.setInt(2, serviceId);
-                ps.addBatch();
+        try (Connection con = getConnection()) {
+            if (!hasAppointmentServiceTable(con)) {
+                return true;
             }
-            int[] affected = ps.executeBatch();
-            return affected.length > 0;
+
+            Set<Integer> uniqueValidServiceIds = new HashSet<>();
+            for (Integer serviceId : serviceIds) {
+                if (serviceId != null && serviceId > 0) {
+                    uniqueValidServiceIds.add(serviceId);
+                }
+            }
+
+            if (uniqueValidServiceIds.isEmpty()) {
+                return false;
+            }
+
+            for (Integer serviceId : uniqueValidServiceIds) {
+                upsertAppointmentService(con, appointmentId, serviceId);
+            }
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -2202,46 +2243,67 @@ public class AppointmentDAO extends DBContext {
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, customerId);
                 try (ResultSet rs = ps.executeQuery()) {
+                    Map<Integer, Appointment> appointmentMap = new LinkedHashMap<>();
+                    Map<Integer, LinkedHashSet<String>> serviceNamesByAppointment = new HashMap<>();
+
                     while (rs.next()) {
-                        Appointment ap = new Appointment();
-                        ap.setAppointmentId(rs.getInt("appointment_id"));
-                        ap.setStatus(rs.getString("status"));
-                        ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                        ap.setVeterinarianName(rs.getString("veterinarian_name"));
-                        ap.setService(rs.getString("service_name"));
+                        int currentAppointmentId = rs.getInt("appointment_id");
+                        Appointment ap = appointmentMap.get(currentAppointmentId);
+                        if (ap == null) {
+                            ap = new Appointment();
+                            ap.setAppointmentId(currentAppointmentId);
+                            ap.setStatus(rs.getString("status"));
+                            ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+                            ap.setVeterinarianName(rs.getString("veterinarian_name"));
 
-                        if (hasAppointmentTime) {
-                            // Legacy schema - use appointment_time directly
-                            Timestamp appointmentTs = rs.getTimestamp("appointment_time");
-                            if (appointmentTs != null) {
-                                ap.setAppointmentTime(appointmentTs.toLocalDateTime());
-                            }
-                        } else {
-                            // New schema - construct from appointment_date and time_slot
-                            java.sql.Date apptDate = rs.getDate("appointment_date");
-                            String timeSlot = rs.getString("time_slot");
-                            if (apptDate != null) {
-                                ap.setAppointmentDate(apptDate.toLocalDate());
-                                ap.setTimeSlot(timeSlot);
-
-                                java.time.LocalTime defaultTime;
-                                if (timeSlot != null && ("AM".equalsIgnoreCase(timeSlot) || "morning".equalsIgnoreCase(timeSlot))) {
-                                    defaultTime = java.time.LocalTime.of(8, 0);
-                                } else if (timeSlot != null && ("PM".equalsIgnoreCase(timeSlot) || "afternoon".equalsIgnoreCase(timeSlot))) {
-                                    defaultTime = java.time.LocalTime.of(14, 0);
-                                } else {
-                                    defaultTime = java.time.LocalTime.NOON;
+                            if (hasAppointmentTime) {
+                                // Legacy schema - use appointment_time directly
+                                Timestamp appointmentTs = rs.getTimestamp("appointment_time");
+                                if (appointmentTs != null) {
+                                    ap.setAppointmentTime(appointmentTs.toLocalDateTime());
                                 }
-                                ap.setAppointmentTime(LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+                            } else {
+                                // New schema - construct from appointment_date and time_slot
+                                java.sql.Date apptDate = rs.getDate("appointment_date");
+                                String timeSlot = rs.getString("time_slot");
+                                if (apptDate != null) {
+                                    ap.setAppointmentDate(apptDate.toLocalDate());
+                                    ap.setTimeSlot(timeSlot);
+
+                                    java.time.LocalTime defaultTime;
+                                    if (timeSlot != null && ("AM".equalsIgnoreCase(timeSlot) || "morning".equalsIgnoreCase(timeSlot))) {
+                                        defaultTime = java.time.LocalTime.of(8, 0);
+                                    } else if (timeSlot != null && ("PM".equalsIgnoreCase(timeSlot) || "afternoon".equalsIgnoreCase(timeSlot))) {
+                                        defaultTime = java.time.LocalTime.of(14, 0);
+                                    } else {
+                                        defaultTime = java.time.LocalTime.NOON;
+                                    }
+                                    ap.setAppointmentTime(LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+                                }
                             }
+
+                            Pet pet = new Pet();
+                            pet.setPetId(rs.getInt("pet_id"));
+                            pet.setName(rs.getString("pet_name"));
+                            ap.setPet(pet);
+
+                            appointmentMap.put(currentAppointmentId, ap);
                         }
 
-                        Pet pet = new Pet();
-                        pet.setPetId(rs.getInt("pet_id"));
-                        pet.setName(rs.getString("pet_name"));
-                        ap.setPet(pet);
+                        String serviceName = rs.getString("service_name");
+                        if (serviceName != null && !serviceName.trim().isEmpty()) {
+                            serviceNamesByAppointment
+                                    .computeIfAbsent(currentAppointmentId, key -> new LinkedHashSet<>())
+                                    .add(serviceName.trim());
+                        }
+                    }
 
-                        list.add(ap);
+                    for (Map.Entry<Integer, Appointment> entry : appointmentMap.entrySet()) {
+                        LinkedHashSet<String> serviceNames = serviceNamesByAppointment.get(entry.getKey());
+                        if (serviceNames != null && !serviceNames.isEmpty()) {
+                            entry.getValue().setService(String.join(", ", serviceNames));
+                        }
+                        list.add(entry.getValue());
                     }
                 }
             }

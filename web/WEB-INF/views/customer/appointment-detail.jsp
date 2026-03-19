@@ -3,6 +3,9 @@
 <%@ page import="java.time.LocalDateTime" %>
 <%@ page import="java.time.Period" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.LinkedHashSet" %>
+<%@ page import="java.util.List" %>
 <%@ page import="model.Appointment" %>
 <%@ page import="model.Pet" %>
 <%@ page import="model.User" %>
@@ -53,7 +56,22 @@
     String petBreed = pet != null && pet.getBreed() != null ? pet.getBreed() : "N/A";
     String petGender = pet != null && pet.getGender() != null ? pet.getGender() : "N/A";
     String petWeight = (pet != null && pet.getWeight() != null) ? String.format("%.1f kg", pet.getWeight()) : "N/A";
-    String serviceName = appointment.getService() != null && !appointment.getService().trim().isEmpty() ? appointment.getService() : "N/A";
+    List<String> selectedServices = new ArrayList<>();
+    if (appointment.getService() != null && !appointment.getService().trim().isEmpty()) {
+        LinkedHashSet<String> uniqueServices = new LinkedHashSet<>();
+        for (String token : appointment.getService().split(",")) {
+            if (token != null) {
+                String normalized = token.trim();
+                if (!normalized.isEmpty()) {
+                    uniqueServices.add(normalized);
+                }
+            }
+        }
+        selectedServices.addAll(uniqueServices);
+    }
+    String serviceSummary = selectedServices.isEmpty()
+            ? "No service selected"
+            : selectedServices.size() + (selectedServices.size() == 1 ? " service selected" : " services selected");
     String vetName = appointment.getVeterinarianName() != null && !appointment.getVeterinarianName().trim().isEmpty()
             ? "Dr. " + appointment.getVeterinarianName() : "Unassigned";
 
@@ -145,8 +163,17 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                             <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-                                <p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Service</p>
-                                <p class="mt-1 font-semibold"><%= serviceName %></p>
+                                <p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Services</p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <% if (selectedServices.isEmpty()) { %>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">N/A</span>
+                                    <% } else {
+                                        for (String selectedService : selectedServices) { %>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold"><%= selectedService %></span>
+                                    <% }
+                                    } %>
+                                </div>
+                                <p class="mt-2 text-xs text-slate-500"><%= serviceSummary %></p>
                             </div>
                             <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
                                 <p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Veterinarian</p>
