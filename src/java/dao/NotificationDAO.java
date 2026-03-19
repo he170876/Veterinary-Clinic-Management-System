@@ -9,9 +9,11 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Notifications DAO for creating and reading user notifications.
@@ -155,44 +157,119 @@ public class NotificationDAO extends DBContext {
 
     private List<Notification> getPendingCustomerRequestNotifications(int limit) {
         List<Notification> list = new ArrayList<>();
-        String sql = """
-            SELECT TOP (%d)
-                a.appointment_id,
-                a.status,
-                a.appointment_time,
-                p.name AS pet_name,
-                u.full_name AS customer_name
-            FROM Appointments a
-            JOIN Pets p ON a.pet_id = p.pet_id
-            JOIN Customers c ON a.customer_id = c.customer_id
-            JOIN Users u ON c.user_id = u.user_id
-            WHERE p.isDeleted = 0
-                            AND a.status = 'Reschedule-Requested'
-            ORDER BY a.appointment_time ASC, a.appointment_id DESC
-            """.formatted(limit);
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+            boolean hasTimeSlot = appointmentColumns.contains("time_slot");
 
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String status = rs.getString("status");
-                int appointmentId = rs.getInt("appointment_id");
-                String petName = rs.getString("pet_name");
-                String customerName = rs.getString("customer_name");
+            String sql;
+            if (hasAppointmentDate) {
+                sql = """
+                    SELECT TOP (%d)
+                        a.appointment_id,
+                        a.status,
+                        a.appointment_date,
+                        %s
+                        p.name AS pet_name,
+                        u.full_name AS customer_name
+                    FROM Appointments a
+                    JOIN Pets p ON a.pet_id = p.pet_id
+                    JOIN Customers c ON a.customer_id = c.customer_id
+                    JOIN Users u ON c.user_id = u.user_id
+                    WHERE p.isDeleted = 0
+                      AND a.status = 'Reschedule-Requested'
+                    ORDER BY a.appointment_date ASC, %s a.appointment_id DESC
+                    """.formatted(limit,
+                            hasTimeSlot ? "a.time_slot,\n" : "NULL AS time_slot,\n",
+                            hasTimeSlot ? "a.time_slot ASC, " : "");
+            } else if (hasAppointmentTime) {
+                sql = """
+                    SELECT TOP (%d)
+                        a.appointment_id,
+                        a.status,
+                        a.appointment_time,
+                        p.name AS pet_name,
+                        u.full_name AS customer_name
+                    FROM Appointments a
+                    JOIN Pets p ON a.pet_id = p.pet_id
+                    JOIN Customers c ON a.customer_id = c.customer_id
+                    JOIN Users u ON c.user_id = u.user_id
+                    WHERE p.isDeleted = 0
+                      AND a.status = 'Reschedule-Requested'
+                    ORDER BY a.appointment_time ASC, a.appointment_id DESC
+                    """.formatted(limit);
+            } else {
+                return list;
+            }
 
-                Notification n = new Notification();
-                n.setNotificationId(-appointmentId);
-                n.setUserId(0);
-                n.setTitle("Reschedule Request");
-                n.setMessage("Customer " + safe(customerName) + " requested reschedule for pet " + safe(petName) + " (Appointment #" + appointmentId + ").");
-                Timestamp ts = rs.getTimestamp("appointment_time");
-                n.setCreatedAt(ts != null ? ts.toLocalDateTime() : (LocalDateTime) null);
-                n.setRead(false);
-                list.add(n);
+            try (PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int appointmentId = rs.getInt("appointment_id");
+                    String petName = rs.getString("pet_name");
+                    String customerName = rs.getString("customer_name");
+
+                    Notification n = new Notification();
+                    n.setNotificationId(-appointmentId);
+                    n.setUserId(0);
+                    n.setTitle("Reschedule Request");
+                    n.setMessage("Customer " + safe(customerName) + " requested reschedule for pet " + safe(petName) + " (Appointment #" + appointmentId + ").");
+
+                    LocalDateTime createdAt;
+                    if (hasAppointmentDate) {
+                        java.sql.Date apptDate = rs.getDate("appointment_date");
+                        String timeSlot = rs.getString("time_slot");
+                        if (apptDate != null) {
+                            createdAt = LocalDateTime.of(apptDate.toLocalDate(), inferSlotDefaultTime(timeSlot));
+                        } else {
+                            createdAt = null;
+                        }
+                    } else {
+                        Timestamp ts = rs.getTimestamp("appointment_time");
+                        createdAt = ts != null ? ts.toLocalDateTime() : null;
+                    }
+
+                    n.setCreatedAt(createdAt);
+                    n.setRead(false);
+                    list.add(n);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return list;
+    }
+
+    private Set<String> getAppointmentsTableColumns(Connection con) {
+        Set<String> columns = new HashSet<>();
+        String probeSql = "SELECT TOP 0 * FROM appointments";
+        try (PreparedStatement ps = con.prepareStatement(probeSql); ResultSet rs = ps.executeQuery()) {
+            java.sql.ResultSetMetaData meta = rs.getMetaData();
+            for (int i = 1; i <= meta.getColumnCount(); i++) {
+                String column = meta.getColumnName(i);
+                if (column != null) {
+                    columns.add(column.trim().toLowerCase());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return columns;
+    }
+
+    private java.time.LocalTime inferSlotDefaultTime(String timeSlot) {
+        if (timeSlot == null || timeSlot.isBlank()) {
+            return java.time.LocalTime.NOON;
+        }
+        String normalized = timeSlot.trim().toLowerCase();
+        if ("am".equals(normalized) || "morning".equals(normalized)) {
+            return java.time.LocalTime.of(8, 0);
+        }
+        if ("pm".equals(normalized) || "afternoon".equals(normalized)) {
+            return java.time.LocalTime.of(14, 0);
+        }
+        return java.time.LocalTime.NOON;
     }
 
     private String safe(String value) {

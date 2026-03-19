@@ -1575,7 +1575,7 @@ public class AppointmentDAO extends DBContext {
 
                 if (hasPhone) {
                     String customerPhone = getCustomerPhoneByCustomerId(con, customerId);
-                    ps.setString(index++, customerPhone != null ? customerPhone : "");
+                    ps.setString(index++, normalizeAppointmentPhoneValue(con, customerPhone));
                 }
 
                 try (ResultSet rs = ps.executeQuery()) {
@@ -1665,6 +1665,39 @@ public class AppointmentDAO extends DBContext {
         return null;
     }
 
+    private String normalizeAppointmentPhoneValue(Connection con, String rawPhone) {
+        String normalized = rawPhone != null ? rawPhone.trim() : "";
+        int maxLength = getCharacterColumnMaxLength(con, "appointments", "phone");
+        if (maxLength > 0 && normalized.length() > maxLength) {
+            return normalized.substring(0, maxLength);
+        }
+        return normalized;
+    }
+
+    private int getCharacterColumnMaxLength(Connection con, String tableName, String columnName) {
+        String sql = """
+            SELECT CHARACTER_MAXIMUM_LENGTH
+            FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE LOWER(TABLE_NAME) = LOWER(?)
+                            AND LOWER(COLUMN_NAME) = LOWER(?)
+            """;
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, tableName);
+            ps.setString(2, columnName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Integer maxLength = rs.getObject("CHARACTER_MAXIMUM_LENGTH", Integer.class);
+                    if (maxLength != null && maxLength > 0) {
+                        return maxLength;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     /**
      * Creates a pending appointment with date + AM/PM slot (receptionist booking).
      * arrival_time is NULL by default and only set on receptionist check-in.
@@ -1746,7 +1779,7 @@ public class AppointmentDAO extends DBContext {
             ps.setInt(2, customerId);
             ps.setDate(3, java.sql.Date.valueOf(today));
             ps.setString(4, timeSlot);
-            ps.setString(5, phone != null ? phone : "");
+            ps.setString(5, normalizeAppointmentPhoneValue(con, phone));
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);
@@ -1764,24 +1797,43 @@ public class AppointmentDAO extends DBContext {
      * Used to enforce the daily booking cap (MAX_BOOKINGS_PER_DAY).
      */
     public int countCustomerBookingsOnDate(int customerId, java.time.LocalDate date) {
-        String sql = """
-            SELECT COUNT(*)
-            FROM appointments
-            WHERE customer_id = ?
-              AND CAST(appointment_time AS DATE) = ?
-              AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
-              AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
-              AND LOWER(COALESCE(status, '')) <> 'done'
-        """;
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)
-        ) {
-            ps.setInt(1, customerId);
-            ps.setDate(2, java.sql.Date.valueOf(date));
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+
+            String sql;
+            if (hasAppointmentDate) {
+                sql = """
+                    SELECT COUNT(*)
+                    FROM appointments
+                    WHERE customer_id = ?
+                      AND appointment_date = ?
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
+                      AND LOWER(COALESCE(status, '')) <> 'done'
+                """;
+            } else if (hasAppointmentTime) {
+                sql = """
+                    SELECT COUNT(*)
+                    FROM appointments
+                    WHERE customer_id = ?
+                      AND CAST(appointment_time AS DATE) = ?
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
+                      AND LOWER(COALESCE(status, '')) <> 'done'
+                """;
+            } else {
+                return 0;
+            }
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, customerId);
+                ps.setDate(2, java.sql.Date.valueOf(date));
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -1795,22 +1847,8 @@ public class AppointmentDAO extends DBContext {
     }
 
     public boolean hasCustomerAppointmentConflict(int customerId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
-        String sql = """
-            SELECT
-                a.appointment_time,
-                s.duration,
-                s.category,
-                s.name AS service_name
-            FROM appointments a
-            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
-            LEFT JOIN services s ON aps.service_id = s.service_id
-            WHERE a.customer_id = ?
-              AND a.appointment_time IS NOT NULL
-              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
-              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%complete%'
-              AND LOWER(COALESCE(a.status, '')) <> 'done'
-        """;
-        return hasAppointmentOverlap(sql, customerId, appointmentTime, requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+        return hasAppointmentOverlapByEntity("a.customer_id = ?", customerId, appointmentTime,
+                requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
     }
 
     public boolean hasPetAppointmentConflict(int petId, LocalDateTime appointmentTime) {
@@ -1818,22 +1856,8 @@ public class AppointmentDAO extends DBContext {
     }
 
     public boolean hasPetAppointmentConflict(int petId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
-        String sql = """
-            SELECT
-                a.appointment_time,
-                s.duration,
-                s.category,
-                s.name AS service_name
-            FROM appointments a
-            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
-            LEFT JOIN services s ON aps.service_id = s.service_id
-            WHERE a.pet_id = ?
-              AND a.appointment_time IS NOT NULL
-              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
-              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%complete%'
-              AND LOWER(COALESCE(a.status, '')) <> 'done'
-        """;
-        return hasAppointmentOverlap(sql, petId, appointmentTime, requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+        return hasAppointmentOverlapByEntity("a.pet_id = ?", petId, appointmentTime,
+                requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
     }
 
     public boolean hasVeterinarianAppointmentConflict(int veterinarianId, LocalDateTime appointmentTime) {
@@ -1841,25 +1865,11 @@ public class AppointmentDAO extends DBContext {
     }
 
     public boolean hasVeterinarianAppointmentConflict(int veterinarianId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
-        String sql = """
-            SELECT
-                a.appointment_time,
-                s.duration,
-                s.category,
-                s.name AS service_name
-            FROM appointments a
-            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
-            LEFT JOIN services s ON aps.service_id = s.service_id
-            WHERE a.veterinarian_id = ?
-              AND a.appointment_time IS NOT NULL
-              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
-              AND LOWER(COALESCE(a.status, '')) NOT LIKE '%complete%'
-              AND LOWER(COALESCE(a.status, '')) <> 'done'
-        """;
-        return hasAppointmentOverlap(sql, veterinarianId, appointmentTime, requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+        return hasAppointmentOverlapByEntity("a.veterinarian_id = ?", veterinarianId, appointmentTime,
+                requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
     }
 
-    private boolean hasAppointmentOverlap(String sql, int entityId, LocalDateTime requestedStart,
+    private boolean hasAppointmentOverlapByEntity(String entityConditionSql, int entityId, LocalDateTime requestedStart,
             int requestedDurationMinutes, int bufferMinutes) {
         if (requestedStart == null) {
             return false;
@@ -1869,28 +1879,80 @@ public class AppointmentDAO extends DBContext {
         int effectiveRequestedDuration = resolveEffectiveDurationMinutes(requestedDurationMinutes, null, null);
         LocalDateTime requestedEnd = requestedStart.plusMinutes((long) effectiveRequestedDuration + safeBuffer);
 
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)
-        ) {
-            ps.setInt(1, entityId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Timestamp existingTs = rs.getTimestamp("appointment_time");
-                    if (existingTs == null) {
-                        continue;
-                    }
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+            boolean hasTimeSlot = appointmentColumns.contains("time_slot");
 
-                    LocalDateTime existingStart = existingTs.toLocalDateTime();
-                    Integer existingDuration = rs.getObject("duration", Integer.class);
-                    String existingCategory = rs.getString("category");
-                    String existingServiceName = rs.getString("service_name");
+            String sql;
+            if (hasAppointmentDate) {
+                sql = """
+                    SELECT
+                        a.appointment_date,
+                        %s
+                        s.duration,
+                        s.category,
+                        s.name AS service_name
+                    FROM appointments a
+                    LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+                    LEFT JOIN services s ON aps.service_id = s.service_id
+                    WHERE %s
+                      AND a.appointment_date IS NOT NULL
+                      AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%cancel%%'
+                      AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%complete%%'
+                      AND LOWER(COALESCE(a.status, '')) <> 'done'
+                """.formatted(hasTimeSlot ? "a.time_slot,\n" : "NULL AS time_slot,\n", entityConditionSql);
+            } else if (hasAppointmentTime) {
+                sql = """
+                    SELECT
+                        a.appointment_time,
+                        s.duration,
+                        s.category,
+                        s.name AS service_name
+                    FROM appointments a
+                    LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+                    LEFT JOIN services s ON aps.service_id = s.service_id
+                    WHERE %s
+                      AND a.appointment_time IS NOT NULL
+                      AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%cancel%%'
+                      AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%complete%%'
+                      AND LOWER(COALESCE(a.status, '')) <> 'done'
+                """.formatted(entityConditionSql);
+            } else {
+                return false;
+            }
 
-                    int effectiveExistingDuration = resolveEffectiveDurationMinutes(existingDuration, existingCategory, existingServiceName);
-                    LocalDateTime existingEnd = existingStart.plusMinutes((long) effectiveExistingDuration + safeBuffer);
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, entityId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        LocalDateTime existingStart;
+                        if (hasAppointmentDate) {
+                            java.sql.Date existingDate = rs.getDate("appointment_date");
+                            if (existingDate == null) {
+                                continue;
+                            }
+                            String existingSlot = rs.getString("time_slot");
+                            existingStart = LocalDateTime.of(existingDate.toLocalDate(), inferSlotDefaultTime(existingSlot));
+                        } else {
+                            Timestamp existingTs = rs.getTimestamp("appointment_time");
+                            if (existingTs == null) {
+                                continue;
+                            }
+                            existingStart = existingTs.toLocalDateTime();
+                        }
 
-                    if (requestedStart.isBefore(existingEnd) && existingStart.isBefore(requestedEnd)) {
-                        return true;
+                        Integer existingDuration = rs.getObject("duration", Integer.class);
+                        String existingCategory = rs.getString("category");
+                        String existingServiceName = rs.getString("service_name");
+
+                        int effectiveExistingDuration = resolveEffectiveDurationMinutes(existingDuration, existingCategory, existingServiceName);
+                        LocalDateTime existingEnd = existingStart.plusMinutes((long) effectiveExistingDuration + safeBuffer);
+
+                        if (requestedStart.isBefore(existingEnd) && existingStart.isBefore(requestedEnd)) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -1898,6 +1960,20 @@ public class AppointmentDAO extends DBContext {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private java.time.LocalTime inferSlotDefaultTime(String timeSlot) {
+        if (timeSlot == null || timeSlot.isBlank()) {
+            return java.time.LocalTime.NOON;
+        }
+        String normalized = timeSlot.trim().toLowerCase();
+        if ("am".equals(normalized) || "morning".equals(normalized)) {
+            return java.time.LocalTime.of(8, 0);
+        }
+        if ("pm".equals(normalized) || "afternoon".equals(normalized)) {
+            return java.time.LocalTime.of(14, 0);
+        }
+        return java.time.LocalTime.NOON;
     }
 
     private int resolveEffectiveDurationMinutes(Integer rawDuration, String category, String serviceName) {
@@ -1969,123 +2045,114 @@ public class AppointmentDAO extends DBContext {
     public List<Appointment> getAppointmentsByCustomerId(int customerId) {
         List<Appointment> list = new ArrayList<>();
 
-        String legacySql = """
-            SELECT
-                a.appointment_id,
-                a.appointment_time,
-                a.status,
-                a.veterinarian_id,
-                s.name AS service_name,
-                p.pet_id,
-                p.name AS pet_name,
-                vet_user.full_name AS veterinarian_name
-            FROM appointments a
-            JOIN pets p ON a.pet_id = p.pet_id
-            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
-            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
-            LEFT JOIN services s ON aps.service_id = s.service_id
-            WHERE a.customer_id = ?
-              AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
-            ORDER BY a.appointment_time DESC
-        """;
+        try (Connection con = getConnection()) {
+            // Detect which columns are available in the appointments table
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+            boolean hasTimeSlot = appointmentColumns.contains("time_slot");
 
-        String dateSlotSql = """
-            SELECT
-                a.appointment_id,
-                a.appointment_date,
-                a.time_slot,
-                a.status,
-                a.veterinarian_id,
-                s.name AS service_name,
-                p.pet_id,
-                p.name AS pet_name,
-                vet_user.full_name AS veterinarian_name
-            FROM appointments a
-            JOIN pets p ON a.pet_id = p.pet_id
-            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
-            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
-            LEFT JOIN services s ON aps.service_id = s.service_id
-            WHERE a.customer_id = ?
-              AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
-            ORDER BY a.appointment_date DESC, a.time_slot DESC
-        """;
-
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(legacySql)
-        ) {
-            ps.setInt(1, customerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Appointment ap = new Appointment();
-                    ap.setAppointmentId(rs.getInt("appointment_id"));
-                    Timestamp appointmentTs = rs.getTimestamp("appointment_time");
-                    if (appointmentTs != null) {
-                        ap.setAppointmentTime(appointmentTs.toLocalDateTime());
-                    }
-                    ap.setStatus(rs.getString("status"));
-                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                    ap.setVeterinarianName(rs.getString("veterinarian_name"));
-                    ap.setService(rs.getString("service_name"));
-
-                    Pet pet = new Pet();
-                    pet.setPetId(rs.getInt("pet_id"));
-                    pet.setName(rs.getString("pet_name"));
-                    ap.setPet(pet);
-
-                    list.add(ap);
-                }
+            String sql;
+            if (hasAppointmentTime) {
+                // Legacy schema with appointment_time datetime column
+                sql = """
+                    SELECT
+                        a.appointment_id,
+                        a.appointment_time,
+                        a.status,
+                        a.veterinarian_id,
+                        s.name AS service_name,
+                        p.pet_id,
+                        p.name AS pet_name,
+                        vet_user.full_name AS veterinarian_name
+                    FROM appointments a
+                    JOIN pets p ON a.pet_id = p.pet_id
+                    LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+                    LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+                    LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+                    LEFT JOIN services s ON aps.service_id = s.service_id
+                    WHERE a.customer_id = ?
+                      AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
+                    ORDER BY a.appointment_time DESC
+                    """;
+            } else if (hasAppointmentDate && hasTimeSlot) {
+                // New schema with appointment_date and time_slot columns
+                sql = """
+                    SELECT
+                        a.appointment_id,
+                        a.appointment_date,
+                        a.time_slot,
+                        a.status,
+                        a.veterinarian_id,
+                        s.name AS service_name,
+                        p.pet_id,
+                        p.name AS pet_name,
+                        vet_user.full_name AS veterinarian_name
+                    FROM appointments a
+                    JOIN pets p ON a.pet_id = p.pet_id
+                    LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+                    LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+                    LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+                    LEFT JOIN services s ON aps.service_id = s.service_id
+                    WHERE a.customer_id = ?
+                      AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
+                    ORDER BY a.appointment_date DESC, a.time_slot DESC
+                    """;
+            } else {
+                // Neither schema available - return empty list
+                System.err.println("ERROR: Appointments table missing both appointment_time and appointment_date/time_slot columns");
+                return list;
             }
-            return list;
-        } catch (Exception ignored) {
-            list.clear();
-        }
 
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(dateSlotSql)
-        ) {
-            ps.setInt(1, customerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Appointment ap = new Appointment();
-                    ap.setAppointmentId(rs.getInt("appointment_id"));
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, customerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Appointment ap = new Appointment();
+                        ap.setAppointmentId(rs.getInt("appointment_id"));
+                        ap.setStatus(rs.getString("status"));
+                        ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+                        ap.setVeterinarianName(rs.getString("veterinarian_name"));
+                        ap.setService(rs.getString("service_name"));
 
-                    java.sql.Date apptDate = rs.getDate("appointment_date");
-                    String timeSlot = rs.getString("time_slot");
-                    if (apptDate != null) {
-                        ap.setAppointmentDate(apptDate.toLocalDate());
-                    }
-                    ap.setTimeSlot(timeSlot);
-
-                    if (apptDate != null) {
-                        java.time.LocalTime defaultTime;
-                        if (timeSlot != null && ("AM".equalsIgnoreCase(timeSlot) || "morning".equalsIgnoreCase(timeSlot))) {
-                            defaultTime = java.time.LocalTime.of(8, 0);
-                        } else if (timeSlot != null && ("PM".equalsIgnoreCase(timeSlot) || "afternoon".equalsIgnoreCase(timeSlot))) {
-                            defaultTime = java.time.LocalTime.of(14, 0);
+                        if (hasAppointmentTime) {
+                            // Legacy schema - use appointment_time directly
+                            Timestamp appointmentTs = rs.getTimestamp("appointment_time");
+                            if (appointmentTs != null) {
+                                ap.setAppointmentTime(appointmentTs.toLocalDateTime());
+                            }
                         } else {
-                            defaultTime = java.time.LocalTime.NOON;
+                            // New schema - construct from appointment_date and time_slot
+                            java.sql.Date apptDate = rs.getDate("appointment_date");
+                            String timeSlot = rs.getString("time_slot");
+                            if (apptDate != null) {
+                                ap.setAppointmentDate(apptDate.toLocalDate());
+                                ap.setTimeSlot(timeSlot);
+
+                                java.time.LocalTime defaultTime;
+                                if (timeSlot != null && ("AM".equalsIgnoreCase(timeSlot) || "morning".equalsIgnoreCase(timeSlot))) {
+                                    defaultTime = java.time.LocalTime.of(8, 0);
+                                } else if (timeSlot != null && ("PM".equalsIgnoreCase(timeSlot) || "afternoon".equalsIgnoreCase(timeSlot))) {
+                                    defaultTime = java.time.LocalTime.of(14, 0);
+                                } else {
+                                    defaultTime = java.time.LocalTime.NOON;
+                                }
+                                ap.setAppointmentTime(LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+                            }
                         }
-                        ap.setAppointmentTime(LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+
+                        Pet pet = new Pet();
+                        pet.setPetId(rs.getInt("pet_id"));
+                        pet.setName(rs.getString("pet_name"));
+                        ap.setPet(pet);
+
+                        list.add(ap);
                     }
-
-                    ap.setStatus(rs.getString("status"));
-                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                    ap.setVeterinarianName(rs.getString("veterinarian_name"));
-                    ap.setService(rs.getString("service_name"));
-
-                    Pet pet = new Pet();
-                    pet.setPetId(rs.getInt("pet_id"));
-                    pet.setName(rs.getString("pet_name"));
-                    ap.setPet(pet);
-
-                    list.add(ap);
                 }
             }
         } catch (Exception e) {
+            System.err.println("ERROR in getAppointmentsByCustomerId for customer " + customerId + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -2130,12 +2197,6 @@ public class AppointmentDAO extends DBContext {
             return false;
         }
 
-        String findSql = """
-            SELECT appointment_time, status, pet_id
-            FROM appointments
-            WHERE appointment_id = ? AND customer_id = ?
-        """;
-
         String updateStatusSql = """
             UPDATE appointments
             SET status = 'Reschedule-Requested'
@@ -2153,6 +2214,31 @@ public class AppointmentDAO extends DBContext {
         try (Connection con = getConnection()) {
             con.setAutoCommit(false);
 
+            // Detect which columns are available
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+            boolean hasTimeSlot = appointmentColumns.contains("time_slot");
+            boolean useDateSlotSchema = hasAppointmentDate && hasTimeSlot;
+
+            String findSql;
+            if (useDateSlotSchema) {
+                findSql = """
+                    SELECT appointment_date, time_slot, status, pet_id
+                    FROM appointments
+                    WHERE appointment_id = ? AND customer_id = ?
+                    """;
+            } else if (hasAppointmentTime) {
+                findSql = """
+                    SELECT appointment_time, status, pet_id
+                    FROM appointments
+                    WHERE appointment_id = ? AND customer_id = ?
+                    """;
+            } else {
+                con.rollback();
+                return false;
+            }
+
             LocalDateTime oldTime;
             String currentStatus;
             int petId;
@@ -2164,12 +2250,26 @@ public class AppointmentDAO extends DBContext {
                         con.rollback();
                         return false;
                     }
-                    Timestamp oldTs = rs.getTimestamp("appointment_time");
-                    if (oldTs == null) {
-                        con.rollback();
-                        return false;
+
+                    if (!useDateSlotSchema) {
+                        Timestamp oldTs = rs.getTimestamp("appointment_time");
+                        if (oldTs == null) {
+                            con.rollback();
+                            return false;
+                        }
+                        oldTime = oldTs.toLocalDateTime();
+                    } else {
+                        // Construct from appointment_date and time_slot
+                        java.sql.Date apptDate = rs.getDate("appointment_date");
+                        String timeSlot = hasTimeSlot ? rs.getString("time_slot") : null;
+                        if (apptDate == null) {
+                            con.rollback();
+                            return false;
+                        }
+                        java.time.LocalTime defaultTime = inferSlotDefaultTime(timeSlot);
+                        oldTime = LocalDateTime.of(apptDate.toLocalDate(), defaultTime);
                     }
-                    oldTime = oldTs.toLocalDateTime();
+
                     currentStatus = rs.getString("status");
                     petId = rs.getInt("pet_id");
                 }
@@ -2222,6 +2322,7 @@ public class AppointmentDAO extends DBContext {
             con.commit();
             return true;
         } catch (Exception e) {
+            System.err.println("ERROR in createRescheduleRequest: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -2598,6 +2699,20 @@ public class AppointmentDAO extends DBContext {
         return null;
     }
 
+    private String toDatabaseTimeSlot(String requestedTimeSlot, LocalDateTime fallbackTime) {
+        String normalized = normalizeRequestedTimeSlot(requestedTimeSlot);
+        if ("morning".equals(normalized)) {
+            return "AM";
+        }
+        if ("afternoon".equals(normalized)) {
+            return "PM";
+        }
+        if (fallbackTime != null) {
+            return fallbackTime.getHour() < 12 ? "AM" : "PM";
+        }
+        return "AM";
+    }
+
     private boolean isPastDate(LocalDateTime dateTime) {
         return dateTime != null && dateTime.toLocalDate().isBefore(LocalDate.now());
     }
@@ -2606,12 +2721,6 @@ public class AppointmentDAO extends DBContext {
         String findSql = """
             SELECT customer_id, status
             FROM appointments
-            WHERE appointment_id = ?
-        """;
-
-        String updateApproveSql = """
-            UPDATE appointments
-            SET appointment_time = ?, status = 'Pending'
             WHERE appointment_id = ?
         """;
 
@@ -2674,11 +2783,57 @@ public class AppointmentDAO extends DBContext {
                     con.rollback();
                     return false;
                 }
+                String requestedSlotForDb = toDatabaseTimeSlot(requestedSlot, requestedTime);
 
-                try (PreparedStatement updatePs = con.prepareStatement(updateApproveSql)) {
-                    updatePs.setTimestamp(1, Timestamp.valueOf(requestedTime));
-                    updatePs.setInt(2, appointmentId);
-                    updated = updatePs.executeUpdate() > 0;
+                // Detect which columns are available
+                Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+                boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+                boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+                boolean hasTimeSlot = appointmentColumns.contains("time_slot");
+
+                String updateApproveSql;
+                if (hasAppointmentTime && hasAppointmentDate && hasTimeSlot) {
+                    // Hybrid schema - update all three
+                    updateApproveSql = """
+                        UPDATE appointments
+                        SET appointment_time = ?, appointment_date = ?, time_slot = ?, status = 'Pending'
+                        WHERE appointment_id = ?
+                        """;
+                    try (PreparedStatement updatePs = con.prepareStatement(updateApproveSql)) {
+                        updatePs.setTimestamp(1, Timestamp.valueOf(requestedTime));
+                        updatePs.setDate(2, java.sql.Date.valueOf(requestedTime.toLocalDate()));
+                        updatePs.setString(3, requestedSlotForDb);
+                        updatePs.setInt(4, appointmentId);
+                        updated = updatePs.executeUpdate() > 0;
+                    }
+                } else if (hasAppointmentDate && hasTimeSlot) {
+                    // New schema - update appointment_date and time_slot
+                    updateApproveSql = """
+                        UPDATE appointments
+                        SET appointment_date = ?, time_slot = ?, status = 'Pending'
+                        WHERE appointment_id = ?
+                        """;
+                    try (PreparedStatement updatePs = con.prepareStatement(updateApproveSql)) {
+                        updatePs.setDate(1, java.sql.Date.valueOf(requestedTime.toLocalDate()));
+                        updatePs.setString(2, requestedSlotForDb);
+                        updatePs.setInt(3, appointmentId);
+                        updated = updatePs.executeUpdate() > 0;
+                    }
+                } else if (hasAppointmentTime) {
+                    // Legacy schema - only update appointment_time
+                    updateApproveSql = """
+                        UPDATE appointments
+                        SET appointment_time = ?, status = 'Pending'
+                        WHERE appointment_id = ?
+                        """;
+                    try (PreparedStatement updatePs = con.prepareStatement(updateApproveSql)) {
+                        updatePs.setTimestamp(1, Timestamp.valueOf(requestedTime));
+                        updatePs.setInt(2, appointmentId);
+                        updated = updatePs.executeUpdate() > 0;
+                    }
+                } else {
+                    con.rollback();
+                    return false;
                 }
             } else {
                 try (PreparedStatement updatePs = con.prepareStatement(updateRejectSql)) {
@@ -2723,6 +2878,7 @@ public class AppointmentDAO extends DBContext {
             con.commit();
             return true;
         } catch (Exception e) {
+            System.err.println("ERROR in processRescheduleRequest: " + e.getMessage());
             e.printStackTrace();
         }
 
