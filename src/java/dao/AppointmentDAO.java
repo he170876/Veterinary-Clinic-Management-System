@@ -457,6 +457,7 @@ public class AppointmentDAO extends DBContext {
                    a.appointment_date,
                    a.time_slot,
                    a.status,
+                   a.type,
                    a.veterinarian_id,
                    a.service_id,
                    s.name AS service_name,
@@ -467,6 +468,7 @@ public class AppointmentDAO extends DBContext {
                    p.breed,
                    c.customer_id,
                    u.full_name AS customer_name,
+                   u.phone AS customer_phone,
                    vet_user.full_name AS veterinarian_name
             FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
@@ -499,6 +501,7 @@ public class AppointmentDAO extends DBContext {
                         ap.setArrivalTime(d.toLocalDate().atTime(isPm ? 15 : 9, 0));
                     }
                     ap.setStatus(rs.getString("status"));
+                    ap.setType(rs.getString("type"));
                     ap.setVeterinarianId(rs.getInt("veterinarian_id"));
                     ap.setService(rs.getString("service_name"));
                     if (d != null) ap.setAppointmentDate(d.toLocalDate());
@@ -516,8 +519,10 @@ public class AppointmentDAO extends DBContext {
                     cus.setCustomerId(rs.getInt("customer_id"));
                     User customerUser = new User();
                     customerUser.setFullName(rs.getString("customer_name"));
+                    customerUser.setPhone(rs.getString("customer_phone"));
                     cus.setUser(customerUser);
                     ap.setCustomer(cus);
+                    ap.setCustomerPhone(rs.getString("customer_phone"));
 
                     String vetName = rs.getString("veterinarian_name");
                     if (vetName != null) {
@@ -547,6 +552,7 @@ public class AppointmentDAO extends DBContext {
                    a.appointment_date,
                    a.time_slot,
                    a.status,
+                   a.type,
                    a.veterinarian_id,
                    a.service_id,
                    s.name AS service_name,
@@ -557,6 +563,7 @@ public class AppointmentDAO extends DBContext {
                    p.breed,
                    c.customer_id,
                    u.full_name AS customer_name,
+                   COALESCE(a.phone, u.phone) AS customer_phone,
                    vet_user.full_name AS veterinarian_name
             FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
@@ -589,6 +596,7 @@ public class AppointmentDAO extends DBContext {
                         ap.setArrivalTime(d.toLocalDate().atTime(isPm ? 15 : 9, 0));
                     }
                     ap.setStatus(rs.getString("status"));
+                    ap.setType(rs.getString("type"));
                     ap.setVeterinarianId(rs.getInt("veterinarian_id"));
                     ap.setService(rs.getString("service_name"));
                     if (d != null) ap.setAppointmentDate(d.toLocalDate());
@@ -606,8 +614,10 @@ public class AppointmentDAO extends DBContext {
                     cus.setCustomerId(rs.getInt("customer_id"));
                     User customerUser = new User();
                     customerUser.setFullName(rs.getString("customer_name"));
+                    customerUser.setPhone(rs.getString("customer_phone"));
                     cus.setUser(customerUser);
                     ap.setCustomer(cus);
+                    ap.setCustomerPhone(rs.getString("customer_phone"));
 
                     String vetName = rs.getString("veterinarian_name");
                     if (vetName != null) ap.setVeterinarianName(vetName);
@@ -1208,11 +1218,32 @@ public class AppointmentDAO extends DBContext {
                 veterinarian_id = ?
             WHERE appointment_id = ?
               AND status = 'Checked-in'
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM appointments
+                  WHERE veterinarian_id = ?
+                    AND status = 'In-Examination'
+              )
             """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, veterinarianId);
             ps.setInt(2, appointmentId);
+            ps.setInt(3, veterinarianId);
             return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /** True when vet currently has another appointment in examination. */
+    public boolean hasActiveInExamination(int veterinarianId) {
+        String sql = "SELECT 1 FROM appointments WHERE veterinarian_id = ? AND status = 'In-Examination'";
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, veterinarianId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

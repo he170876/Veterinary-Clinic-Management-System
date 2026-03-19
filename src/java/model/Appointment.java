@@ -22,6 +22,7 @@ public class Appointment {
     private LocalDateTime appointmentTime;
     private LocalDateTime arrivalTime; // receptionist check-in time
     private String status; // Pending, Confirmed, Completed, Cancelled...
+    private String type;   // Normal, Emergency, etc.
     private LocalDateTime createdAt;
     private String notes;
 
@@ -166,6 +167,14 @@ public class Appointment {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public LocalDateTime getCreatedAt() {

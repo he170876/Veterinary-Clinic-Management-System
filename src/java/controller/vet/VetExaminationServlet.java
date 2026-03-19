@@ -91,6 +91,10 @@ public class VetExaminationServlet extends HttpServlet {
         if ("Checked-in".equalsIgnoreCase(apStatus)) {
             boolean claimed = appDao.startExamination(appointmentId, vetId);
             if (!claimed) {
+                if (appDao.hasActiveInExamination(vetId)) {
+                    response.sendRedirect(request.getContextPath() + "/vet/queue?error=busy");
+                    return;
+                }
                 Appointment latest = appDao.getAppointmentDetail(appointmentId);
                 if (latest != null
                         && "In-Examination".equalsIgnoreCase(latest.getStatus())
