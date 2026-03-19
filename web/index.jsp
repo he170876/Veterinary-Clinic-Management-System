@@ -20,26 +20,26 @@ Anipats landing page - VCMS (Tailwind design)
         model.User loggedUser = (model.User) currentUser;
         String fn = loggedUser.getFullName();
         if (fn != null && !fn.isEmpty()) userDisplayName = fn; else userDisplayName = loggedUser.getEmail();
-
+        
         int roleId = (loggedUser.getRole() != null) ? loggedUser.getRole().getRoleId() : 0;
         switch (roleId) {
             case 5: // Admin
             case 6: // ClinicOwner
-                roleDashboardUrl = ctx + "/owner/dashboard";
-                break;
+            roleDashboardUrl = ctx + "/owner/dashboard";
+            break;
             case 2: // Veterinarian
-                roleDashboardUrl = ctx + "/vet/dashboard";
-                break;
+            roleDashboardUrl = ctx + "/vet/dashboard";
+            break;
             case 3: // Receptionist
-                roleDashboardUrl = ctx + "/staff/dashboard";
-                break;
+            roleDashboardUrl = ctx + "/staff/dashboard";
+            break;
             case 4: // LabStaff
-                roleDashboardUrl = ctx + "/lab/dashboard";
-                break;
+            roleDashboardUrl = ctx + "/lab/dashboard";
+            break;
             case 1: // Customer
             default:
-                roleDashboardUrl = ctx + "/customer/dashboard";
-                break;
+            roleDashboardUrl = ctx + "/customer/dashboard";
+            break;
         }
     }
     String booked = request.getParameter("booked");

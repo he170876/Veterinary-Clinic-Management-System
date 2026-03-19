@@ -51,7 +51,7 @@
                     </div>
                 </div>
                 <nav class="flex flex-col gap-2 flex-1">
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/dashboard">
                         <span class="material-symbols-outlined">dashboard</span>
                         <span class="text-sm font-semibold">Dashboard</span>
                     </a>
@@ -59,7 +59,7 @@
                         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
                         <span class="text-sm font-semibold">User Management</span>
                     </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/dashboard">
+                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/services">
                         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">medical_services</span>
                         <span class="text-sm font-semibold">Services</span>
                     </a>

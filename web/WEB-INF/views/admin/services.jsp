@@ -50,7 +50,7 @@
                     </div>
                 </div>
                 <nav class="flex flex-col gap-2 flex-1">
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/dashboard">
                         <span class="material-symbols-outlined">dashboard</span>
                         <span class="text-sm font-semibold">Dashboard</span>
                     </a>
@@ -66,10 +66,7 @@
                         <span class="material-symbols-outlined">image</span>
                         <span class="text-sm font-semibold">Images</span>
                     </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
-                        <span class="material-symbols-outlined">settings</span>
-                        <span class="text-sm font-semibold">Settings</span>
-                    </a>
+                   
                 </nav>
             </aside>
 
@@ -203,20 +200,20 @@
                             <c:if test="${totalPages > 1}">
                                 <div class="flex justify-center items-center gap-2">
                                     <c:if test="${currentPage > 1}">
-                                        <a href="${pageContext.request.contextPath}/owner/dashboard?page=${currentPage-1}"
+                                        <a href="${pageContext.request.contextPath}/owner/services?page=${currentPage-1}"
                                            class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                             Prev
                                         </a>
                                     </c:if>
                                     <c:forEach begin="1" end="${totalPages}" var="i">
-                                        <a href="${pageContext.request.contextPath}/owner/dashboard?page=${i}"
+                                        <a href="${pageContext.request.contextPath}/owner/services?page=${i}"
                                            class="px-4 py-2 rounded-lg font-bold
                                            ${i == currentPage ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}">
                                             ${i}
                                         </a>
                                     </c:forEach>
                                     <c:if test="${currentPage < totalPages}">
-                                        <a href="${pageContext.request.contextPath}/owner/dashboard?page=${currentPage+1}"
+                                        <a href="${pageContext.request.contextPath}/owner/services?page=${currentPage+1}"
                                            class="px-4 py-2 rounded-lg bg-gray-200 font-bold hover:bg-gray-300">
                                             Next
                                         </a>
@@ -408,7 +405,7 @@
                 const formData = new FormData(document.getElementById('addServiceForm'));
                 const params = new URLSearchParams(formData);
                 
-                fetch('<%= request.getContextPath() %>/owner/dashboard', {
+                fetch('<%= request.getContextPath() %>/owner/services', {
                     method: 'POST',
                     body: params
                 })
@@ -435,7 +432,7 @@
                             const formData = new FormData(document.getElementById('editServiceForm'));
                             const params = new URLSearchParams(formData);
                             
-                            fetch('<%= request.getContextPath() %>/owner/dashboard', {
+                            fetch('<%= request.getContextPath() %>/owner/services', {
                                 method: 'POST',
                                 body: params
                             })
@@ -462,7 +459,7 @@
                                         params.append('action', 'delete');
                                         params.append('serviceId', id);
                                         
-                                        fetch('<%= request.getContextPath() %>/owner/dashboard', {
+                                        fetch('<%= request.getContextPath() %>/owner/services', {
                                             method: 'POST',
                                             body: params
                                         })
