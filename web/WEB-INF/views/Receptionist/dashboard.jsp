@@ -265,7 +265,7 @@
                                             <td class="px-6 py-4">
                                                 <c:choose>
                                                     <c:when test="${isInExam}">
-                                                        <span class="px-3 py-1 bg-green-100 text-green-600 text-xs font-bold rounded-full">In Treatment</span>
+                                                        <span class="px-3 py-1 bg-orange-100 text-orange-600 text-xs font-bold rounded-full">In-Examination</span>
                                                     </c:when>
                                                     <c:when test="${isCheckedIn}">
                                                         <span class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full">Checked-in</span>
