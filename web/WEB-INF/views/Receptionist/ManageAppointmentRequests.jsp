@@ -131,34 +131,44 @@
         </header>
 
         <div class="p-8 flex-1 overflow-y-auto custom-scrollbar">
-            <div class="flex items-center justify-between mb-6">
-                <div></div>
-                <form method="get" class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 gap-3">
-                    <span class="material-symbols-outlined text-slate-400 text-xl">calendar_month</span>
-                    <div class="flex flex-col">
-                        <span class="text-xs text-slate-400 dark:text-slate-500">Date range</span>
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            ${displayDateRange}
-                        </span>
+            <div class="mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
+                <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                   
+                    <div class="flex flex-col gap-1 md:col-span-2">
+                        <label class="text-xs font-semibold text-slate-500">Search</label>
+                        <input
+                                type="text"
+                                name="keyword"
+                                value="${keyword}"
+                                placeholder="Appointment ID, pet, customer, doctor..."
+                                class="text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
                     </div>
-                    <div class="flex items-center gap-2 ml-3">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-500">From Date</label>
                         <input
                                 type="date"
                                 name="fromDate"
                                 value="${fromDate}"
-                                class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
-                        <span class="text-xs text-slate-400 dark:text-slate-500">to</span>
+                                class="text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-500">To Date</label>
                         <input
                                 type="date"
                                 name="toDate"
                                 value="${toDate}"
-                                class="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+                                class="text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
                     </div>
-                    <button
-                            type="submit"
-                            class="ml-2 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:opacity-90 transition-all">
-                        Apply
-                    </button>
+                    <div class="md:col-span-5 flex items-center justify-between gap-3 mt-1">
+                        <div class="flex items-center gap-2 text-xs font-semibold">
+                            <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Total: ${totalRequestCount}</span>
+                            <span class="px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Reschedule: ${rescheduleCount}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="${pageContext.request.contextPath}/Receptionist/ManageAppointmentRequests" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">Reset</a>
+                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:opacity-90 transition-all">Apply</button>
+                        </div>
+                    </div>
                 </form>
             </div>
 
@@ -175,7 +185,6 @@
                     <c:otherwise>
                         <c:forEach var="appointment" items="${requestList}">
                             <c:set var="isRescheduleRequested" value="${appointment.status == 'Reschedule-Requested'}"/>
-                            <c:set var="isDoctorChangeRequested" value="${appointment.status == 'Doctor-Change-Requested'}"/>
                             <c:set var="details" value="${appointmentDetails[appointment.appointmentId]}"/>
                             <div id="request-${appointment.appointmentId}" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
                                 <div class="flex items-start justify-between gap-4 mb-3">
@@ -186,7 +195,7 @@
                                         <p class="text-xs text-slate-500 dark:text-slate-400">
                                             ${appointment.formattedDate} ${appointment.formattedTime} | ${not empty appointment.service ? appointment.service : 'N/A'}
                                         </p>
-                                        <p class="text-xs mt-1 ${isRescheduleRequested ? 'text-amber-600 dark:text-amber-300' : 'text-violet-600 dark:text-violet-300'} font-semibold">
+                                        <p class="text-xs mt-1 text-amber-600 dark:text-amber-300 font-semibold">
                                             ${appointment.status}
                                         </p>
                                     </div>
@@ -194,22 +203,6 @@
                                 
                                 <!-- Request Details -->
                                 <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mb-3 text-xs">
-                                    <c:if test="${isDoctorChangeRequested}">
-                                        <div class="space-y-2">
-                                            <div>
-                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Current Doctor:</span>
-                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['currentVeterinarianName'] ? details['currentVeterinarianName'] : 'Unassigned'}</span>
-                                            </div>
-                                            <div>
-                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Requested Doctor:</span>
-                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['preferredDoctor'] ? details['preferredDoctor'] : 'N/A'}</span>
-                                            </div>
-                                            <div>
-                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Reason:</span>
-                                                <p class="text-slate-700 dark:text-slate-200 mt-1 max-h-24 overflow-y-auto">${not empty details['reason'] ? details['reason'] : 'No reason provided'}</p>
-                                            </div>
-                                        </div>
-                                    </c:if>
                                     <c:if test="${isRescheduleRequested}">
                                         <div class="space-y-2">
                                             <div>
@@ -217,8 +210,14 @@
                                                 <span class="text-slate-700 dark:text-slate-200">${not empty details['oldTime'] ? details['oldTime'] : appointment.formattedDate}</span>
                                             </div>
                                             <div>
-                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Requested Time:</span>
-                                                <span class="text-slate-700 dark:text-slate-200">${not empty details['requestedTime'] ? details['requestedTime'] : 'N/A'}</span>
+                                                <span class="font-semibold text-slate-600 dark:text-slate-300">Requested Slot:</span>
+                                                <span class="text-slate-700 dark:text-slate-200">
+                                                    <c:choose>
+                                                        <c:when test="${details['requestedSlot'] == 'morning'}">Morning</c:when>
+                                                        <c:when test="${details['requestedSlot'] == 'afternoon'}">Afternoon</c:when>
+                                                        <c:otherwise>${not empty details['requestedTime'] ? details['requestedTime'] : 'N/A'}</c:otherwise>
+                                                    </c:choose>
+                                                </span>
                                             </div>
                                             <div>
                                                 <span class="font-semibold text-slate-600 dark:text-slate-300">Reason:</span>
@@ -233,10 +232,6 @@
                                     <c:if test="${isRescheduleRequested}">
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Approve</button>
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'reschedule', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400">Reject</button>
-                                    </c:if>
-                                    <c:if test="${isDoctorChangeRequested}">
-                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'approve')" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Approve</button>
-                                        <button data-appointment-id="${appointment.appointmentId}" onclick="processAppointmentRequest(this.dataset.appointmentId, 'doctor-change', 'reject')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400">Reject</button>
                                     </c:if>
                                     <a href="/Veterinary_Clinic_Management_System/Receptionist/ViewListAppointment" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold ml-auto">Open Schedule</a>
                                 </div>

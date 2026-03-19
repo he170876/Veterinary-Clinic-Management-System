@@ -27,7 +27,7 @@ import service.impl.ImageServiceImpl;
 /**
  * Servlet handling CRUD operations for Images with file upload support.
  */
-@WebServlet(name = "ImageServlet", urlPatterns = {"/admin/images/*"})
+@WebServlet(name = "ImageServlet", urlPatterns = {"/owner/images/*"})
 @MultipartConfig(
     fileSizeThreshold = 1024 * 1024, // 1MB
     maxFileSize = 10 * 1024 * 1024,  // 10MB
@@ -51,9 +51,11 @@ public class ImageServlet extends HttpServlet {
             return;
         }
 
-        // Check admin role
+        // Check admin or clinic owner role (case-insensitive)
         User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser.getRole() == null || !"admin".equalsIgnoreCase(currentUser.getRole().getRoleName())) {
+        String roleName = currentUser.getRole() != null && currentUser.getRole().getRoleName() != null
+                ? currentUser.getRole().getRoleName().trim().toLowerCase() : "";
+        if (!(roleName.equals("admin") || roleName.equals("clinicowner"))) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
             return;
         }

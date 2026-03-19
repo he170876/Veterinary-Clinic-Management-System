@@ -174,10 +174,7 @@
                                 <p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Gender</p>
                                 <p class="mt-1 font-semibold"><%= petGender %></p>
                             </div>
-                            <div class="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-4">
-                                <p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Age</p>
-                                <p class="mt-1 font-semibold"><%= petAge %></p>
-                            </div>
+                     
                             <div class="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-4">
                                 <p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Weight</p>
                                 <p class="mt-1 font-semibold"><%= petWeight %></p>

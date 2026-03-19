@@ -30,10 +30,7 @@
                 <span class="material-symbols-outlined">calendar_today</span>
                 <p class="text-sm font-medium">Appointments</p>
             </a>
-            <a class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors <%= "profile".equals(currentPage) ? "bg-primary/10 text-primary" : "text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10" %>" href="<%= ctx %>/customer/profile">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">person</span>
-                <p class="text-sm font-medium">My Profile</p>
-            </a>
+   
             <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors <%= "edit-profile".equals(currentPage) ? "bg-primary/10 text-primary" : "" %>" href="<%= ctx %>/customer/edit-profile">
                 <span class="material-symbols-outlined">settings</span>
                 <p class="text-sm font-medium">Settings</p>
@@ -42,10 +39,7 @@
                 <span class="material-symbols-outlined">medical_services</span>
                 <p class="text-sm font-medium">Medical Records</p>
             </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10 rounded-xl transition-colors" href="#">
-                <span class="material-symbols-outlined">payments</span>
-                <p class="text-sm font-medium">Billing</p>
-            </a>
+
         </nav>
     </div>
     <div class="flex flex-col gap-2">
