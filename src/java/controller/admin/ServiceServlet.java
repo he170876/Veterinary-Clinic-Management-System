@@ -15,7 +15,7 @@ import service.impl.ServiceServiceImpl;
 /**
  * Servlet handling CRUD operations for Services.
  */
-@WebServlet(name = "ServiceServlet", urlPatterns = {"/owner/dashboard/*"})
+@WebServlet(name = "ServiceServlet", urlPatterns = {"/owner/services/*"})
 public class ServiceServlet extends HttpServlet {
 
     private ServiceService serviceService;
@@ -174,7 +174,7 @@ public class ServiceServlet extends HttpServlet {
 
             Service created = serviceService.createService(service);
             if (created != null) {
-                response.sendRedirect(request.getContextPath() + "/owner/dashboard");
+                response.sendRedirect(request.getContextPath() + "/owner/services");
             } else {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to create service");
             }
@@ -257,7 +257,7 @@ public class ServiceServlet extends HttpServlet {
             service.setPrice(price);
 
             if (serviceService.updateService(service)) {
-                response.sendRedirect(request.getContextPath() + "/owner/dashboard");
+                response.sendRedirect(request.getContextPath() + "/owner/services");
             } else {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to update service");
             }
@@ -281,7 +281,7 @@ public class ServiceServlet extends HttpServlet {
             
             int id = Integer.parseInt(idStr);
             if (serviceService.deleteService(id)) {
-                response.sendRedirect(request.getContextPath() + "/owner/dashboard");
+                response.sendRedirect(request.getContextPath() + "/owner/services");
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "Service not found or already deleted");
             }
