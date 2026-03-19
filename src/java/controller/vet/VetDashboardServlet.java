@@ -14,6 +14,7 @@ import model.LabResultSummary;
 import model.User;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
@@ -38,10 +39,22 @@ public class VetDashboardServlet extends HttpServlet {
         AppointmentDAO appDao = new AppointmentDAO();
         LabTestRequestDAO labDao = new LabTestRequestDAO();
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
+        LocalDate today = LocalDate.now();
 
-        List<Appointment> todayAppointments = vetId > 0 ? appDao.getTodayAppointmentsByVeterinarianForDashboard(vetId) : Collections.emptyList();
-        int totalToday = vetId > 0 ? appDao.countTodayAppointmentsByVet(vetId) : 0;
-        int surgeriesToday = vetId > 0 ? appDao.countSurgeriesTodayByVet(vetId) : 0;
+        List<Appointment> todayAppointments = vetId > 0
+            ? appDao.getTodayAppointmentsByVeterinarianForDashboard(vetId)
+            : Collections.emptyList();
+
+        // Fallback for shared-queue flow when appointments are not pre-assigned to a vet.
+        if (todayAppointments.isEmpty()) {
+            todayAppointments = appDao.getVetQueueAppointmentsForDate(today);
+        }
+
+        int totalToday = todayAppointments.size();
+        int surgeriesToday = (int) todayAppointments.stream()
+            .filter(a -> a != null && a.getService() != null
+                && a.getService().toLowerCase().contains("surgery"))
+            .count();
         int pendingLab = vetId > 0 ? labDao.countPendingByVeterinarian(vetId) : 0;
         int followUps = vetId > 0 ? appDao.countFollowUpsThisWeek(vetId) : 0;
         List<LabResultSummary> recentLabResults = vetId > 0 ? labDao.getRecentResultsForVeterinarian(vetId, 5) : Collections.emptyList();
@@ -51,6 +64,7 @@ public class VetDashboardServlet extends HttpServlet {
         request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
         request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("todayAppointments", todayAppointments);
+        request.setAttribute("currentVetId", vetId);
         request.setAttribute("totalToday", totalToday);
         request.setAttribute("surgeriesToday", surgeriesToday);
         request.setAttribute("pendingLab", pendingLab);

@@ -1,4 +1,4 @@
-﻿<%@ page import="model.Pet" %>
+ï»¿<%@ page import="model.Pet" %>
 <%@ page import="java.time.LocalDate" %>
 <%@ page import="java.time.YearMonth" %>
 <%@ page import="java.time.temporal.ChronoUnit" %>
@@ -8,7 +8,7 @@
             return fallbackUrl;
         }
 
-        String value = rawPhotoUrl.trim().replace("\\", "/");
+        String value = rawPhotoUrl.trim().replace ("\\", "/");
         if (value.startsWith("http://") || value.startsWith("https://")) {
             return value;
         }

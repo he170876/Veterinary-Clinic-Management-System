@@ -2,7 +2,7 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ page import="java.util.Set" %>
 <%@ page import="java.util.Locale" %>
-<%@ page import="java.time.LocalDateTime" %>
+<%@ page import="java.time.LocalDate" %>
 <%@ page import="model.Appointment" %>
 <%
     request.setAttribute("customerCurrentPage", "appointments");
@@ -192,7 +192,11 @@
                                             boolean requestableStatus = lowerStatus.contains("pending")
                                                     || lowerStatus.contains("scheduled")
                                                     || lowerStatus.contains("confirm");
-                                            boolean isPast = appointment.getAppointmentTime() != null && appointment.getAppointmentTime().isBefore(LocalDateTime.now());
+                                            LocalDate appointmentDate = appointment.getAppointmentDate();
+                                            if (appointmentDate == null && appointment.getAppointmentTime() != null) {
+                                                appointmentDate = appointment.getAppointmentTime().toLocalDate();
+                                            }
+                                            boolean isPast = appointmentDate != null && appointmentDate.isBefore(LocalDate.now());
                                             boolean hasPendingRequest = pendingRescheduleIds.contains(appointment.getAppointmentId());
                                             boolean canRequest = !isCancelled && !isCompleted && !isPast && requestableStatus && !hasPendingRequest;
                                             String timeSlotText = "N/A";

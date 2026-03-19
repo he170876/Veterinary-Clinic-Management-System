@@ -11,7 +11,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -115,7 +114,7 @@ public class CustomerAppointmentsServlet extends HttpServlet {
         List<Appointment> allAppointments = appointmentDAO.getAppointmentsByCustomerId(customerId);
         Set<Integer> pendingRescheduleIds = appointmentDAO.getPendingRescheduleAppointmentIdsByCustomer(customerId);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
         List<Appointment> baseFiltered = new ArrayList<>();
         for (Appointment appointment : allAppointments) {
             if (!matchesDateRange(appointment, fromDate, toDate)) {
@@ -143,7 +142,7 @@ public class CustomerAppointmentsServlet extends HttpServlet {
         List<Appointment> filtered = new ArrayList<>();
 
         for (Appointment appointment : baseFiltered) {
-            if (!matchesTab(appointment, tab, now)) {
+            if (!matchesTab(appointment, tab, today)) {
                 continue;
             }
 
@@ -174,9 +173,9 @@ public class CustomerAppointmentsServlet extends HttpServlet {
 
         request.setAttribute("appointments", pagedAppointments);
         request.setAttribute("pendingRescheduleIds", pendingRescheduleIds);
-        request.setAttribute("upcomingCount", countByTab(baseFiltered, "upcoming", now));
-        request.setAttribute("pastCount", countByTab(baseFiltered, "past", now));
-        request.setAttribute("cancelledCount", countByTab(baseFiltered, "cancelled", now));
+        request.setAttribute("upcomingCount", countByTab(baseFiltered, "upcoming", today));
+        request.setAttribute("pastCount", countByTab(baseFiltered, "past", today));
+        request.setAttribute("cancelledCount", countByTab(baseFiltered, "cancelled", today));
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("totalFiltered", totalFiltered);
@@ -186,10 +185,10 @@ public class CustomerAppointmentsServlet extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/customer/appointments.jsp").forward(request, response);
     }
 
-    private int countByTab(List<Appointment> appointments, String tab, LocalDateTime now) {
+    private int countByTab(List<Appointment> appointments, String tab, LocalDate today) {
         int count = 0;
         for (Appointment appointment : appointments) {
-            if (matchesTab(appointment, tab, now)) {
+            if (matchesTab(appointment, tab, today)) {
                 count++;
             }
         }
@@ -197,11 +196,11 @@ public class CustomerAppointmentsServlet extends HttpServlet {
     }
 
     private boolean matchesDateRange(Appointment appointment, LocalDate fromDate, LocalDate toDate) {
-        if (appointment == null || appointment.getAppointmentTime() == null) {
+        LocalDate appointmentDate = resolveAppointmentDate(appointment);
+        if (appointmentDate == null) {
             return false;
         }
 
-        LocalDate appointmentDate = appointment.getAppointmentTime().toLocalDate();
         if (fromDate != null && appointmentDate.isBefore(fromDate)) {
             return false;
         }
@@ -211,9 +210,9 @@ public class CustomerAppointmentsServlet extends HttpServlet {
         return true;
     }
 
-    private boolean matchesTab(Appointment appointment, String tab, LocalDateTime now) {
+    private boolean matchesTab(Appointment appointment, String tab, LocalDate today) {
         String status = appointment.getStatus() != null ? appointment.getStatus().toLowerCase() : "";
-        LocalDateTime time = appointment.getAppointmentTime();
+        LocalDate appointmentDate = resolveAppointmentDate(appointment);
 
         if ("cancelled".equalsIgnoreCase(tab)) {
             return status.contains("cancel");
@@ -223,12 +222,25 @@ public class CustomerAppointmentsServlet extends HttpServlet {
             if (status.contains("cancel")) {
                 return false;
             }
-            return time != null && time.isBefore(now);
+            return appointmentDate != null && appointmentDate.isBefore(today);
         }
 
         if (status.contains("cancel")) {
             return false;
         }
-        return time == null || !time.isBefore(now);
+        return appointmentDate == null || !appointmentDate.isBefore(today);
+    }
+
+    private LocalDate resolveAppointmentDate(Appointment appointment) {
+        if (appointment == null) {
+            return null;
+        }
+        if (appointment.getAppointmentDate() != null) {
+            return appointment.getAppointmentDate();
+        }
+        if (appointment.getAppointmentTime() != null) {
+            return appointment.getAppointmentTime().toLocalDate();
+        }
+        return null;
     }
 }

@@ -137,9 +137,13 @@
     int petId = ap.getPet() != null ? ap.getPet().getPetId() : 0;
     String patientId = "P-" + petId;
     String service = ap.getService() != null ? ap.getService() : "—";
-    String timeStr = ap.getArrivalTime() != null ? ap.getArrivalTime().format(timeFmt) : "—";
+        String timeStr = ap.getArrivalTime() != null
+          ? ap.getArrivalTime().format(timeFmt)
+          : (ap.getAppointmentTime() != null ? ap.getAppointmentTime().format(timeFmt) : "—");
     String apStatus = ap.getStatus() != null ? ap.getStatus() : "—";
+    boolean isCheckedIn = "Checked-in".equalsIgnoreCase(apStatus);
     boolean isInExam = "In-Examination".equalsIgnoreCase(apStatus);
+    boolean canStartExam = isCheckedIn || isInExam;
     Integer rowVetId = ap.getVeterinarianId();
     boolean lockedByOtherVet = isInExam && rowVetId != null && rowVetId > 0 && rowVetId != currentVetId;
     boolean isSurgery = service != null && service.toLowerCase().contains("surgery");
@@ -154,7 +158,9 @@
 </td>
 <td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100"><%= timeStr %></td>
 <td class="px-6 py-4 text-right">
-<% if (lockedByOtherVet) { %>
+<% if (!canStartExam) { %>
+<span class="text-xs font-bold text-amber-600">Awaiting check-in</span>
+<% } else if (lockedByOtherVet) { %>
 <span class="text-xs font-bold text-slate-400">In progress</span>
 <% } else { %>
 <a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" class="text-xs font-bold text-primary hover:underline"><%= isInExam ? "Continue" : "Start" %></a>

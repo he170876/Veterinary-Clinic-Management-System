@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -197,7 +198,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        if (requestedTime.isBefore(LocalDateTime.now())) {
+        if (requestedTime.toLocalDate().isBefore(LocalDate.now())) {
             forwardForm(request, response, user, customer,
                     "Appointment time cannot be in the past.",
                     petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,

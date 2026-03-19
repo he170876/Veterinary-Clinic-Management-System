@@ -624,7 +624,7 @@ public class AppointmentDAO extends DBContext {
     private List<Appointment> getAppointmentsForDateByVeterinarianAllStatuses(LocalDate date, int veterinarianId) {
         if (veterinarianId <= 0) return new ArrayList<>();
         List<Appointment> list = new ArrayList<>();
-        String sql = """
+        String legacySql = """
             SELECT a.appointment_id, a.appointment_time, a.status, a.veterinarian_id, a.service_id, s.name AS service_name,
                    p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
                    c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
@@ -635,27 +635,102 @@ public class AppointmentDAO extends DBContext {
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
             LEFT JOIN services s ON a.service_id = s.service_id
-            WHERE p.isDeleted = 0 AND CAST(a.appointment_time AS DATE) = ? AND a.veterinarian_id = ?
-              AND a.status IN ('Confirmed', 'Checked-in', 'Scheduled')
+                        WHERE p.isDeleted = 0 AND CAST(a.appointment_time AS DATE) = ?
+                            AND (a.veterinarian_id = ? OR a.veterinarian_id IS NULL)
+                            AND a.status IN ('Pending', 'Confirmed', 'Checked-in', 'Scheduled', 'In-Examination')
             ORDER BY a.appointment_time
             """;
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setObject(1, date);
-            ps.setInt(2, veterinarianId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Appointment ap = mapAppointmentFromRs(rs);
-                    list.add(ap);
+        String dateSlotSql = """
+            SELECT a.appointment_id, a.appointment_date, a.time_slot, a.status, a.veterinarian_id, a.service_id, s.name AS service_name,
+                   p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
+                   c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+            LEFT JOIN services s ON a.service_id = s.service_id
+                        WHERE p.isDeleted = 0 AND a.appointment_date = ?
+                            AND (a.veterinarian_id = ? OR a.veterinarian_id IS NULL)
+                            AND a.status IN ('Pending', 'Confirmed', 'Checked-in', 'Scheduled', 'In-Examination')
+            ORDER BY CASE WHEN UPPER(COALESCE(a.time_slot, 'AM')) = 'PM' THEN 1 ELSE 0 END, a.appointment_date
+            """;
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasDateSlot = appointmentColumns.contains("appointment_date")
+                    && appointmentColumns.contains("time_slot");
+            String sql = hasDateSlot ? dateSlotSql : legacySql;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setDate(1, java.sql.Date.valueOf(date));
+                ps.setInt(2, veterinarianId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Appointment ap = hasDateSlot
+                                ? mapAppointmentFromDateSlotRs(rs)
+                                : mapAppointmentFromRs(rs);
+                        list.add(ap);
+                    }
                 }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return list;
+    }
+
+    private Appointment mapAppointmentFromDateSlotRs(ResultSet rs) throws SQLException {
+        Appointment ap = new Appointment();
+        ap.setAppointmentId(rs.getInt("appointment_id"));
+
+        java.sql.Date appointmentDate = rs.getDate("appointment_date");
+        String timeSlot = rs.getString("time_slot");
+        if (appointmentDate != null) {
+            LocalDate date = appointmentDate.toLocalDate();
+            ap.setAppointmentDate(date);
+            ap.setTimeSlot(timeSlot);
+
+            boolean isPm = timeSlot != null && ("PM".equalsIgnoreCase(timeSlot) || "afternoon".equalsIgnoreCase(timeSlot));
+            ap.setAppointmentTime(date.atTime(isPm ? 14 : 8, 0));
+        }
+
+        ap.setStatus(rs.getString("status"));
+        ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+        ap.setService(rs.getString("service_name"));
+
+        Pet pet = new Pet();
+        pet.setPetId(rs.getInt("pet_id"));
+        pet.setName(rs.getString("pet_name"));
+        pet.setPhotoURL(rs.getString("pet_photo"));
+        pet.setSpecies(rs.getString("species"));
+        pet.setBreed(rs.getString("breed"));
+        ap.setPet(pet);
+
+        Customer cus = new Customer();
+        cus.setCustomerId(rs.getInt("customer_id"));
+        User customerUser = new User();
+        customerUser.setFullName(rs.getString("customer_name"));
+        cus.setUser(customerUser);
+        ap.setCustomer(cus);
+
+        String vetName = rs.getString("veterinarian_name");
+        if (vetName != null) {
+            ap.setVeterinarianName(vetName);
+        }
+
+        return ap;
     }
 
     private Appointment mapAppointmentFromRs(ResultSet rs) throws SQLException {
         Appointment ap = new Appointment();
         ap.setAppointmentId(rs.getInt("appointment_id"));
-        ap.setAppointmentTime(rs.getTimestamp("appointment_time").toLocalDateTime());
+        Timestamp appointmentTs = rs.getTimestamp("appointment_time");
+        if (appointmentTs != null) {
+            LocalDateTime appointmentTime = appointmentTs.toLocalDateTime();
+            ap.setAppointmentTime(appointmentTime);
+            ap.setAppointmentDate(appointmentTime.toLocalDate());
+            ap.setTimeSlot(appointmentTime.getHour() < 12 ? "AM" : "PM");
+        }
         ap.setStatus(rs.getString("status"));
         ap.setVeterinarianId(rs.getInt("veterinarian_id"));
         ap.setService(rs.getString("service_name"));
@@ -679,45 +754,90 @@ public class AppointmentDAO extends DBContext {
     /** Count today's appointments for a vet. */
     public int countTodayAppointmentsByVet(int veterinarianId) {
         if (veterinarianId <= 0) return 0;
-        String sql = "SELECT COUNT(*) FROM appointments a JOIN pets p ON a.pet_id = p.pet_id WHERE p.isDeleted = 0 AND CAST(a.appointment_time AS DATE) = CAST(GETDATE() AS DATE) AND a.veterinarian_id = ?";
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, veterinarianId);
-            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getInt(1) : 0; }
-        } catch (Exception e) { e.printStackTrace(); }
+        String legacySql = "SELECT COUNT(*) FROM appointments a JOIN pets p ON a.pet_id = p.pet_id WHERE p.isDeleted = 0 AND CAST(a.appointment_time AS DATE) = CAST(GETDATE() AS DATE) AND a.veterinarian_id = ?";
+        String dateSlotSql = "SELECT COUNT(*) FROM appointments a JOIN pets p ON a.pet_id = p.pet_id WHERE p.isDeleted = 0 AND a.appointment_date = CAST(GETDATE() AS DATE) AND a.veterinarian_id = ?";
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasDateSlot = appointmentColumns.contains("appointment_date")
+                    && appointmentColumns.contains("time_slot");
+            String sql = hasDateSlot ? dateSlotSql : legacySql;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, veterinarianId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? rs.getInt(1) : 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return 0;
     }
 
     /** Count today's appointments with service containing 'Surgery' for a vet. */
     public int countSurgeriesTodayByVet(int veterinarianId) {
         if (veterinarianId <= 0) return 0;
-        String sql = """
+        String legacySql = """
             SELECT COUNT(*) FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
             LEFT JOIN services s ON a.service_id = s.service_id
             WHERE p.isDeleted = 0 AND CAST(a.appointment_time AS DATE) = CAST(GETDATE() AS DATE)
               AND a.veterinarian_id = ? AND (s.name LIKE '%Surgery%' OR s.name LIKE '%surgery%')
             """;
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, veterinarianId);
-            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getInt(1) : 0; }
-        } catch (Exception e) { e.printStackTrace(); }
+        String dateSlotSql = """
+            SELECT COUNT(*) FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            LEFT JOIN services s ON a.service_id = s.service_id
+            WHERE p.isDeleted = 0 AND a.appointment_date = CAST(GETDATE() AS DATE)
+              AND a.veterinarian_id = ? AND (s.name LIKE '%Surgery%' OR s.name LIKE '%surgery%')
+            """;
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasDateSlot = appointmentColumns.contains("appointment_date")
+                    && appointmentColumns.contains("time_slot");
+            String sql = hasDateSlot ? dateSlotSql : legacySql;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, veterinarianId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? rs.getInt(1) : 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return 0;
     }
 
     /** Count follow-up appointments this week (today through +7 days) for a vet. */
     public int countFollowUpsThisWeek(int veterinarianId) {
         if (veterinarianId <= 0) return 0;
-        String sql = """
+        String legacySql = """
             SELECT COUNT(*) FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
             WHERE p.isDeleted = 0 AND a.veterinarian_id = ?
               AND CAST(a.appointment_time AS DATE) > CAST(GETDATE() AS DATE)
               AND CAST(a.appointment_time AS DATE) <= DATEADD(day, 7, CAST(GETDATE() AS DATE))
             """;
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, veterinarianId);
-            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getInt(1) : 0; }
-        } catch (Exception e) { e.printStackTrace(); }
+        String dateSlotSql = """
+            SELECT COUNT(*) FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            WHERE p.isDeleted = 0 AND a.veterinarian_id = ?
+              AND a.appointment_date > CAST(GETDATE() AS DATE)
+              AND a.appointment_date <= DATEADD(day, 7, CAST(GETDATE() AS DATE))
+            """;
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasDateSlot = appointmentColumns.contains("appointment_date")
+                    && appointmentColumns.contains("time_slot");
+            String sql = hasDateSlot ? dateSlotSql : legacySql;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, veterinarianId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? rs.getInt(1) : 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return 0;
     }
 
@@ -1845,7 +1965,7 @@ public class AppointmentDAO extends DBContext {
 
     public boolean createRescheduleRequest(int appointmentId, int customerId, LocalDateTime requestedAppointmentTime, String requestedTimeSlot, String reason) {
         String normalizedRequestedSlot = normalizeRequestedTimeSlot(requestedTimeSlot);
-        if (requestedAppointmentTime == null || requestedAppointmentTime.isBefore(LocalDateTime.now()) || normalizedRequestedSlot == null) {
+        if (requestedAppointmentTime == null || isPastDate(requestedAppointmentTime) || normalizedRequestedSlot == null) {
             return false;
         }
 
@@ -2002,7 +2122,7 @@ public class AppointmentDAO extends DBContext {
                 }
             }
 
-            if (appointmentTime.isBefore(LocalDateTime.now())) {
+            if (isPastDate(appointmentTime)) {
                 con.rollback();
                 return false;
             }
@@ -2190,7 +2310,7 @@ public class AppointmentDAO extends DBContext {
                 }
             }
 
-            if (appointmentTime.isBefore(LocalDateTime.now())) {
+            if (isPastDate(appointmentTime)) {
                 con.rollback();
                 return false;
             }
@@ -2317,6 +2437,10 @@ public class AppointmentDAO extends DBContext {
         return null;
     }
 
+    private boolean isPastDate(LocalDateTime dateTime) {
+        return dateTime != null && dateTime.toLocalDate().isBefore(LocalDate.now());
+    }
+
     public boolean processRescheduleRequest(int appointmentId, boolean approve) {
         String findSql = """
             SELECT customer_id, status
@@ -2385,7 +2509,7 @@ public class AppointmentDAO extends DBContext {
                     return false;
                 }
                 LocalDateTime requestedTime = LocalDateTime.parse(requestedTimeRaw);
-                if (requestedTime.isBefore(LocalDateTime.now())) {
+                if (isPastDate(requestedTime)) {
                     con.rollback();
                     return false;
                 }
