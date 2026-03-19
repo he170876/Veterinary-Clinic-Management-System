@@ -93,10 +93,7 @@
                         <span class="material-symbols-outlined">image</span>
                         <span class="text-sm font-semibold">Images</span>
                     </a>
-            <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="text-sm font-semibold">Settings</span>
-            </a>
+            
         </nav>
     </aside>
     <!-- Main Content -->

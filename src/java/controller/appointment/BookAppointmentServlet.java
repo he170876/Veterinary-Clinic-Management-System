@@ -13,7 +13,9 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.mindrot.jbcrypt.BCrypt;
@@ -35,7 +37,7 @@ public class BookAppointmentServlet extends HttpServlet {
         String ownerName = trim(request.getParameter("ownerName"));
         String email = trim(request.getParameter("email"));
         String phone = trim(request.getParameter("phone"));
-        String serviceIdStr = trim(request.getParameter("serviceId"));
+        String[] serviceIdValues = request.getParameterValues("serviceIds");
         String petName = trim(request.getParameter("petName"));
         String petType = trim(request.getParameter("petType"));
         String appointmentDate = trim(request.getParameter("appointmentDate"));
@@ -45,13 +47,35 @@ public class BookAppointmentServlet extends HttpServlet {
         String ctx = request.getContextPath();
         String redirect = ctx + "/index.jsp";
 
-        if (ownerName == null || ownerName.isEmpty() || email == null || email.isEmpty()
-                || phone == null || phone.isEmpty() || serviceIdStr == null || serviceIdStr.isEmpty()
-                || petName == null || petName.isEmpty() || petType == null || petType.isEmpty()
-                || appointmentDate == null || appointmentDate.isEmpty()
-                || timeSlotRaw == null || timeSlotRaw.isEmpty()) {
+        // DEBUG: print all inbound fields so we can identify what is missing.
+        System.out.println("[BOOK_DEBUG] ownerName='" + ownerName + "', email='" + email + "', phone='" + phone
+                + "', petName='" + petName + "', petType='" + petType + "', appointmentDate='" + appointmentDate
+                + "', timeSlotRaw='" + timeSlotRaw + "', notesLen=" + (notes == null ? 0 : notes.length()));
+        if (serviceIdValues == null) {
+            System.out.println("[BOOK_DEBUG] serviceIds is null");
+        } else {
+            System.out.println("[BOOK_DEBUG] serviceIds count=" + serviceIdValues.length + ", values=" + String.join(",", serviceIdValues));
+        }
+
+        List<String> missingFields = new ArrayList<>();
+        if (isBlank(ownerName)) missingFields.add("ownerName");
+        if (isBlank(email)) missingFields.add("email");
+        if (isBlank(phone)) missingFields.add("phone");
+        if (isBlank(petName)) missingFields.add("petName");
+        if (isBlank(petType)) missingFields.add("petType");
+        if (isBlank(appointmentDate)) missingFields.add("appointmentDate");
+        if (isBlank(timeSlotRaw)) missingFields.add("timeSlot");
+
+        if (!missingFields.isEmpty()) {
+            System.out.println("[BOOK_DEBUG] Missing required fields: " + String.join(",", missingFields));
             response.sendRedirect(redirect + "?bookError=1&bookMessage="
-                    + URLEncoder.encode("Please fill in all required fields.", StandardCharsets.UTF_8));
+                    + URLEncoder.encode("Please fill in all required fields. Missing: " + String.join(", ", missingFields), StandardCharsets.UTF_8));
+            return;
+        }
+
+        if (serviceIdValues == null || serviceIdValues.length == 0) {
+            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                + URLEncoder.encode("Please select at least one service.", StandardCharsets.UTF_8));
             return;
         }
         if (!ValidationUtil.isValidOwnerOrPetName(ownerName)) {
@@ -92,12 +116,20 @@ public class BookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        int serviceId;
+        List<Integer> serviceIds = new ArrayList<>();
         LocalDate preferredDate;
         try {
-            serviceId = Integer.parseInt(serviceIdStr);
             preferredDate = LocalDate.parse(appointmentDate);
-            if (serviceId <= 0) {
+            for (String rawServiceId : serviceIdValues) {
+                int parsed = Integer.parseInt(trim(rawServiceId));
+                if (parsed <= 0) {
+                    throw new IllegalArgumentException("Invalid service selected.");
+                }
+                if (!serviceIds.contains(parsed)) {
+                    serviceIds.add(parsed);
+                }
+            }
+            if (serviceIds.isEmpty()) {
                 throw new IllegalArgumentException("Invalid service selected.");
             }
         } catch (Exception e) {
@@ -270,13 +302,14 @@ public class BookAppointmentServlet extends HttpServlet {
             }
 
             String sqlCreateAppointment = "INSERT INTO dbo.Appointments (" + columnSql + ") VALUES (" + valueSql + ")";
-            try (PreparedStatement psCreateAppt = conn.prepareStatement(sqlCreateAppointment)) {
+            Integer appointmentId = null;
+            try (PreparedStatement psCreateAppt = conn.prepareStatement(sqlCreateAppointment, Statement.RETURN_GENERATED_KEYS)) {
                 int index = 1;
                 psCreateAppt.setInt(index++, customerId);
                 psCreateAppt.setInt(index++, petId);
 
                 if (hasServiceId) {
-                    psCreateAppt.setInt(index++, serviceId);
+                    psCreateAppt.setInt(index++, serviceIds.get(0));
                 }
 
                 if (hasAppointmentTime) {
@@ -302,6 +335,26 @@ public class BookAppointmentServlet extends HttpServlet {
                 if (rowsAffected == 0) {
                     throw new SQLException("Creating appointment failed, no rows affected.");
                 }
+
+                try (ResultSet generatedKeys = psCreateAppt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        appointmentId = generatedKeys.getInt(1);
+                    }
+                }
+            }
+
+            if (appointmentId == null) {
+                throw new SQLException("Could not get appointment id after insert.");
+            }
+
+            String sqlInsertAppointmentService = "INSERT INTO dbo.appointment_service (appointment_id, service_id) VALUES (?, ?)";
+            try (PreparedStatement psInsertAppointmentService = conn.prepareStatement(sqlInsertAppointmentService)) {
+                for (Integer serviceId : serviceIds) {
+                    psInsertAppointmentService.setInt(1, appointmentId);
+                    psInsertAppointmentService.setInt(2, serviceId);
+                    psInsertAppointmentService.addBatch();
+                }
+                psInsertAppointmentService.executeBatch();
             }
 
             conn.commit(); // Commit transaction
@@ -337,6 +390,10 @@ public class BookAppointmentServlet extends HttpServlet {
 
     private String trim(String s) {
         return s == null ? null : s.trim();
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 
     private String normalizeTimeSlot(String value) {

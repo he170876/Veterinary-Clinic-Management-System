@@ -23,12 +23,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
  * POST from receptionist Book Appointment modal.
  * Creates appointment with appointment_date + time_slot (AM/PM).
- * Params: ownerName, email, phone, serviceId, petId (optional), petName, petType, appointmentDate, timeSlot (AM|PM), notes.
+ * Params: ownerName, email, phone, serviceIds[], petId (optional), petName, petType, appointmentDate, timeSlot (AM|PM), notes.
  */
 @WebServlet("/Receptionist/BookAppointment")
 public class ReceptionistBookAppointmentServlet extends HttpServlet {
@@ -43,7 +45,7 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
         String ownerName = ValidationUtil.trim(request.getParameter("ownerName"));
         String email = ValidationUtil.trim(request.getParameter("email"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
-        String serviceIdStr = ValidationUtil.trim(request.getParameter("serviceId"));
+        String[] serviceIdValues = request.getParameterValues("serviceIds");
         String petIdStr = ValidationUtil.trim(request.getParameter("petId"));
         String petName = ValidationUtil.trim(request.getParameter("petName"));
         String petType = ValidationUtil.trim(request.getParameter("petType"));
@@ -52,10 +54,15 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
         String notes = ValidationUtil.trim(request.getParameter("notes"));
 
         if (ownerName == null || ownerName.isEmpty() || email == null || email.isEmpty()
-                || phone == null || phone.isEmpty() || serviceIdStr == null || serviceIdStr.isEmpty()
+                || phone == null || phone.isEmpty()
                 || appointmentDateStr == null || appointmentDateStr.isEmpty()
                 || timeSlot == null || timeSlot.isEmpty()) {
             response.getWriter().print("{\"success\":false,\"message\":\"Please fill in all required fields.\"}");
+            return;
+        }
+
+        if (serviceIdValues == null || serviceIdValues.length == 0) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Please select at least one service.\"}");
             return;
         }
 
@@ -75,14 +82,27 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        int serviceId;
+        List<Integer> serviceIds = new ArrayList<>();
         LocalDate appointmentDate;
         try {
-            serviceId = Integer.parseInt(serviceIdStr);
-            if (serviceId <= 0) throw new IllegalArgumentException("Invalid service");
+            for (String rawServiceId : serviceIdValues) {
+                int parsed = Integer.parseInt(ValidationUtil.trim(rawServiceId));
+                if (parsed <= 0) {
+                    throw new IllegalArgumentException("Invalid service");
+                }
+                if (!serviceIds.contains(parsed)) {
+                    serviceIds.add(parsed);
+                }
+            }
+            if (serviceIds.isEmpty()) {
+                throw new IllegalArgumentException("Invalid service");
+            }
             appointmentDate = LocalDate.parse(appointmentDateStr);
         } catch (NumberFormatException | DateTimeParseException e) {
             response.getWriter().print("{\"success\":false,\"message\":\"Invalid date or service.\"}");
+            return;
+        } catch (IllegalArgumentException e) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Invalid service selection.\"}");
             return;
         }
 
@@ -162,8 +182,14 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             }
         }
 
-        int appointmentId = appointmentDAO.createWithDateAndSlot(petId, customerId, serviceId, appointmentDate, slot, notes, phone);
+        System.out.println("[RECP_BOOK_DEBUG] services selected=" + serviceIds.size() + " values=" + serviceIds);
+        int appointmentId = appointmentDAO.createWithDateAndSlot(petId, customerId, serviceIds.get(0), appointmentDate, slot, notes, phone);
         if (appointmentId > 0) {
+            boolean servicesSaved = appointmentDAO.insertAppointmentServices(appointmentId, serviceIds);
+            if (!servicesSaved) {
+                response.getWriter().print("{\"success\":false,\"message\":\"Appointment saved but services could not be linked.\"}");
+                return;
+            }
             response.getWriter().print("{\"success\":true,\"message\":\"Appointment booked successfully.\",\"appointmentId\":" + appointmentId + "}");
         } else {
             response.getWriter().print("{\"success\":false,\"message\":\"Could not save appointment. Please try again.\"}");
