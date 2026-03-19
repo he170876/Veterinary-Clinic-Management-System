@@ -213,6 +213,7 @@ public class BookAppointmentServlet extends HttpServlet {
             boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
             boolean hasTimeSlotColumn = appointmentColumns.contains("time_slot");
             boolean hasServiceId = appointmentColumns.contains("service_id");
+            boolean hasAppointmentServiceTable = hasAppointmentServiceTable(conn);
             boolean hasNotes = appointmentColumns.contains("notes");
             boolean hasPhone = appointmentColumns.contains("phone");
             boolean hasVeterinarianId = appointmentColumns.contains("veterinarian_id");
@@ -270,7 +271,7 @@ public class BookAppointmentServlet extends HttpServlet {
             }
 
             String sqlCreateAppointment = "INSERT INTO dbo.Appointments (" + columnSql + ") VALUES (" + valueSql + ")";
-            try (PreparedStatement psCreateAppt = conn.prepareStatement(sqlCreateAppointment)) {
+            try (PreparedStatement psCreateAppt = conn.prepareStatement(sqlCreateAppointment, Statement.RETURN_GENERATED_KEYS)) {
                 int index = 1;
                 psCreateAppt.setInt(index++, customerId);
                 psCreateAppt.setInt(index++, petId);
@@ -301,6 +302,21 @@ public class BookAppointmentServlet extends HttpServlet {
                 int rowsAffected = psCreateAppt.executeUpdate();
                 if (rowsAffected == 0) {
                     throw new SQLException("Creating appointment failed, no rows affected.");
+                }
+
+                Integer appointmentId = null;
+                try (ResultSet generatedKeys = psCreateAppt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        appointmentId = generatedKeys.getInt(1);
+                    }
+                }
+
+                if (appointmentId == null) {
+                    throw new SQLException("Creating appointment failed, no appointment_id returned.");
+                }
+
+                if (hasAppointmentServiceTable && serviceId > 0) {
+                    upsertAppointmentService(conn, appointmentId, serviceId);
                 }
             }
 
@@ -374,5 +390,36 @@ public class BookAppointmentServlet extends HttpServlet {
             e.printStackTrace();
         }
         return columns;
+    }
+
+    private boolean hasAppointmentServiceTable(Connection con) {
+        String sql = "SELECT 1 FROM sys.tables WHERE name = 'appointment_service'";
+        try (PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private void upsertAppointmentService(Connection con, int appointmentId, int serviceId) throws SQLException {
+        String sql = """
+            IF NOT EXISTS (
+                SELECT 1
+                FROM dbo.appointment_service
+                WHERE appointment_id = ? AND service_id = ?
+            )
+            BEGIN
+                INSERT INTO dbo.appointment_service (appointment_id, service_id)
+                VALUES (?, ?)
+            END
+            """;
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            ps.setInt(2, serviceId);
+            ps.setInt(3, appointmentId);
+            ps.setInt(4, serviceId);
+            ps.executeUpdate();
+        }
     }
 }

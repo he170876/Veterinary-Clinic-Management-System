@@ -37,7 +37,7 @@ public class AppointmentDAO extends DBContext {
                 a.time_slot,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 s.name AS service_name,
 
                 p.pet_id,
@@ -56,7 +56,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
             ORDER BY a.appointment_date, a.time_slot
         """;
@@ -67,7 +68,7 @@ public class AppointmentDAO extends DBContext {
                 a.appointment_time,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 s.name AS service_name,
 
                 p.pet_id,
@@ -86,7 +87,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
             ORDER BY a.appointment_time
         """;
@@ -219,7 +221,7 @@ public class AppointmentDAO extends DBContext {
                 a.appointment_time,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 s.name AS service_name,
                 p.pet_id,
                 p.name AS pet_name,
@@ -235,7 +237,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
               AND CAST(a.appointment_time AS DATE) = ?
             ORDER BY a.appointment_time
@@ -373,7 +376,7 @@ public class AppointmentDAO extends DBContext {
                 a.appointment_time,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 s.name AS service_name,
                 p.pet_id,
                 p.name AS pet_name,
@@ -389,7 +392,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
               AND CAST(a.appointment_time AS DATE) = ?
               AND a.veterinarian_id = ?
@@ -459,7 +463,7 @@ public class AppointmentDAO extends DBContext {
                    a.status,
                    a.type,
                    a.veterinarian_id,
-                   a.service_id,
+                   aps.service_id,
                    s.name AS service_name,
                    p.pet_id,
                    p.name AS pet_name,
@@ -476,7 +480,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
               AND a.appointment_date = ?
               AND a.status = 'Checked-in'
@@ -554,7 +559,7 @@ public class AppointmentDAO extends DBContext {
                    a.status,
                    a.type,
                    a.veterinarian_id,
-                   a.service_id,
+                   aps.service_id,
                    s.name AS service_name,
                    p.pet_id,
                    p.name AS pet_name,
@@ -571,7 +576,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
               AND a.appointment_date = ?
               AND a.status IN ('Checked-in', 'In-Examination')
@@ -635,7 +641,7 @@ public class AppointmentDAO extends DBContext {
         if (veterinarianId <= 0) return new ArrayList<>();
         List<Appointment> list = new ArrayList<>();
         String legacySql = """
-            SELECT a.appointment_id, a.appointment_time, a.status, a.veterinarian_id, a.service_id, s.name AS service_name,
+            SELECT a.appointment_id, a.appointment_time, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
                    p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
                    c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
             FROM appointments a
@@ -644,14 +650,15 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
                         WHERE p.isDeleted = 0 AND CAST(a.appointment_time AS DATE) = ?
                             AND (a.veterinarian_id = ? OR a.veterinarian_id IS NULL)
                             AND a.status IN ('Pending', 'Confirmed', 'Checked-in', 'Scheduled', 'In-Examination')
             ORDER BY a.appointment_time
             """;
         String dateSlotSql = """
-            SELECT a.appointment_id, a.appointment_date, a.time_slot, a.status, a.veterinarian_id, a.service_id, s.name AS service_name,
+            SELECT a.appointment_id, a.appointment_date, a.time_slot, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
                    p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
                    c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
             FROM appointments a
@@ -660,7 +667,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
                         WHERE p.isDeleted = 0 AND a.appointment_date = ?
                             AND (a.veterinarian_id = ? OR a.veterinarian_id IS NULL)
                             AND a.status IN ('Pending', 'Confirmed', 'Checked-in', 'Scheduled', 'In-Examination')
@@ -789,14 +797,16 @@ public class AppointmentDAO extends DBContext {
         String legacySql = """
             SELECT COUNT(*) FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0 AND CAST(a.appointment_time AS DATE) = CAST(GETDATE() AS DATE)
               AND a.veterinarian_id = ? AND (s.name LIKE '%Surgery%' OR s.name LIKE '%surgery%')
             """;
         String dateSlotSql = """
             SELECT COUNT(*) FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0 AND a.appointment_date = CAST(GETDATE() AS DATE)
               AND a.veterinarian_id = ? AND (s.name LIKE '%Surgery%' OR s.name LIKE '%surgery%')
             """;
@@ -859,7 +869,7 @@ public class AppointmentDAO extends DBContext {
                 a.time_slot,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 s.name AS service_name,
 
                 p.pet_id,
@@ -885,7 +895,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.appointment_id = ?
         """;
 
@@ -895,7 +906,7 @@ public class AppointmentDAO extends DBContext {
                 a.appointment_time,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 s.name AS service_name,
 
                 p.pet_id,
@@ -921,7 +932,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.appointment_id = ?
         """;
 
@@ -1056,7 +1068,7 @@ public class AppointmentDAO extends DBContext {
                 a.time_slot,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 a.notes,
                 s.name AS service_name,
 
@@ -1083,7 +1095,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.appointment_id = ?
               AND a.customer_id = ?
               AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
@@ -1095,7 +1108,7 @@ public class AppointmentDAO extends DBContext {
                 a.appointment_time,
                 a.status,
                 a.veterinarian_id,
-                a.service_id,
+                aps.service_id,
                 a.notes,
                 s.name AS service_name,
 
@@ -1122,7 +1135,8 @@ public class AppointmentDAO extends DBContext {
             JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.appointment_id = ?
               AND a.customer_id = ?
               AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
@@ -1372,20 +1386,89 @@ public class AppointmentDAO extends DBContext {
 
     /** Creates a new appointment (e.g. for schedule revisit). Returns the new appointment_id or 0 on failure. */
     public int create(int petId, int customerId, int veterinarianId, LocalDateTime appointmentTime, String status, Integer serviceId) {
-        String sql = "INSERT INTO appointments (pet_id, customer_id, veterinarian_id, appointment_time, status, service_id) OUTPUT INSERTED.appointment_id VALUES (?, ?, ?, ?, ?, ?)";
+        if (appointmentTime == null) {
+            return 0;
+        }
 
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)
-        ) {
-            ps.setInt(1, petId);
-            ps.setInt(2, customerId);
-            ps.setInt(3, veterinarianId);
-            ps.setTimestamp(4, Timestamp.valueOf(appointmentTime));
-            ps.setString(5, status != null ? status : "Confirmed");
-            ps.setObject(6, serviceId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            if (appointmentColumns.isEmpty()) {
+                return 0;
+            }
+
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+            boolean hasTimeSlot = appointmentColumns.contains("time_slot");
+            boolean hasServiceIdColumn = appointmentColumns.contains("service_id");
+            boolean hasAppointmentService = hasAppointmentServiceTable(con);
+
+            if (!hasAppointmentTime && !hasAppointmentDate) {
+                return 0;
+            }
+
+            StringBuilder columnSql = new StringBuilder("pet_id, customer_id, veterinarian_id");
+            StringBuilder valueSql = new StringBuilder("?, ?, ?");
+
+            if (hasAppointmentTime) {
+                columnSql.append(", appointment_time");
+                valueSql.append(", ?");
+            } else {
+                columnSql.append(", appointment_date");
+                valueSql.append(", ?");
+                if (hasTimeSlot) {
+                    columnSql.append(", time_slot");
+                    valueSql.append(", ?");
+                }
+            }
+
+            columnSql.append(", status");
+            valueSql.append(", ?");
+
+            if (hasServiceIdColumn) {
+                columnSql.append(", service_id");
+                valueSql.append(", ?");
+            }
+
+            if (appointmentColumns.contains("created_at")) {
+                columnSql.append(", created_at");
+                valueSql.append(", GETDATE()");
+            }
+
+            String sql = "INSERT INTO appointments (" + columnSql + ") OUTPUT INSERTED.appointment_id VALUES (" + valueSql + ")";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                int index = 1;
+                ps.setInt(index++, petId);
+                ps.setInt(index++, customerId);
+                if (veterinarianId > 0) {
+                    ps.setInt(index++, veterinarianId);
+                } else {
+                    ps.setNull(index++, java.sql.Types.INTEGER);
+                }
+
+                if (hasAppointmentTime) {
+                    ps.setTimestamp(index++, Timestamp.valueOf(appointmentTime));
+                } else {
+                    ps.setDate(index++, java.sql.Date.valueOf(appointmentTime.toLocalDate()));
+                    if (hasTimeSlot) {
+                        ps.setString(index++, appointmentTime.getHour() < 12 ? "AM" : "PM");
+                    }
+                }
+
+                ps.setString(index++, status != null ? status : "Confirmed");
+
+                if (hasServiceIdColumn) {
+                    ps.setObject(index++, serviceId);
+                }
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        int appointmentId = rs.getInt(1);
+                        if (appointmentId > 0 && hasAppointmentService) {
+                            upsertAppointmentService(con, appointmentId, serviceId);
+                        }
+                        return appointmentId;
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1411,6 +1494,8 @@ public class AppointmentDAO extends DBContext {
             boolean hasTimeSlot = appointmentColumns.contains("time_slot");
             boolean hasNotes = appointmentColumns.contains("notes");
             boolean hasPhone = appointmentColumns.contains("phone");
+            boolean hasServiceIdColumn = appointmentColumns.contains("service_id");
+            boolean hasAppointmentService = hasAppointmentServiceTable(con);
 
             if (!hasAppointmentTime && !hasAppointmentDate) {
                 return 0;
@@ -1437,7 +1522,7 @@ public class AppointmentDAO extends DBContext {
             columnSql.append(", status");
             valueSql.append(", ?");
 
-            if (appointmentColumns.contains("service_id")) {
+            if (hasServiceIdColumn) {
                 columnSql.append(", service_id");
                 valueSql.append(", ?");
             }
@@ -1480,7 +1565,7 @@ public class AppointmentDAO extends DBContext {
 
                 ps.setString(index++, "Pending");
 
-                if (appointmentColumns.contains("service_id")) {
+                if (hasServiceIdColumn) {
                     ps.setObject(index++, serviceId);
                 }
 
@@ -1495,7 +1580,11 @@ public class AppointmentDAO extends DBContext {
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        return rs.getInt(1);
+                        int appointmentId = rs.getInt(1);
+                        if (appointmentId > 0 && hasAppointmentService) {
+                            upsertAppointmentService(con, appointmentId, serviceId);
+                        }
+                        return appointmentId;
                     }
                 }
             }
@@ -1524,6 +1613,41 @@ public class AppointmentDAO extends DBContext {
             e.printStackTrace();
         }
         return columns;
+    }
+
+    private boolean hasAppointmentServiceTable(Connection con) {
+        String sql = "SELECT 1 FROM sys.tables WHERE name = 'appointment_service'";
+        try (PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private void upsertAppointmentService(Connection con, int appointmentId, Integer serviceId) throws SQLException {
+        if (appointmentId <= 0 || serviceId == null || serviceId <= 0) {
+            return;
+        }
+
+        String sql = """
+            IF NOT EXISTS (
+                SELECT 1
+                FROM dbo.appointment_service
+                WHERE appointment_id = ? AND service_id = ?
+            )
+            BEGIN
+                INSERT INTO dbo.appointment_service (appointment_id, service_id)
+                VALUES (?, ?)
+            END
+            """;
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            ps.setInt(2, serviceId);
+            ps.setInt(3, appointmentId);
+            ps.setInt(4, serviceId);
+            ps.executeUpdate();
+        }
     }
 
     private String getCustomerPhoneByCustomerId(Connection con, int customerId) {
@@ -1555,13 +1679,12 @@ public class AppointmentDAO extends DBContext {
                 appointment_date,
                 time_slot,
                 status,
-                service_id,
                 created_at,
                 notes,
                 phone
             )
             OUTPUT INSERTED.appointment_id
-            VALUES (?, ?, NULL, ?, ?, 'Pending', ?, GETDATE(), ?, ?)
+            VALUES (?, ?, NULL, ?, ?, 'Pending', GETDATE(), ?, ?)
             """;
 
         try (
@@ -1572,12 +1695,15 @@ public class AppointmentDAO extends DBContext {
             ps.setInt(2, customerId);
             ps.setDate(3, java.sql.Date.valueOf(appointmentDate));
             ps.setString(4, timeSlot != null && (timeSlot.equalsIgnoreCase("AM") || timeSlot.equalsIgnoreCase("PM")) ? timeSlot.toUpperCase() : "AM");
-            ps.setObject(5, serviceId);
-            ps.setString(6, notes != null ? notes : "");
-            ps.setString(7, phone != null ? phone : "");
+            ps.setString(5, notes != null ? notes : "");
+            ps.setString(6, phone != null ? phone : "");
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt(1);
+                    int appointmentId = rs.getInt(1);
+                    if (hasAppointmentServiceTable(con)) {
+                        upsertAppointmentService(con, appointmentId, serviceId);
+                    }
+                    return appointmentId;
                 }
             }
         } catch (Exception e) {
@@ -1588,7 +1714,7 @@ public class AppointmentDAO extends DBContext {
     }
 
     /**
-     * Creates an emergency appointment: status=Checked-In, service_id=NULL,
+     * Creates an emergency appointment: status=Checked-In,
      * appointment_date=today, time_slot=AM if current hour &lt; 12 else PM, type=Emergency.
      */
     public int createEmergencyAppointment(int petId, int customerId, String phone) {
@@ -1604,14 +1730,13 @@ public class AppointmentDAO extends DBContext {
                 time_slot,
                 arrival_time,
                 status,
-                service_id,
                 created_at,
                 notes,
                 phone,
                 type
             )
             OUTPUT INSERTED.appointment_id
-            VALUES (?, ?, NULL, ?, ?, GETDATE(), 'Checked-in', NULL, GETDATE(), '', ?, 'Emergency')
+            VALUES (?, ?, NULL, ?, ?, GETDATE(), 'Checked-in', GETDATE(), '', ?, 'Emergency')
             """;
         try (
             Connection con = getConnection();
@@ -1677,7 +1802,8 @@ public class AppointmentDAO extends DBContext {
                 s.category,
                 s.name AS service_name
             FROM appointments a
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.customer_id = ?
               AND a.appointment_time IS NOT NULL
               AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
@@ -1699,7 +1825,8 @@ public class AppointmentDAO extends DBContext {
                 s.category,
                 s.name AS service_name
             FROM appointments a
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.pet_id = ?
               AND a.appointment_time IS NOT NULL
               AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
@@ -1721,7 +1848,8 @@ public class AppointmentDAO extends DBContext {
                 s.category,
                 s.name AS service_name
             FROM appointments a
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.veterinarian_id = ?
               AND a.appointment_time IS NOT NULL
               AND LOWER(COALESCE(a.status, '')) NOT LIKE '%cancel%'
@@ -1855,7 +1983,8 @@ public class AppointmentDAO extends DBContext {
             JOIN pets p ON a.pet_id = p.pet_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.customer_id = ?
               AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
             ORDER BY a.appointment_time DESC
@@ -1876,7 +2005,8 @@ public class AppointmentDAO extends DBContext {
             JOIN pets p ON a.pet_id = p.pet_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
-            LEFT JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE a.customer_id = ?
               AND (p.isDeleted = 0 OR p.isDeleted IS NULL)
             ORDER BY a.appointment_date DESC, a.time_slot DESC
@@ -2715,3 +2845,4 @@ public class AppointmentDAO extends DBContext {
         return false;
     }
 }
+
