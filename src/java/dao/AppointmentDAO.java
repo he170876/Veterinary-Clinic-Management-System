@@ -1704,39 +1704,107 @@ public class AppointmentDAO extends DBContext {
      * Table includes phone (NOT NULL). Pass phone from request.
      */
     public int createWithDateAndSlot(int petId, int customerId, Integer serviceId, LocalDate appointmentDate, String timeSlot, String notes, String phone) {
-        String sql = """
-            INSERT INTO appointments (
-                pet_id,
-                customer_id,
-                veterinarian_id,
-                appointment_date,
-                time_slot,
-                status,
-                created_at,
-                notes,
-                phone
-            )
-            OUTPUT INSERTED.appointment_id
-            VALUES (?, ?, NULL, ?, ?, 'Pending', GETDATE(), ?, ?)
-            """;
+        String normalizedSlot = (timeSlot != null && (timeSlot.equalsIgnoreCase("AM") || timeSlot.equalsIgnoreCase("PM")))
+            ? timeSlot.toUpperCase()
+            : "AM";
 
         try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)
+            Connection con = getConnection()
         ) {
-            ps.setInt(1, petId);
-            ps.setInt(2, customerId);
-            ps.setDate(3, java.sql.Date.valueOf(appointmentDate));
-            ps.setString(4, timeSlot != null && (timeSlot.equalsIgnoreCase("AM") || timeSlot.equalsIgnoreCase("PM")) ? timeSlot.toUpperCase() : "AM");
-            ps.setString(5, notes != null ? notes : "");
-            ps.setString(6, phone != null ? phone : "");
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    int appointmentId = rs.getInt(1);
-                    if (hasAppointmentServiceTable(con)) {
-                        upsertAppointmentService(con, appointmentId, serviceId);
+            Set<String> columns = getAppointmentsTableColumns(con);
+            boolean hasAppointmentDate = columns.contains("appointment_date");
+            boolean hasAppointmentTime = columns.contains("appointment_time");
+            boolean hasTimeSlot = columns.contains("time_slot");
+            boolean hasServiceId = columns.contains("service_id");
+            boolean hasNotes = columns.contains("notes");
+            boolean hasPhone = columns.contains("phone");
+            boolean hasCreatedAt = columns.contains("created_at");
+            boolean hasVeterinarianId = columns.contains("veterinarian_id");
+
+            if (!hasAppointmentDate && !hasAppointmentTime) {
+                throw new SQLException("Appointments table is missing appointment_date/appointment_time column.");
+            }
+
+            StringBuilder columnSql = new StringBuilder("pet_id, customer_id");
+            StringBuilder valueSql = new StringBuilder("?, ?");
+
+            if (hasVeterinarianId) {
+                columnSql.append(", veterinarian_id");
+                valueSql.append(", NULL");
+            }
+
+            if (hasAppointmentDate) {
+                columnSql.append(", appointment_date");
+                valueSql.append(", ?");
+                if (hasTimeSlot) {
+                    columnSql.append(", time_slot");
+                    valueSql.append(", ?");
+                }
+            } else {
+                columnSql.append(", appointment_time");
+                valueSql.append(", ?");
+            }
+
+            columnSql.append(", status");
+            valueSql.append(", 'Pending'");
+
+            if (hasServiceId) {
+                columnSql.append(", service_id");
+                valueSql.append(", ?");
+            }
+
+            if (hasCreatedAt) {
+                columnSql.append(", created_at");
+                valueSql.append(", GETDATE()");
+            }
+
+            if (hasNotes) {
+                columnSql.append(", notes");
+                valueSql.append(", ?");
+            }
+
+            if (hasPhone) {
+                columnSql.append(", phone");
+                valueSql.append(", ?");
+            }
+
+            String sql = "INSERT INTO appointments (" + columnSql + ") OUTPUT INSERTED.appointment_id VALUES (" + valueSql + ")";
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                int idx = 1;
+                ps.setInt(idx++, petId);
+                ps.setInt(idx++, customerId);
+
+                if (hasAppointmentDate) {
+                    ps.setDate(idx++, java.sql.Date.valueOf(appointmentDate));
+                    if (hasTimeSlot) {
+                        ps.setString(idx++, normalizedSlot);
                     }
-                    return appointmentId;
+                } else {
+                    int hour = "PM".equalsIgnoreCase(normalizedSlot) ? 14 : 8;
+                    ps.setTimestamp(idx++, Timestamp.valueOf(appointmentDate.atTime(hour, 0)));
+                }
+
+                if (hasServiceId) {
+                    ps.setObject(idx++, serviceId);
+                }
+
+                if (hasNotes) {
+                    ps.setString(idx++, notes != null ? notes : "");
+                }
+
+                if (hasPhone) {
+                    ps.setString(idx++, normalizeAppointmentPhoneValue(con, phone));
+                }
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        int appointmentId = rs.getInt(1);
+                        if (hasAppointmentServiceTable(con) && serviceId != null && serviceId > 0) {
+                            upsertAppointmentService(con, appointmentId, serviceId);
+                        }
+                        return appointmentId;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -1744,6 +1812,32 @@ public class AppointmentDAO extends DBContext {
         }
 
         return 0;
+    }
+
+    public boolean insertAppointmentServices(int appointmentId, java.util.List<Integer> serviceIds) {
+        if (appointmentId <= 0 || serviceIds == null || serviceIds.isEmpty()) {
+            return false;
+        }
+
+        String sql = "INSERT INTO appointment_service (appointment_id, service_id) VALUES (?, ?)";
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            for (Integer serviceId : serviceIds) {
+                if (serviceId == null || serviceId <= 0) {
+                    continue;
+                }
+                ps.setInt(1, appointmentId);
+                ps.setInt(2, serviceId);
+                ps.addBatch();
+            }
+            int[] affected = ps.executeBatch();
+            return affected.length > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     /**

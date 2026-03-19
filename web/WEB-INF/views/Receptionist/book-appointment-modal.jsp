@@ -1,7 +1,7 @@
 <%--
-  Book Appointment modal for receptionist (Dashboard & ViewListAppointment).
-  Requires request attribute "services" (List<model.Service>).
-  Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name becomes dropdown.
+Book Appointment modal for receptionist (Dashboard & ViewListAppointment).
+Requires request attribute "services" (List<model.Service>).
+Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name becomes dropdown.
 --%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
@@ -33,15 +33,23 @@
                         <p id="book_phoneStatus" class="text-xs mt-1 text-slate-500 hidden"></p>
                     </div>
                     <div>
-                        <label for="book_serviceId" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Select Service *</label>
-                        <select id="book_serviceId" name="serviceId" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>
-                            <option value="">Choose a service</option>
-                            <c:if test="${not empty services}">
-                                <c:forEach var="sv" items="${services}">
-                                    <option value="${sv.serviceId}">${sv.name}</option>
-                                </c:forEach>
-                            </c:if>
-                        </select>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Select Service(s) *</label>
+                        <div class="relative" id="book_serviceDropdownWrap">
+                            <button type="button" id="book_serviceDropdownBtn" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 text-left flex items-center justify-between">
+                                <span id="book_serviceDropdownText">Choose service(s)</span>
+                                <span>▾</span>
+                            </button>
+                            <div id="book_serviceDropdown" class="hidden absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-20 p-2">
+                                <c:if test="${not empty services}">
+                                    <c:forEach var="sv" items="${services}">
+                                        <label class="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                                            <input type="checkbox" name="serviceIds" value="${sv.serviceId}" class="book-service-checkbox"/>
+                                            <span>${sv.name}</span>
+                                        </label>
+                                    </c:forEach>
+                                </c:if>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -95,240 +103,276 @@
 </div>
 
 <script>
-(function() {
-    var ctx = '${ctx}';
-    var modal = document.getElementById('bookAppointmentModal');
-    var phoneInput = document.getElementById('book_phone');
-    var ownerInput = document.getElementById('book_ownerName');
-    var emailInput = document.getElementById('book_email');
-    var petNameWrapper = document.getElementById('book_petNameWrapper');
-    var petNameInput = document.getElementById('book_petName');
-    var bookPetId = document.getElementById('book_petId');
-    var petTypeSelect = document.getElementById('book_petType');
-    var phoneStatus = document.getElementById('book_phoneStatus');
-    var form = document.getElementById('receptionistBookForm');
-
-    function getTodayLocal() {
-        var d = new Date();
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    }
-    function isToday(dateStr) {
-        return dateStr && dateStr === getTodayLocal();
-    }
-    function updateTimeSlotOptions() {
-        var dateEl = document.getElementById('book_appointmentDate');
-        var slotEl = document.getElementById('book_timeSlot');
-        if (!dateEl || !slotEl) return;
-        var selectedDate = dateEl.value;
-        var now = new Date();
-        var hour = now.getHours();
-        var amOpt = slotEl.querySelector('option[value="AM"]');
-        var pmOpt = slotEl.querySelector('option[value="PM"]');
-        if (amOpt) amOpt.disabled = false;
-        if (pmOpt) pmOpt.disabled = false;
-        if (isToday(selectedDate) && hour >= 12) {
-            if (amOpt) {
-                amOpt.disabled = true;
-                if (slotEl.value === 'AM') slotEl.value = 'PM';
-            }
+    (function() {
+        var ctx = '${ctx}';
+        var modal = document.getElementById('bookAppointmentModal');
+        var phoneInput = document.getElementById('book_phone');
+        var ownerInput = document.getElementById('book_ownerName');
+        var emailInput = document.getElementById('book_email');
+        var petNameWrapper = document.getElementById('book_petNameWrapper');
+        var petNameInput = document.getElementById('book_petName');
+        var bookPetId = document.getElementById('book_petId');
+        var petTypeSelect = document.getElementById('book_petType');
+        var phoneStatus = document.getElementById('book_phoneStatus');
+        var form = document.getElementById('receptionistBookForm');
+        var serviceDropdownBtn = document.getElementById('book_serviceDropdownBtn');
+        var serviceDropdown = document.getElementById('book_serviceDropdown');
+        var serviceDropdownText = document.getElementById('book_serviceDropdownText');
+        
+        function getTodayLocal() {
+            var d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         }
-    }
-    function showModal() {
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-            var today = getTodayLocal();
+        function isToday(dateStr) {
+            return dateStr && dateStr === getTodayLocal();
+        }
+        function updateTimeSlotOptions() {
             var dateEl = document.getElementById('book_appointmentDate');
-            if (dateEl) {
-                dateEl.setAttribute('min', today);
-                if (dateEl.value && dateEl.value < today) dateEl.value = today;
-            }
-            updateTimeSlotOptions();
-        }
-    }
-
-    function hideModal() {
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.style.overflow = '';
-        }
-    }
-
-    var petTypeValues = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other'];
-    function matchPetType(dbSpecies) {
-        var v = (dbSpecies || '').trim().toLowerCase();
-        if (!v) return '';
-        for (var i = 0; i < petTypeValues.length; i++) {
-            if (petTypeValues[i].toLowerCase() === v) return petTypeValues[i];
-        }
-        return 'Other';
-    }
-    function setPetTypeFromPet(disabled, value) {
-        var pt = document.getElementById('book_petType');
-        if (!pt) return;
-        if (disabled) {
-            var v = matchPetType(value);
-            pt.value = v || '';
-            pt.disabled = true;
-            pt.classList.add('bg-slate-100', 'dark:bg-slate-700');
-        } else {
-            pt.value = '';
-            pt.disabled = false;
-            pt.classList.remove('bg-slate-100', 'dark:bg-slate-700');
-        }
-    }
-    function switchToPetDropdown(pets) {
-        setPetTypeFromPet(false, '');
-        var html = '<label for="book_petSelect" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
-        html += '<select id="book_petSelect" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>';
-        html += '<option value="" data-species="">Choose a pet</option>';
-        for (var i = 0; i < pets.length; i++) {
-            var species = (pets[i].species != null && pets[i].species !== undefined) ? String(pets[i].species) : '';
-            html += '<option value="' + pets[i].petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (pets[i].name || '') + '</option>';
-        }
-        html += '</select>';
-        petNameWrapper.innerHTML = html;
-        petNameWrapper.appendChild(bookPetId);
-        bookPetId.name = 'petId';
-        bookPetId.value = '';
-        var sel = document.getElementById('book_petSelect');
-        if (sel) {
-            sel.addEventListener('change', function() {
-                bookPetId.value = this.value;
-                var opt = this.options[this.selectedIndex];
-                var species = opt ? (opt.getAttribute('data-species') || '') : '';
-                setPetTypeFromPet(!!this.value, species);
-            });
-        }
-    }
-
-    function switchToPetTextInput() {
-        setPetTypeFromPet(false, '');
-        var html = '<label for="book_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
-        html += '<input type="text" id="book_petName" name="petName" placeholder="Your pet\'s name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>';
-        petNameWrapper.innerHTML = html;
-        petNameWrapper.appendChild(bookPetId);
-        bookPetId.value = '';
-        bookPetId.name = 'petId';
-    }
-
-    var lookupTimeout;
-    function onPhoneChange() {
-        var phone = (phoneInput && phoneInput.value) ? phoneInput.value.trim() : '';
-        if (phoneStatus) {
-            phoneStatus.classList.add('hidden');
-            phoneStatus.textContent = '';
-        }
-        if (phone.length < 10) {
-            switchToPetTextInput();
-            return;
-        }
-        clearTimeout(lookupTimeout);
-        lookupTimeout = setTimeout(function() {
-            fetch(ctx + '/Receptionist/LookupCustomerByPhone?phone=' + encodeURIComponent(phone))
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (phoneStatus) {
-                        phoneStatus.classList.remove('hidden');
-                        if (data.found) {
-                            phoneStatus.textContent = 'Customer found. Select pet below.';
-                            phoneStatus.className = 'text-xs mt-1 text-green-600 dark:text-green-400';
-                            if (ownerInput) ownerInput.value = data.customer.fullName || '';
-                            if (emailInput) emailInput.value = data.customer.email || '';
-                            if (data.pets && data.pets.length > 0) {
-                                switchToPetDropdown(data.pets);
-                            } else {
-                                switchToPetTextInput();
-                            }
-                        } else {
-                            phoneStatus.textContent = 'New customer. Enter pet details.';
-                            phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
-                            switchToPetTextInput();
-                        }
-                    }
-                })
-                .catch(function() {
-                    if (phoneStatus) {
-                        phoneStatus.classList.remove('hidden');
-                        phoneStatus.textContent = 'Could not lookup. Enter details manually.';
-                        phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
-                    }
-                    switchToPetTextInput();
-                });
-        }, 400);
-    }
-
-    if (phoneInput) {
-        phoneInput.addEventListener('blur', onPhoneChange);
-        phoneInput.addEventListener('input', onPhoneChange);
-    }
-    var dateEl = document.getElementById('book_appointmentDate');
-    if (dateEl) {
-        dateEl.addEventListener('change', function() {
-            var today = getTodayLocal();
-            if (this.value && this.value < today) this.value = today;
-            updateTimeSlotOptions();
-        });
-        dateEl.addEventListener('input', function() {
-            var today = getTodayLocal();
-            if (this.value && this.value < today) this.value = today;
-            updateTimeSlotOptions();
-        });
-    }
-
-    modal.querySelectorAll('.close-book-modal, [data-close-modal="bookAppointmentModal"]').forEach(function(btn) {
-        btn.addEventListener('click', hideModal);
-    });
-
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            var bookPetIdEl = document.getElementById('book_petId');
-            var petSelect = document.getElementById('book_petSelect');
-            var petNameEl = document.getElementById('book_petName');
-            if (petSelect && petSelect.value && bookPetIdEl) {
-                bookPetIdEl.value = petSelect.value;
-            } else if (petNameEl && bookPetIdEl) {
-                bookPetIdEl.value = '';
-            }
-            var fd = new FormData(form);
-            fetch(ctx + '/Receptionist/BookAppointment', {
-                method: 'POST',
-                body: new URLSearchParams(fd)
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    hideModal();
-                    var msg = data.message || 'Appointment booked successfully.';
-                    var toastEl = document.getElementById('bookSuccessToast');
-                    var msgEl = document.getElementById('bookSuccessToastMessage');
-                    if (toastEl && msgEl) {
-                        msgEl.textContent = msg;
-                        toastEl.style.display = 'flex';
-                        setTimeout(function() {
-                            toastEl.style.display = 'none';
-                            window.location.reload();
-                        }, 1200);
-                    } else if (typeof window.showToast === 'function') {
-                        window.showToast(msg);
-                        setTimeout(function() { window.location.reload(); }, 1200);
-                    } else {
-                        alert(msg);
-                        window.location.reload();
-                    }
-                } else {
-                    alert(data.message || 'Booking failed.');
+            var slotEl = document.getElementById('book_timeSlot');
+            if (!dateEl || !slotEl) return;
+            var selectedDate = dateEl.value;
+            var now = new Date();
+            var hour = now.getHours();
+            var amOpt = slotEl.querySelector('option[value="AM"]');
+            var pmOpt = slotEl.querySelector('option[value="PM"]');
+            if (amOpt) amOpt.disabled = false;
+            if (pmOpt) pmOpt.disabled = false;
+            if (isToday(selectedDate) && hour >= 12) {
+                if (amOpt) {
+                    amOpt.disabled = true;
+                    if (slotEl.value === 'AM') slotEl.value = 'PM';
                 }
-            })
-            .catch(function() {
-                alert('An error occurred. Please try again.');
+            }
+        }
+        function showModal() {
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+                var today = getTodayLocal();
+                var dateEl = document.getElementById('book_appointmentDate');
+                if (dateEl) {
+                    dateEl.setAttribute('min', today);
+                    if (dateEl.value && dateEl.value < today) dateEl.value = today;
+                }
+                updateTimeSlotOptions();
+            }
+        }
+        
+        function hideModal() {
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = '';
+            }
+        }
+        
+        function updateServiceSummary() {
+            var selected = form ? form.querySelectorAll('input[name="serviceIds"]:checked') : [];
+            if (!serviceDropdownText) return;
+            if (!selected || selected.length === 0) {
+                serviceDropdownText.textContent = 'Choose service(s)';
+                return;
+            }
+            serviceDropdownText.textContent = selected.length + ' service(s) selected';
+        }
+        
+        if (serviceDropdownBtn && serviceDropdown) {
+            serviceDropdownBtn.addEventListener('click', function() {
+                serviceDropdown.classList.toggle('hidden');
             });
-        });
-    }
-
-    window.openBookAppointmentModal = showModal;
-})();
-</script>
+            
+            document.addEventListener('click', function(e) {
+                if (!serviceDropdown.contains(e.target) && !serviceDropdownBtn.contains(e.target)) {
+                    serviceDropdown.classList.add('hidden');
+                }
+            });
+            
+            serviceDropdown.addEventListener('change', function() {
+                updateServiceSummary();
+            });
+        }
+        
+        var petTypeValues = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other'];
+        function matchPetType(dbSpecies) {
+            var v = (dbSpecies || '').trim().toLowerCase();
+            if (!v) return '';
+            for (var i = 0; i < petTypeValues.length; i++) {
+                if (petTypeValues[i].toLowerCase() === v) return petTypeValues[i];
+            }
+            return 'Other';
+        }
+        function setPetTypeFromPet(disabled, value) {
+            var pt = document.getElementById('book_petType');
+            if (!pt) return;
+            if (disabled) {
+                var v = matchPetType(value);
+                pt.value = v || '';
+                pt.disabled = true;
+                pt.classList.add('bg-slate-100', 'dark:bg-slate-700');
+                } else {
+                    pt.value = '';
+                    pt.disabled = false;
+                    pt.classList.remove('bg-slate-100', 'dark:bg-slate-700');
+                }
+            }
+            function switchToPetDropdown(pets) {
+                setPetTypeFromPet(false, '');
+                var html = '<label for="book_petSelect" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
+                html += '<select id="book_petSelect" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>';
+                html += '<option value="" data-species="">Choose a pet</option>';
+                for (var i = 0; i < pets.length; i++) {
+                    var species = (pets[i].species != null && pets[i].species !== undefined) ? String(pets[i].species) : '';
+                    html += '<option value="' + pets[i].petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (pets[i].name || '') + '</option>';
+                }
+                html += '</select>';
+                petNameWrapper.innerHTML = html;
+                petNameWrapper.appendChild(bookPetId);
+                bookPetId.name = 'petId';
+                bookPetId.value = '';
+                var sel = document.getElementById('book_petSelect');
+                if (sel) {
+                    sel.addEventListener('change', function() {
+                        bookPetId.value = this.value;
+                        var opt = this.options[this.selectedIndex];
+                        var species = opt ? (opt.getAttribute('data-species') || '') : '';
+                        setPetTypeFromPet(!!this.value, species);
+                    });
+                }
+            }
+            
+            function switchToPetTextInput() {
+                setPetTypeFromPet(false, '');
+                var html = '<label for="book_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
+                html += '<input type="text" id="book_petName" name="petName" placeholder="Your pet\'s name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>';
+                petNameWrapper.innerHTML = html;
+                petNameWrapper.appendChild(bookPetId);
+                bookPetId.value = '';
+                bookPetId.name = 'petId';
+            }
+            
+            var lookupTimeout;
+            function onPhoneChange() {
+                var phone = (phoneInput && phoneInput.value) ? phoneInput.value.trim() : '';
+                if (phoneStatus) {
+                    phoneStatus.classList.add('hidden');
+                    phoneStatus.textContent = '';
+                }
+                if (phone.length < 10) {
+                    switchToPetTextInput();
+                    return;
+                }
+                clearTimeout(lookupTimeout);
+                lookupTimeout = setTimeout(function() {
+                    fetch(ctx + '/Receptionist/LookupCustomerByPhone?phone=' + encodeURIComponent(phone))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (phoneStatus) {
+                            phoneStatus.classList.remove('hidden');
+                            if (data.found) {
+                                phoneStatus.textContent = 'Customer found. Select pet below.';
+                                phoneStatus.className = 'text-xs mt-1 text-green-600 dark:text-green-400';
+                                if (ownerInput) ownerInput.value = data.customer.fullName || '';
+                                if (emailInput) emailInput.value = data.customer.email || '';
+                                if (data.pets && data.pets.length > 0) {
+                                    switchToPetDropdown(data.pets);
+                                    } else {
+                                        switchToPetTextInput();
+                                    }
+                                    } else {
+                                        phoneStatus.textContent = 'New customer. Enter pet details.';
+                                        phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
+                                        switchToPetTextInput();
+                                    }
+                                }
+                            })
+                            .catch(function() {
+                                if (phoneStatus) {
+                                    phoneStatus.classList.remove('hidden');
+                                    phoneStatus.textContent = 'Could not lookup. Enter details manually.';
+                                    phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
+                                }
+                                switchToPetTextInput();
+                            });
+                        }, 400);
+                    }
+                    
+                    if (phoneInput) {
+                        phoneInput.addEventListener('blur', onPhoneChange);
+                        phoneInput.addEventListener('input', onPhoneChange);
+                    }
+                    var dateEl = document.getElementById('book_appointmentDate');
+                    if (dateEl) {
+                        dateEl.addEventListener('change', function() {
+                            var today = getTodayLocal();
+                            if (this.value && this.value < today) this.value = today;
+                            updateTimeSlotOptions();
+                        });
+                        dateEl.addEventListener('input', function() {
+                            var today = getTodayLocal();
+                            if (this.value && this.value < today) this.value = today;
+                            updateTimeSlotOptions();
+                        });
+                    }
+                    
+                    modal.querySelectorAll('.close-book-modal, [data-close-modal="bookAppointmentModal"]').forEach(function(btn) {
+                        btn.addEventListener('click', hideModal);
+                    });
+                    
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            
+                            var selectedServices = form.querySelectorAll('input[name="serviceIds"]:checked');
+                            if (!selectedServices || selectedServices.length === 0) {
+                                alert('Please select at least one service.');
+                                return;
+                            }
+                            
+                            var bookPetIdEl = document.getElementById('book_petId');
+                            var petSelect = document.getElementById('book_petSelect');
+                            var petNameEl = document.getElementById('book_petName');
+                            if (petSelect && petSelect.value && bookPetIdEl) {
+                                bookPetIdEl.value = petSelect.value;
+                                } else if (petNameEl && bookPetIdEl) {
+                                    bookPetIdEl.value = '';
+                                }
+                                var fd = new FormData(form);
+                                fetch(ctx + '/Receptionist/BookAppointment', {
+                                    method: 'POST',
+                                    body: new URLSearchParams(fd)
+                                })
+                                .then(function(r) { return r.json(); })
+                                .then(function(data) {
+                                    if (data.success) {
+                                        hideModal();
+                                        var msg = data.message || 'Appointment booked successfully.';
+                                        var toastEl = document.getElementById('bookSuccessToast');
+                                        var msgEl = document.getElementById('bookSuccessToastMessage');
+                                        if (toastEl && msgEl) {
+                                            msgEl.textContent = msg;
+                                            toastEl.style.display = 'flex';
+                                            setTimeout(function() {
+                                                toastEl.style.display = 'none';
+                                                window.location.reload();
+                                            }, 1200);
+                                            } else if (typeof window.showToast === 'function') {
+                                                window.showToast(msg);
+                                                setTimeout(function() { window.location.reload(); }, 1200);
+                                                } else {
+                                                    alert(msg);
+                                                    window.location.reload();
+                                                }
+                                                } else {
+                                                    alert(data.message || 'Booking failed.');
+                                                }
+                                            })
+                                            .catch(function() {
+                                                alert('An error occurred. Please try again.');
+                                            });
+                                        });
+                                    }
+                                    
+                                    window.openBookAppointmentModal = showModal;
+                                })();
+                            </script>

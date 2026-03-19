@@ -57,16 +57,24 @@ Booking form fragment - included in index.jsp modal.
                 <input type="tel" class="form-control" id="phone" name="phone" placeholder="0123456789 (10 digits, start with 0)" pattern="0[0-9]{9}" title="10 digits starting with 0." maxlength="10" required>
             </div>
             <div class="form-group">
-                <label for="service">Select Service *</label>
-                <select class="form-control form-select" id="serviceId" name="serviceId" required>
-                    <!-- DEBUG: bien 'services' co rong khong? ${empty services} -->
-                    <option value="">Choose a service</option>
-                    <c:if test="${not empty services}">
-                        <c:forEach var="service" items="${services}">
-                            <option value="${service.serviceId}">${service.name}</option>
-                        </c:forEach>
-                    </c:if>
-                </select>
+                <label>Select Service(s) *</label>
+                <div class="dropdown-service-multi" style="position: relative;">
+                    <button type="button" id="dropdownServiceBtn" class="form-control form-select" style="text-align: left; cursor: pointer;" onclick="toggleServiceDropdown()">
+                        <span id="dropdownServiceText">Chọn dịch vụ</span>
+                        <span style="float: right;">&#9660;</span>
+                    </button>
+                    <div id="serviceDropdown" style="display: none; position: absolute; z-index: 10; background: #fff; border: 1px solid #e8dbce; border-radius: 8px; width: 100%; max-height: 200px; overflow-y: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 2px;">
+                        <c:if test="${not empty services}">
+                            <c:forEach var="service" items="${services}">
+                                <div style="padding: 8px 12px;">
+                                    <input type="checkbox" id="service_${service.serviceId}" name="serviceIds" value="${service.serviceId}" style="margin-right: 6px;">
+                                    <label for="service_${service.serviceId}" style="font-weight: normal; cursor: pointer;">${service.name}</label>
+                                </div>
+                            </c:forEach>
+                        </c:if>
+                    </div>
+                </div>
+                <small style="color:#888;">Chọn một hoặc nhiều dịch vụ.</small>
             </div>
         </div>
         <div class="divider"></div>
@@ -119,4 +127,76 @@ Booking form fragment - included in index.jsp modal.
             dateEl.setAttribute('min', today);
         }
     })();
+</script>
+<script>
+    function toggleServiceDropdown() {
+        var dropdown = document.getElementById('serviceDropdown');
+        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    document.addEventListener('click', function(event) {
+        var btn = document.getElementById('dropdownServiceBtn');
+        var dropdown = document.getElementById('serviceDropdown');
+        if (!btn.contains(event.target) && !dropdown.contains(event.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+    // Hiển thị tên dịch vụ đã chọn
+    var serviceDropdown = document.getElementById('serviceDropdown');
+    if (serviceDropdown) {
+        serviceDropdown.addEventListener('change', function() {
+            var checked = serviceDropdown.querySelectorAll('input[type=checkbox]:checked');
+            var names = Array.from(checked).map(function(cb) {
+                return cb.nextElementSibling.textContent;
+            });
+            document.getElementById('dropdownServiceText').textContent = names.length ? names.join(', ') : 'Chọn dịch vụ';
+        });
+    }
+</script>
+<script>
+    // AJAX submit cho form booking
+    const form = document.getElementById('appointmentForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var selectedServices = form.querySelectorAll('input[name="serviceIds"]:checked');
+            if (selectedServices.length === 0) {
+                e.preventDefault();
+                alert('Vui long chon it nhat 1 dich vu.');
+                return;
+            }
+            
+            e.preventDefault();
+            const formData = new FormData(form);
+            const encoded = new URLSearchParams(formData);
+            
+            // DEBUG: log payload before sending.
+            var pairs = [];
+            encoded.forEach(function(value, key) {
+                pairs.push(key + '=' + value);
+            });
+            console.log('[BOOK_DEBUG][client] payload:', pairs.join(' | '));
+            
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: encoded.toString()
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return null;
+                }
+                return response.text();
+            })
+            .then(data => {
+                if (data && !window.location.href.includes('index.jsp')) {
+                    alert('Đặt lịch thất bại hoặc có lỗi xảy ra!');
+                }
+            })
+            .catch(function() {
+                alert('Đặt lịch thất bại hoặc có lỗi xảy ra!');
+            });
+        });
+    }
 </script>

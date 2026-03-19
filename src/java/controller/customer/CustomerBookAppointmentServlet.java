@@ -16,8 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import model.Customer;
 import model.Pet;
 import model.User;
@@ -105,7 +108,8 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
 
         Customer customer = customerOpt.get();
         String petIdParam = ValidationUtil.trim(request.getParameter("petId"));
-        String serviceIdParam = ValidationUtil.trim(request.getParameter("serviceId"));
+        String[] serviceIdParams = request.getParameterValues("serviceIds");
+        String selectedServiceIdsCsv = serviceIdParams != null ? String.join(",", serviceIdParams) : null;
         String appointmentDate = ValidationUtil.trim(request.getParameter("appointmentDate"));
         String timeSlot = ValidationUtil.trim(request.getParameter("timeSlot"));
         String notes = ValidationUtil.trim(request.getParameter("notes"));
@@ -116,15 +120,16 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         if (notes != null && notes.length() > ValidationUtil.NOTES_MAX_LENGTH) {
             forwardForm(request, response, user, customer,
                     "Notes must be at most " + ValidationUtil.NOTES_MAX_LENGTH + " characters.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
 
-        if (petIdParam == null || serviceIdParam == null || appointmentDate == null || timeSlot == null) {
+        if (petIdParam == null || appointmentDate == null || timeSlot == null
+                || serviceIdParams == null || serviceIdParams.length == 0) {
             forwardForm(request, response, user, customer,
-                    "Please select a pet, service, date, and time slot.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    "Please select a pet, at least one service, date, and time slot.",
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -132,20 +137,34 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         if (customerPets.isEmpty()) {
             forwardForm(request, response, user, customer,
                     "Please add a pet to your account before booking an appointment.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
 
         int petId;
-        int serviceId;
+        List<Integer> serviceIds = new ArrayList<>();
         try {
             petId = Integer.parseInt(petIdParam);
-            serviceId = Integer.parseInt(serviceIdParam);
+            Set<Integer> uniqueServiceIds = new LinkedHashSet<>();
+            for (String rawServiceId : serviceIdParams) {
+                if (rawServiceId == null || rawServiceId.trim().isEmpty()) {
+                    continue;
+                }
+                int parsed = Integer.parseInt(rawServiceId.trim());
+                if (parsed <= 0) {
+                    throw new NumberFormatException("Invalid service id");
+                }
+                uniqueServiceIds.add(parsed);
+            }
+            serviceIds.addAll(uniqueServiceIds);
+            if (serviceIds.isEmpty()) {
+                throw new NumberFormatException("No service selected");
+            }
         } catch (NumberFormatException ex) {
             forwardForm(request, response, user, customer,
                     "Invalid pet or service selection.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -160,27 +179,35 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         if (!petOwnedByCustomer) {
             forwardForm(request, response, user, customer,
                     "Please choose one of your own pets.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
 
-        Optional<Service> selectedServiceOpt = serviceService.getServiceById(serviceId);
-        if (!selectedServiceOpt.isPresent()) {
-            forwardForm(request, response, user, customer,
-                    "Selected service is not available.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
-                    customerPets, services);
-            return;
+        int requestedDurationMinutes = 0;
+        for (Integer serviceId : serviceIds) {
+            Optional<Service> selectedServiceOpt = serviceService.getServiceById(serviceId);
+            if (!selectedServiceOpt.isPresent()) {
+                forwardForm(request, response, user, customer,
+                        "Selected service is not available.",
+                        petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
+                        customerPets, services);
+                return;
+            }
+            Service selectedService = selectedServiceOpt.get();
+            if (selectedService.getDuration() > 0) {
+                requestedDurationMinutes += selectedService.getDuration();
+            }
         }
-        Service selectedService = selectedServiceOpt.get();
-        int requestedDurationMinutes = selectedService.getDuration();
+        if (requestedDurationMinutes <= 0) {
+            requestedDurationMinutes = 30;
+        }
 
         // Validate time slot
         if (!("morning".equals(timeSlot) || "afternoon".equals(timeSlot))) {
             forwardForm(request, response, user, customer,
                     "Invalid time slot selected.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -193,7 +220,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         } catch (DateTimeParseException ex) {
             forwardForm(request, response, user, customer,
                     "Please provide a valid appointment date.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -201,7 +228,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         if (requestedTime.toLocalDate().isBefore(LocalDate.now())) {
             forwardForm(request, response, user, customer,
                     "Appointment time cannot be in the past.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -212,7 +239,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
             forwardForm(request, response, user, customer,
                     "You can only book up to " + AppointmentDAO.MAX_BOOKINGS_PER_DAY
                     + " appointments per day. Please choose a different date.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -220,7 +247,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         if (appointmentDAO.hasCustomerAppointmentConflict(customer.getCustomerId(), requestedTime, requestedDurationMinutes)) {
             forwardForm(request, response, user, customer,
                     "You already have another appointment in this time slot. Please choose a different date or slot.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -228,7 +255,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         if (appointmentDAO.hasPetAppointmentConflict(petId, requestedTime, requestedDurationMinutes)) {
             forwardForm(request, response, user, customer,
                     "This pet already has another appointment in this time slot. Please choose a different date or slot.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;
         }
@@ -239,15 +266,23 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
                 customer.getCustomerId(),
                 null,  // No veterinarian assigned at booking time
                 requestedTime,
-                serviceId,
+            serviceIds.get(0),
                 notes
         );
 
         if (appointmentId <= 0) {
             forwardForm(request, response, user, customer,
                     "Could not create the appointment. Please try again.",
-                    petIdParam, serviceIdParam, appointmentDate, timeSlot, notes,
+                petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
+            return;
+        }
+
+        if (!appointmentDAO.insertAppointmentServices(appointmentId, serviceIds)) {
+            forwardForm(request, response, user, customer,
+                "Appointment was created but selected services could not be linked.",
+                petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
+                customerPets, services);
             return;
         }
 
