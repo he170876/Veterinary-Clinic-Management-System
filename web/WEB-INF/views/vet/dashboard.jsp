@@ -16,6 +16,7 @@
     @SuppressWarnings("unchecked")
     List<Appointment> todayAppointments = (List<Appointment>) request.getAttribute("todayAppointments");
     if (todayAppointments == null) todayAppointments = java.util.Collections.emptyList();
+    int currentVetId = request.getAttribute("currentVetId") != null ? (Integer) request.getAttribute("currentVetId") : 0;
     int totalToday = request.getAttribute("totalToday") != null ? (Integer) request.getAttribute("totalToday") : 0;
     int surgeriesToday = request.getAttribute("surgeriesToday") != null ? (Integer) request.getAttribute("surgeriesToday") : 0;
     int pendingLab = request.getAttribute("pendingLab") != null ? (Integer) request.getAttribute("pendingLab") : 0;
@@ -136,11 +137,15 @@
     int petId = ap.getPet() != null ? ap.getPet().getPetId() : 0;
     String patientId = "P-" + petId;
     String service = ap.getService() != null ? ap.getService() : "—";
-    String timeStr = ap.getAppointmentTime() != null ? ap.getAppointmentTime().format(timeFmt) : "—";
+    String timeStr = ap.getArrivalTime() != null ? ap.getArrivalTime().format(timeFmt) : "—";
+    String apStatus = ap.getStatus() != null ? ap.getStatus() : "—";
+    boolean isInExam = "In-Examination".equalsIgnoreCase(apStatus);
+    Integer rowVetId = ap.getVeterinarianId();
+    boolean lockedByOtherVet = isInExam && rowVetId != null && rowVetId > 0 && rowVetId != currentVetId;
     boolean isSurgery = service != null && service.toLowerCase().contains("surgery");
     String serviceClass = isSurgery ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800";
 %>
-<tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors <%= lockedByOtherVet ? "opacity-40" : "" %>">
 <td class="px-6 py-4 text-sm font-medium text-slate-400"><%= patientId %></td>
 <td class="px-6 py-4 text-sm font-bold"><%= petName %></td>
 <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= ownerName %></td>
@@ -149,7 +154,11 @@
 </td>
 <td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100"><%= timeStr %></td>
 <td class="px-6 py-4 text-right">
-<a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" class="text-xs font-bold text-primary hover:underline">Start</a>
+<% if (lockedByOtherVet) { %>
+<span class="text-xs font-bold text-slate-400">In progress</span>
+<% } else { %>
+<a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" class="text-xs font-bold text-primary hover:underline"><%= isInExam ? "Continue" : "Start" %></a>
+<% } %>
 </td>
 </tr>
 <% } %>

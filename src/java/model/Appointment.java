@@ -20,6 +20,7 @@ public class Appointment {
     private LocalDate appointmentDate; // new: date-only column
     private String timeSlot;           // new: "AM" or "PM"
     private LocalDateTime appointmentTime;
+    private LocalDateTime arrivalTime; // receptionist check-in time
     private String status; // Pending, Confirmed, Completed, Cancelled...
     private LocalDateTime createdAt;
     private String notes;
@@ -97,6 +98,21 @@ public class Appointment {
 
     public void setAppointmentTime(LocalDateTime appointmentTime) {
         this.appointmentTime = appointmentTime;
+    }
+
+    public LocalDateTime getArrivalTime() {
+        return arrivalTime;
+    }
+
+    public void setArrivalTime(LocalDateTime arrivalTime) {
+        this.arrivalTime = arrivalTime;
+    }
+
+    public String getFormattedArrivalTime() {
+        if (arrivalTime == null) {
+            return "—";
+        }
+        return arrivalTime.format(DateTimeFormatter.ofPattern("HH:mm"));
     }
     
     public String getFormattedTime() {
