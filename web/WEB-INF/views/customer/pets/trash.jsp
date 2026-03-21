@@ -74,21 +74,19 @@
         encodedReturnUrl = "";
     }
     request.setAttribute("customerCurrentPage", "pets");
+    request.setAttribute("customerHeaderTitle", "Deleted Pets (Trash)");
+    if (isCustomerUser) {
+        request.setAttribute("customerHeaderActionUrl", request.getContextPath() + "/customer/dashboard");
+        request.setAttribute("customerHeaderActionLabel", "Back to Dashboard");
+        request.setAttribute("customerHeaderActionIcon", "arrow_back");
+    }
+    request.setAttribute("customerHeaderDisplayName", currentUser != null && currentUser.getFullName() != null ? currentUser.getFullName() : "Customer");
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
 <div class="flex h-screen overflow-hidden">
 <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <main class="flex-1 flex flex-col overflow-y-auto">
-<header class="flex items-center justify-between bg-white dark:bg-[#2d2116] border-b border-[#f5f2f0] dark:border-[#3d2f23] px-8 py-4 sticky top-0 z-10">
-<div class="flex items-center gap-4 flex-1">
-<h2 class="text-xl font-bold tracking-tight">Deleted Pets (Trash)</h2>
-</div>
-<% if (isCustomerUser) { %>
-<a href="<%= request.getContextPath() %>/customer/dashboard" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 font-medium flex items-center gap-2 text-sm">
-    <span class="material-symbols-outlined text-lg">arrow_back</span>
-    Quay lại trang đầu
-</a>
-<% } %>
-</header>
+<jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 <div class="p-8 max-w-7xl mx-auto w-full">
 <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6">
 <div class="flex items-start gap-3">

@@ -15,6 +15,10 @@
     if (pendingRescheduleIds == null) {
         pendingRescheduleIds = new java.util.HashSet<>();
     }
+    request.setAttribute("customerHeaderTitle", "My Appointments");
+    request.setAttribute("customerHeaderSubtitle", "Track and manage your scheduled consultations for your furry friends.");
+    request.setAttribute("customerHeaderDisplayName", user != null ? user.getFullName() : "Customer");
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -87,32 +91,14 @@
 <div class="flex h-screen overflow-hidden">
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <main class="flex-1 flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-        <header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 backdrop-blur-sm">
-            <form method="get" action="<%= ctx %>/customer/appointments" class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-slate-400">search</span>
-                <input class="bg-transparent border-none focus:ring-0 text-sm text-slate-600 dark:text-slate-300 w-64" name="q" value="${q}" placeholder="Filter by pet name..." type="text"/>
-                <input type="hidden" name="tab" value="${tab}"/>
-                <input type="hidden" name="fromDate" value="${fromDate}"/>
-                <input type="hidden" name="toDate" value="${toDate}"/>
-            </form>
-            <div class="flex items-center gap-4">
-                <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-                <div class="h-8 w-px bg-slate-200 dark:border-slate-800"></div>
-                <div class="flex items-center gap-3">
-                    <div class="text-right hidden sm:block">
-                        <p class="text-sm font-bold text-slate-900 dark:text-slate-100"><%= user != null ? user.getFullName() : "Customer" %></p>
-                        <p class="text-xs text-slate-500">Pet Owner</p>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 
         <div class="flex-1 overflow-y-auto p-8">
             <div class="max-w-6xl mx-auto flex flex-col gap-8">
                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div class="flex flex-col gap-1">
-                        <h2 class="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">My Appointments</h2>
-                        <p class="text-slate-500 dark:text-slate-400">Track and manage your scheduled consultations for your furry friends.</p>
+                        <h2 class="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Appointments List</h2>
+                        <p class="text-slate-500 dark:text-slate-400">Use filters below to find upcoming, past, or cancelled visits.</p>
                     </div>
                     <a href="<%= ctx %>/customer/appointments/book" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 shadow-sm">
                         <span class="material-symbols-outlined text-base">event_available</span>

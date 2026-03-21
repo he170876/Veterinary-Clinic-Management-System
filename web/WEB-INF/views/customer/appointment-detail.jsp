@@ -30,6 +30,12 @@
         return;
     }
 
+    request.setAttribute("customerHeaderTitle", "Appointment Detail");
+    request.setAttribute("customerHeaderSubtitle", "Appointment #" + appointment.getAppointmentId());
+    request.setAttribute("customerHeaderBackUrl", ctx + "/customer/appointments");
+    request.setAttribute("customerHeaderDisplayName", user.getFullName() != null ? user.getFullName() : "Customer");
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
+
     Pet pet = appointment.getPet();
 
     String status = appointment.getStatus() != null ? appointment.getStatus() : "Unknown";
@@ -133,21 +139,7 @@
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 
     <main class="flex-1 flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-        <header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 backdrop-blur-sm">
-            <div class="flex items-center gap-4">
-                <a href="<%= ctx %>/customer/appointments" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                </a>
-                <div>
-                    <h2 class="text-lg font-black tracking-tight">Appointment Detail</h2>
-                    <p class="text-xs text-slate-500">Appointment #<%= appointment.getAppointmentId() %></p>
-                </div>
-            </div>
-            <div class="text-right hidden sm:block">
-                <p class="text-sm font-bold text-slate-900 dark:text-slate-100"><%= user.getFullName() != null ? user.getFullName() : "Customer" %></p>
-                <p class="text-xs text-slate-500">Pet Owner</p>
-            </div>
-        </header>
+        <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 
         <div class="flex-1 overflow-y-auto p-8">
             <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">

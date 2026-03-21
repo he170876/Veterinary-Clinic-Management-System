@@ -29,6 +29,15 @@
     }
     String profileUpdated = request.getParameter("updated");
     request.setAttribute("customerCurrentPage", "profile");
+    request.setAttribute("customerHeaderTitle", "Profile & Security");
+    request.setAttribute("customerHeaderSubtitle", "Manage your account details and password settings.");
+    request.setAttribute("customerHeaderDisplayName", displayName);
+    request.setAttribute("customerHeaderRoleText", roleName);
+    request.setAttribute("customerHeaderShowAvatar", "true");
+    if (hasProfilePic) {
+        request.setAttribute("customerHeaderAvatarUrl", ctx + profilePicUrl);
+    }
+    request.setAttribute("customerHeaderAvatarInitial", displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -66,40 +75,7 @@
     <!-- Main Content -->
     <main class="flex-1 flex flex-col min-w-0">
         <!-- Header -->
-        <header class="flex items-center justify-between border-b border-[#f4f0f0] dark:border-white/10 bg-white dark:bg-background-dark px-8 py-4 sticky top-0 z-10">
-            <div class="flex items-center gap-8 flex-1">
-                <div class="flex items-center gap-2 text-[#181111] dark:text-white">
-                    <h2 class="text-lg font-bold tracking-tight">VCMS Portal</h2>
-                </div>
-                <label class="flex flex-col min-w-40 h-10 max-w-md flex-1">
-                    <div class="flex w-full items-stretch rounded-xl bg-background-light dark:bg-white/5 h-full border border-transparent focus-within:border-primary/30 transition-all">
-                        <div class="text-[#896461] flex items-center justify-center pl-4">
-                            <span class="material-symbols-outlined">search</span>
-                        </div>
-                        <input class="w-full bg-transparent border-none focus:ring-0 text-[#181111] dark:text-white placeholder:text-[#896461] text-sm" placeholder="Search records, pets, or bills" value=""/>
-                    </div>
-                </label>
-            </div>
-            <div class="flex items-center gap-6 ml-4">
-                <div class="hidden md:flex items-center gap-6">
-                    <a class="text-[#181111] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="<%= ctx %>/index.jsp">Home</a>
-                    <a class="text-[#181111] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="#">Support</a>
-                </div>
-                <div class="flex gap-2 items-center">
-                    <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-                    <button type="button" class="size-10 flex items-center justify-center rounded-xl bg-background-light dark:bg-white/5 text-[#181111] dark:text-white hover:bg-background-light/80">
-                        <span class="material-symbols-outlined">settings</span>
-                    </button>
-                </div>
-                <% if (hasProfilePic) { %>
-                <img src="<%= ctx %><%= profilePicUrl %>" alt="<%= displayName %>" class="rounded-full size-10 border-2 border-primary/20 object-cover" title="<%= displayName %>"/>
-                <% } else { %>
-                <div class="bg-primary/10 rounded-full size-10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-lg" title="<%= displayName %>">
-                    <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
-                </div>
-                <% } %>
-            </div>
-        </header>
+        <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
         <div class="p-8 max-w-7xl mx-auto w-full">
             <% if ("1".equals(profileUpdated)) { %>
             <div class="mb-6 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 text-sm font-medium">

@@ -29,6 +29,15 @@
     request.setAttribute("customerCurrentPage", "edit-profile");
     String profilePicUrl = user.getProfilePictureUrl();
     boolean hasProfilePic = (profilePicUrl != null && !profilePicUrl.isEmpty());
+    request.setAttribute("customerHeaderTitle", "Edit Profile");
+    request.setAttribute("customerHeaderSubtitle", "Update your personal info and contact details.");
+    request.setAttribute("customerHeaderDisplayName", displayName);
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
+    request.setAttribute("customerHeaderShowAvatar", "true");
+    if (hasProfilePic) {
+        request.setAttribute("customerHeaderAvatarUrl", ctx + profilePicUrl);
+    }
+    request.setAttribute("customerHeaderAvatarInitial", displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -65,20 +74,7 @@
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-y-auto">
-        <header class="sticky top-0 z-10 flex items-center justify-between bg-white dark:bg-[#1a0d0c] border-b border-[#e6dcdb] dark:border-[#3d2a29] px-8 py-4">
-            <div class="flex items-center gap-6">
-                <h2 class="text-[#181111] dark:text-white text-xl font-extrabold tracking-tight">Profile Settings</h2>
-                <nav class="hidden md:flex items-center gap-6">
-                    <a class="text-primary border-b-2 border-primary pb-1 text-sm font-bold" href="<%= ctx %>/customer/edit-profile">General</a>
-                    <a class="text-[#896461] hover:text-[#181111] dark:hover:text-white text-sm font-semibold transition-colors" href="<%= ctx %>/customer/profile">Security</a>
-                </nav>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary font-bold text-sm">
-                    <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
-                </div>
-            </div>
-        </header>
+        <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
         <div class="p-8 max-w-5xl mx-auto w-full">
             <!-- Breadcrumbs -->
             <div class="flex items-center gap-2 mb-6">

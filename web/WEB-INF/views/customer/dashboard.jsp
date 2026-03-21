@@ -16,6 +16,10 @@
     }
     request.setAttribute("customerCurrentPage", "dashboard");
     String ctx = request.getContextPath();
+    request.setAttribute("customerHeaderTitle", "Dashboard");
+    request.setAttribute("customerHeaderSubtitle", "Manage your pets, appointments, and medical records.");
+    request.setAttribute("customerHeaderDisplayName", user.getFullName() != null && !user.getFullName().isEmpty() ? user.getFullName() : user.getEmail());
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -54,6 +58,7 @@
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <!-- Main Content -->
     <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
     <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <!-- Welcome Banner -->
         <div class="bg-gradient-to-r from-primary to-red-400 rounded-2xl p-8 text-white mb-8">

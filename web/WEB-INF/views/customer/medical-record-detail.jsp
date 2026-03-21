@@ -32,6 +32,11 @@
     String note = (record.getNote() != null && !record.getNote().trim().isEmpty())
             ? record.getNote() : "No additional notes";
     String visitStatus = record.getVisitStatus() != null ? record.getVisitStatus() : "Unknown";
+    request.setAttribute("customerHeaderTitle", "Medical Record Details");
+    request.setAttribute("customerHeaderSubtitle", "Record #" + record.getRecordId());
+    request.setAttribute("customerHeaderBackUrl", ctx + "/customer/medical-history");
+    request.setAttribute("customerHeaderDisplayName", user.getFullName() != null ? user.getFullName() : user.getEmail());
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -63,23 +68,7 @@
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     
     <main class="flex-1 flex flex-col overflow-y-auto">
-        <header class="flex items-center justify-between bg-white dark:bg-[#2d2116] border-b border-[#f5f2f0] dark:border-[#3d2f23] px-8 py-4 sticky top-0 z-10">
-            <div class="flex items-center gap-4">
-                <a href="<%= ctx %>/customer/medical-history" class="p-2 hover:bg-[#f5f2f0] dark:hover:bg-[#3d2f23] rounded-lg transition-colors">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                </a>
-                <div>
-                    <h2 class="text-xl font-bold tracking-tight">Medical Record Details</h2>
-                    <p class="text-sm text-[#8d755e]">Record #<%= record.getRecordId() %></p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="text-right">
-                    <p class="text-sm font-bold"><%= user.getFullName() != null ? user.getFullName() : user.getEmail() %></p>
-                    <p class="text-xs text-[#8d755e]">Pet Parent</p>
-                </div>
-            </div>
-        </header>
+        <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 
         <div class="p-8 max-w-5xl mx-auto w-full space-y-6">
             <!-- Visit Info Card -->

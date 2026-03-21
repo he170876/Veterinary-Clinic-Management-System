@@ -49,6 +49,10 @@
     .replace(">", "&gt;")
     .replace("\"", "&quot;");
     boolean canSubmit = !customerPets.isEmpty() && !services.isEmpty();
+    request.setAttribute("customerHeaderTitle", "Book Appointment");
+    request.setAttribute("customerHeaderSubtitle", "Schedule a check-up for one of your pets.");
+    request.setAttribute("customerHeaderDisplayName", user.getFullName() != null ? user.getFullName() : "Customer");
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -188,19 +192,7 @@
             <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 
             <main class="flex-1 flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-                <header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 backdrop-blur-sm">
-                    <div>
-                        <h2 class="text-lg font-black tracking-tight">Book Appointment</h2>
-                        <p class="text-xs text-slate-500">Schedule a check-up for one of your pets.</p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-                        <div class="text-right hidden sm:block">
-                            <p class="text-sm font-bold text-slate-900 dark:text-slate-100"><%= user.getFullName() != null ? user.getFullName() : "Customer" %></p>
-                            <p class="text-xs text-slate-500">Pet Owner</p>
-                        </div>
-                    </div>
-                </header>
+                <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 
                 <div class="flex-1 overflow-y-auto p-8">
                     <div class="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">

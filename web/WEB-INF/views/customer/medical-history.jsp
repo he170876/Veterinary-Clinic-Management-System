@@ -23,6 +23,10 @@
     }
     request.setAttribute("customerCurrentPage", "medical-history");
     String ctx = request.getContextPath();
+    request.setAttribute("customerHeaderTitle", "Medical History");
+    request.setAttribute("customerHeaderSubtitle", "Review treatment, diagnosis, and visit timelines for your pets.");
+    request.setAttribute("customerHeaderDisplayName", user.getFullName() != null ? user.getFullName() : user.getEmail());
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
@@ -62,23 +66,7 @@
 <div class="flex h-screen overflow-hidden">
 <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <main class="flex-1 flex flex-col overflow-y-auto">
-<header class="flex items-center justify-between bg-white dark:bg-[#2d2116] border-b border-[#f5f2f0] dark:border-[#3d2f23] px-8 py-4 sticky top-0 z-10">
-<div class="flex items-center gap-4 flex-1">
-<h2 class="text-xl font-bold tracking-tight">Medical History</h2>
-<div class="relative w-64 ml-4">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8d755e] text-xl">search</span>
-<input class="w-full pl-10 pr-4 py-2 bg-[#f5f2f0] dark:bg-[#3d2f23] border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm" placeholder="Search records..." type="text" disabled/>
-</div>
-</div>
-<div class="flex items-center gap-6">
-<div class="flex items-center gap-3 pl-4 border-l border-[#f5f2f0] dark:border-[#3d2f23]">
-<div class="text-right">
-<p class="text-sm font-bold"><%= user.getFullName() != null ? user.getFullName() : user.getEmail() %></p>
-<p class="text-xs text-[#8d755e]">Pet Parent</p>
-</div>
-</div>
-</div>
-</header>
+<jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 <div class="p-8 max-w-7xl mx-auto w-full">
 <% if (error != null && !error.isEmpty()) { %>
 <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">

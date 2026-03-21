@@ -84,51 +84,17 @@
         return;
     }
     request.setAttribute("customerCurrentPage", "pets");
+    request.setAttribute("customerHeaderTitle", "My Pets");
+    request.setAttribute("customerHeaderSubtitle", "Manage your pets and review related records.");
+    Customer customer = (Customer) request.getAttribute("customer");
+    String customerName = customer != null ? customer.getName() : "Pet Parent";
+    request.setAttribute("customerHeaderDisplayName", customerName);
+    request.setAttribute("customerHeaderRoleText", "Pet Parent");
 %>
 <div class="flex h-screen overflow-hidden">
 <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
 <main class="flex-1 flex flex-col overflow-y-auto">
-<header class="flex items-center justify-between bg-white dark:bg-[#2d2116] border-b border-[#f5f2f0] dark:border-[#3d2f23] px-8 py-4 sticky top-0 z-10">
-<div class="flex items-center gap-4 flex-1">
-<h2 class="text-xl font-bold tracking-tight">Dashboard Overview</h2>
-<div class="relative w-64 ml-4">
-<form action="#" method="get">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8d755e] text-xl pointer-events-none">search</span>
-<input class="w-full pl-10 pr-4 py-2 bg-[#f5f2f0] dark:bg-[#3d2f23] border-none rounded-lg focus:ring-2 focus:ring-primary/50 text-sm" 
-       placeholder="Search..." 
-       type="text" 
-       disabled/>
-</form>
-</div>
-<a href="<%= request.getContextPath() %>/pets?action=trash" class="ml-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium flex items-center gap-2 text-sm">
-    <span class="material-symbols-outlined text-lg">delete</span>
-    View Trash
-</a>
-<% if (isCustomerUser) { %>
-<a href="<%= request.getContextPath() %>/customer/dashboard" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 font-medium flex items-center gap-2 text-sm">
-    <span class="material-symbols-outlined text-lg">arrow_back</span>
-    Quay l&#7841;i trang &#273;&#7847;u
-</a>
-<% } %>
-</div>
-<div class="flex items-center gap-6">
-<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-<div class="flex items-center gap-3 pl-4 border-l border-[#f5f2f0] dark:border-[#3d2f23]">
-<div class="text-right">
-<%
-    Customer customer = (Customer) request.getAttribute("customer");
-    String customerName = customer != null ? customer.getName() : "Pet Parent";
-    String customerAvatar = customer != null && customer.getProfilePicture() != null ? 
-        customer.getProfilePicture() : 
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAYzvVNZrdN5NNbem2goJWK2gz9HMXOTc-WbF8vF_7opdIEsRYhKo_JL1TBXuWxTOXp5NyQ9O1xvcZLApjZg0odnljfG1-cg41-R5ZtvIZjbAAa8x-XwpfXcfZDBZ8v04bsqrDYVeXt_HlNY7yWZxwP02gP_laKZAWgmGl9qt3E7TfetvgWteNVfrj5HkNO7xqPys34XZV7VnQ7DbF1uT892-Iw87DF_YtR9jJ8bPpu_mhbECp2i4UMQYidzLPHverlgvCFo7pp-g";
-%>
-<p class="text-sm font-bold"><%= customerName %></p>
-<p class="text-xs text-[#8d755e]">Pet Parent</p>
-</div>
-<div class="size-10 bg-center bg-no-repeat bg-cover rounded-full border border-primary/20" style='background-image: url("<%= customerAvatar %>");'></div>
-</div>
-</div>
-</header>
+<jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 <div class="p-8 max-w-7xl mx-auto w-full">
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 <div class="bg-white dark:bg-[#2d2116] p-6 rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] flex items-center gap-5">
@@ -164,10 +130,16 @@
 <h3 class="text-2xl font-extrabold tracking-tight">Pet List</h3>
 <p class="text-[#8d755e] dark:text-[#a68e7a] text-sm">Manage your pets and their health records below.</p>
 </div>
+<div class="flex items-center gap-3">
+<a class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 transition-colors" href="<%= request.getContextPath() %>/pets?action=trash">
+<span class="material-symbols-outlined text-xl">delete</span>
+<span>View Trash</span>
+</a>
 <a class="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-primary/20" href="<%= request.getContextPath() %>/pets?action=create">
 <span class="material-symbols-outlined text-xl">add</span>
 <span>Add Pet</span>
 </a>
+</div>
 </div>
 <div class="mb-6">
 <form method="get" action="<%= request.getContextPath() %>/pets" class="relative">

@@ -106,7 +106,7 @@
     <main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark">
 
         <!-- Header -->
-        <div class="bg-white dark:bg-zinc-900 border-b border-[#e5e7eb] dark:border-zinc-800 px-8 py-5">
+        <div class="sticky top-0 z-10 bg-white/95 dark:bg-background-dark/85 border-b border-slate-200 dark:border-slate-800 px-8 py-4 backdrop-blur-sm">
             <div class="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <div class="size-16 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-sm flex-shrink-0"
@@ -129,6 +129,15 @@
                         <span class="material-symbols-outlined text-base">history</span>
                         Medical History
                     </a>
+                    <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
+                    <div class="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold text-slate-900 dark:text-slate-100"><%= currentUser != null && currentUser.getFullName() != null ? currentUser.getFullName() : "Customer" %></p>
+                        <p class="text-xs text-slate-500">Pet Owner</p>
+                    </div>
+                    <div class="bg-primary/10 rounded-full size-10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                        <%= currentUser != null && currentUser.getFullName() != null && !currentUser.getFullName().isEmpty() ? currentUser.getFullName().substring(0, 1).toUpperCase() : "C" %>
+                    </div>
                 </div>
             </div>
         </div>

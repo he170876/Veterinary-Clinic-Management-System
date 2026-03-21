@@ -10,6 +10,11 @@
     Customer customer = (Customer) request.getAttribute("customer");
     Integer customerId = customer != null ? customer.getCustomerId() : null;
     request.setAttribute("customerCurrentPage", "pets");
+    request.setAttribute("customerHeaderTitle", "Add New Pet");
+    request.setAttribute("customerHeaderSubtitle", "Tell us about your new companion.");
+    request.setAttribute("customerHeaderBackUrl", isCustomerUser ? request.getContextPath() + "/customer/dashboard" : null);
+    request.setAttribute("customerHeaderDisplayName", currentUser != null && currentUser.getFullName() != null ? currentUser.getFullName() : "Customer");
+    request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
 <!DOCTYPE html>
 
@@ -54,25 +59,7 @@
 <!-- Main Content Area -->
 <main class="flex-1 flex flex-col overflow-y-auto">
 <!-- Header -->
-<header class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark px-8 py-4 sticky top-0 z-10">
-<div class="flex-1 max-w-xl">
-<div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
-<input class="w-full pl-10 pr-4 py-2 rounded-lg border-none bg-gray-100 dark:bg-gray-800 text-sm focus:ring-2 focus:ring-primary/50 transition-all" placeholder="Search pets, records..." type="text"/>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<% if (isCustomerUser) { %>
-<a class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors" href="<%= request.getContextPath() %>/customer/dashboard">
-Quay lại trang đầu
-</a>
-<% } %>
-<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-<button class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-<span class="material-symbols-outlined">help_outline</span>
-</button>
-</div>
-</header>
+<jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 <!-- Page Body -->
 <div class="max-w-4xl mx-auto w-full px-8 py-8">
 <!-- Breadcrumbs -->
