@@ -2,6 +2,7 @@ package controller.vet;
 
 import dao.AppointmentDAO;
 import dao.CustomerDAO;
+import dao.LabTestRequestDAO;
 import dao.VetMedicalRecordDAO;
 import dao.VisitDAO;
 import dao.impl.CustomerJdbcDAO;
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Customer;
+import model.LabTestRequest;
 import model.MedicalRecord;
 import model.Pet;
 import model.Prescription;
@@ -97,6 +99,8 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
         // Services and prescriptions
         List<RecordServiceLine> services = recordDao.getServicesForRecord(record.getRecordId());
         List<Prescription> prescriptions = recordDao.getPrescriptionsByRecordId(record.getRecordId());
+        LabTestRequestDAO labTestRequestDAO = new LabTestRequestDAO();
+        List<LabTestRequest> labRequests = labTestRequestDAO.getByVisitId(record.getVisitId());
 
         // Compute duration from visit times if available
         String durationLabel = "—";
@@ -126,6 +130,7 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
         request.setAttribute("visit", visit);
         request.setAttribute("pet", pet);
         request.setAttribute("customer", customer);
+        request.setAttribute("labRequests", labRequests);
         request.setAttribute("services", services);
         request.setAttribute("prescriptions", prescriptions);
         request.setAttribute("durationLabel", durationLabel);

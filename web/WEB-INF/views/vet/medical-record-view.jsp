@@ -6,6 +6,7 @@
 <%@ page import="model.Customer" %>
 <%@ page import="model.RecordServiceLine" %>
 <%@ page import="model.Prescription" %>
+<%@ page import="model.LabTestRequest" %>
 <%@ page import="java.util.List" %>
 <%
     User user = (User) request.getAttribute("user");
@@ -19,13 +20,13 @@
     @SuppressWarnings("unchecked")
     List<Prescription> prescriptions = (List<Prescription>) request.getAttribute("prescriptions");
     if (prescriptions == null) prescriptions = java.util.Collections.emptyList();
+    @SuppressWarnings("unchecked")
+    List<LabTestRequest> labRequests = (List<LabTestRequest>) request.getAttribute("labRequests");
+    if (labRequests == null) labRequests = java.util.Collections.emptyList();
     String durationLabel = (String) request.getAttribute("durationLabel");
     if (durationLabel == null) durationLabel = "—";
     String concludedAt = (String) request.getAttribute("concludedAt");
     if (concludedAt == null) concludedAt = "";
-    Double totalAmount = (Double) request.getAttribute("totalAmount");
-    if (totalAmount == null) totalAmount = 0.0;
-
     String ctx = request.getContextPath();
     String recordCode = "MR-" + (record != null ? record.getRecordId() : 0);
     int petId = (visit != null) ? visit.getPetId() : (pet != null ? pet.getPetId() : 0);
@@ -74,59 +75,12 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
 <div class="flex min-h-screen">
-    <!-- Sidebar -->
-    <aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col shrink-0">
-        <div class="p-6 flex items-center gap-3">
-            <div class="text-primary">
-                <span class="material-symbols-outlined text-4xl">pets</span>
-            </div>
-            <div>
-                <h1 class="text-lg font-extrabold leading-tight tracking-tight">Anipats</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold">Veterinary Sys</p>
-            </div>
-        </div>
-        <nav class="flex-1 px-4 space-y-1">
-            <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors" href="<%= ctx %>/vet/dashboard">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span class="text-sm font-medium">Dashboard</span>
-            </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors" href="<%= ctx %>/vet/queue">
-                <span class="material-symbols-outlined">group</span>
-                <span class="text-sm font-medium">Patients</span>
-            </a>
-            <a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg transition-colors" href="<%= ctx %>/vet/records">
-                <span class="material-symbols-outlined">description</span>
-                <span class="text-sm font-bold">Medical Records</span>
-            </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors" href="#">
-                <span class="material-symbols-outlined">inventory_2</span>
-                <span class="text-sm font-medium">Inventory</span>
-            </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors" href="#">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="text-sm font-medium">Settings</span>
-            </a>
-        </nav>
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-            <div class="flex items-center gap-3 px-2 py-2">
-                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                    <%= (user != null && user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "V" %>
-                </div>
-                <div class="overflow-hidden">
-                    <p class="text-xs font-bold truncate"><%= user != null ? user.getFullName() : "" %></p>
-                    <p class="text-[10px] text-slate-500 uppercase">Veterinarian</p>
-                </div>
-            </div>
-        </div>
-    </aside>
-    <!-- Main Content -->
+    <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        <!-- Header -->
         <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center justify-between px-8 shrink-0">
-            <div class="flex items-center gap-2 text-slate-500 text-sm">
-                <a class="hover:text-primary transition-colors" href="<%= ctx %>/vet/records">Medical Records</a>
-                <span class="material-symbols-outlined text-sm">chevron_right</span>
-                <span class="text-slate-900 dark:text-slate-100 font-medium">Record #<%= recordCode %></span>
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Medical Record Detail</h2>
+                <span class="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-bold">#<%= recordCode %></span>
             </div>
             <div class="flex items-center gap-3">
                 <a class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -140,36 +94,17 @@
                 </button>
             </div>
         </header>
-        <!-- Scrollable Report Area -->
         <div class="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-slate-900/50">
-            <div class="max-w-4xl mx-auto space-y-6">
-                <!-- Report Title Card -->
-                <div class="bg-white dark:bg-slate-950 p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <div class="flex justify-between items-start border-b border-slate-100 dark:border-slate-900 pb-6 mb-8">
+            <div class="max-w-5xl mx-auto space-y-6">
+                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-5">
                         <div>
-                            <span class="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold uppercase tracking-wider rounded mb-2">Completed</span>
-                            <h2 class="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
-                                Examination Report: Record #<%= recordCode %>
-                            </h2>
-                            <p class="text-slate-500 dark:text-slate-400 mt-1">
-                                <% if (!concludedAt.isEmpty()) { %>
-                                Concluded on <%= concludedAt %>
-                                <% } %>
-                            </p>
+                            <h3 class="text-lg font-bold">Visit Summary</h3>
+                            <p class="text-sm text-slate-500"><% if (!concludedAt.isEmpty()) { %>Concluded on <%= concludedAt %><% } else { %>No conclusion time<% } %></p>
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Facility</p>
-                            <p class="font-bold text-slate-900 dark:text-slate-100">Anipats Central Clinic</p>
-                            <p class="text-sm text-slate-500">Exam Room #04</p>
-                        </div>
+                        <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Completed</span>
                     </div>
-                    <!-- 1. Patient Summary -->
-                    <section class="mb-10">
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-1 h-6 bg-primary rounded-full"></div>
-                            <h3 class="text-lg font-bold text-primary tracking-tight">1. Patient Summary</h3>
-                        </div>
-                        <div class="grid grid-cols-4 gap-6 bg-slate-50/50 dark:bg-slate-900/30 p-5 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Patient ID</label>
                                 <p class="text-sm font-semibold text-slate-900 dark:text-slate-100"><%= patientId %></p>
@@ -187,14 +122,7 @@
                                 <p class="text-sm font-semibold text-slate-900 dark:text-slate-100"><%= ownerName %></p>
                             </div>
                         </div>
-                    </section>
-                    <!-- 2. Consultation Details -->
-                    <section class="mb-10">
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-1 h-6 bg-primary rounded-full"></div>
-                            <h3 class="text-lg font-bold text-primary tracking-tight">2. Consultation Details</h3>
-                        </div>
-                        <div class="grid grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Attending Doctor</label>
                                 <div class="flex items-center gap-2">
@@ -210,37 +138,49 @@
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Referral</label>
                                 <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">N/A</p>
                             </div>
-                        </div>
-                    </section>
-                    <!-- 3. Clinical Findings -->
-                    <section class="mb-10">
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-1 h-6 bg-primary rounded-full"></div>
-                            <h3 class="text-lg font-bold text-primary tracking-tight">3. Clinical Findings</h3>
-                        </div>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Presented Symptoms / Notes</label>
-                                <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic bg-slate-50 dark:bg-slate-900/30 p-3 rounded-lg border-l-4 border-slate-200 dark:border-slate-800">
-                                    <%= !note.isEmpty() ? note : "No additional notes were recorded for this examination." %>
-                                </p>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <h3 class="text-lg font-bold text-primary mb-4">1. Observations (3 Items)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Observation 1: Diagnosis</p>
+                                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100"><%= diagnosis %></p>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diagnosis</label>
-                                <div class="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                                    <p class="text-sm font-bold text-slate-900 dark:text-slate-100"><%= diagnosis %></p>
+                            <div class="rounded-lg border border-slate-100 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Observation 2: Clinical Notes</p>
+                                <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"><%= !note.isEmpty() ? note : "No additional notes were recorded for this examination." %></p>
+                            </div>
+                            <div class="rounded-lg border border-slate-100 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Observation 3: Visit Summary</p>
+                                <p class="text-sm text-slate-700 dark:text-slate-300">Duration: <span class="font-semibold"><%= durationLabel %></span></p>
+                                <p class="text-sm text-slate-700 dark:text-slate-300 mt-1">Concluded: <span class="font-semibold"><%= concludedAt.isEmpty() ? "N/A" : concludedAt %></span></p>
+                            </div>
+                        </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <h3 class="text-lg font-bold text-primary mb-4">2. Lab Test Results</h3>
+                        <% if (labRequests.isEmpty()) { %>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">No lab tests for this record.</p>
+                        <% } else { %>
+                            <div class="space-y-2">
+                                <% for (LabTestRequest req : labRequests) {
+                                       String testName = req.getTestName() != null ? req.getTestName() : "Lab Test";
+                                       String status = req.getStatus() != null ? req.getStatus() : "Pending";
+                                %>
+                                <div class="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100"><%= testName %></p>
+                                    <span class="px-2 py-1 rounded-full text-[10px] font-bold <%= "Completed".equalsIgnoreCase(status) ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" %>"><%= status %></span>
                                 </div>
+                                <% } %>
                             </div>
-                        </div>
-                    </section>
-                    <!-- 4. Lab Results (from examination page viewer, optional) -->
-                    <!-- For now we leave static placeholder or hook in later from lab results if needed -->
-                    <!-- 5. Prescription & Treatment Plan -->
-                    <section class="mb-10">
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-1 h-6 bg-primary rounded-full"></div>
-                            <h3 class="text-lg font-bold text-primary tracking-tight">5. Prescription &amp; Treatment Plan</h3>
-                        </div>
+                        <% } %>
+                </div>
+
+                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <h3 class="text-lg font-bold text-primary mb-4">3. Medications</h3>
                         <div class="space-y-3">
                             <%
                                 for (Prescription pr : prescriptions) {
@@ -264,47 +204,31 @@
                             <%
                                 }
                             %>
-                            <%
-                                String treatment = record != null && record.getTreatment() != null ? record.getTreatment() : "";
-                                if (!treatment.isEmpty()) {
-                            %>
-                            <div class="flex items-start gap-4 p-4 border border-slate-100 dark:border-slate-800 rounded-lg">
-                                <span class="material-symbols-outlined text-primary">potted_plant</span>
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900 dark:text-slate-100">Treatment Plan</p>
-                                    <p class="text-xs text-slate-500 font-medium"><%= treatment %></p>
-                                </div>
-                            </div>
-                            <%
-                                }
-                            %>
                         </div>
-                    </section>
-                    <!-- 6. Services Rendered -->
-                    <section>
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-1 h-6 bg-primary rounded-full"></div>
-                            <h3 class="text-lg font-bold text-primary tracking-tight">6. Services Rendered</h3>
+                </div>
+
+                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <h3 class="text-lg font-bold text-primary mb-4">4. Treatment Plan</h3>
+                        <%
+                            String treatment = record != null && record.getTreatment() != null ? record.getTreatment() : "No treatment plan recorded.";
+                        %>
+                        <div class="mb-4 p-4 border border-primary/20 bg-primary/5 rounded-lg">
+                            <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line"><%= treatment %></p>
                         </div>
                         <ul class="divide-y divide-slate-100 dark:divide-slate-900">
                             <%
                                 if (services.isEmpty()) {
                             %>
-                            <li class="py-3 text-sm text-slate-500 dark:text-slate-400">No billable services were attached to this record.</li>
+                            <li class="py-3 text-sm text-slate-500 dark:text-slate-400">No procedure lines were attached to this record.</li>
                             <%
                                 } else {
                                     for (RecordServiceLine line : services) {
                                         String svcName = line.getServiceName() != null ? line.getServiceName() : "Service";
                                         int qty = line.getQuantity();
-                                        Double price = line.getPrice();
-                                        double lineTotal = (price != null && qty > 0) ? price * qty : 0;
                             %>
-                            <li class="py-2 flex justify-between items-center text-sm">
+                            <li class="py-2 text-sm">
                                 <span class="text-slate-600 dark:text-slate-400">
                                     <%= svcName %><% if (qty > 1) { %> (x<%= qty %>)<% } %>
-                                </span>
-                                <span class="font-bold text-slate-900 dark:text-slate-100">
-                                    $<%= String.format(java.util.Locale.US, "%.2f", lineTotal) %>
                                 </span>
                             </li>
                             <%
@@ -312,17 +236,7 @@
                                 }
                             %>
                         </ul>
-                        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-                            <div class="text-right">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Grand Total</p>
-                                <p class="text-2xl font-black text-slate-900 dark:text-slate-100">
-                                    $<%= String.format(java.util.Locale.US, "%.2f", totalAmount) %>
-                                </p>
-                            </div>
-                        </div>
-                    </section>
                 </div>
-                <!-- Footer Disclaimer -->
                 <div class="text-center pb-12">
                     <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Official Medical Document - Confidential</p>
                     <p class="text-[10px] text-slate-400 mt-1">

@@ -1,11 +1,16 @@
 package controller.customer;
 
 import dao.CustomerDAO;
+import dao.LabTestRequestDAO;
 import dao.MedicalRecordDAO;
+import dao.VetMedicalRecordDAO;
 import dao.impl.CustomerJdbcDAO;
 import dao.impl.MedicalRecordJdbcDAO;
+import model.LabTestRequest;
 import model.Customer;
 import model.MedicalRecord;
+import model.Prescription;
+import model.RecordServiceLine;
 import model.User;
 
 import jakarta.servlet.ServletException;
@@ -16,6 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -85,10 +91,28 @@ public class MedicalRecordDetailServlet extends HttpServlet {
             }
             
             MedicalRecord record = recordOpt.get();
+
+            VetMedicalRecordDAO vetMedicalRecordDAO = new VetMedicalRecordDAO();
+            List<Prescription> prescriptions = vetMedicalRecordDAO.getPrescriptionsByRecordId(record.getRecordId());
+            List<RecordServiceLine> services = vetMedicalRecordDAO.getServicesForRecord(record.getRecordId());
+
+            LabTestRequestDAO labTestRequestDAO = new LabTestRequestDAO();
+            List<LabTestRequest> labRequests = labTestRequestDAO.getByVisitId(record.getVisitId());
+
+            double totalAmount = 0.0;
+            for (RecordServiceLine line : services) {
+                if (line.getPrice() != null && line.getQuantity() > 0) {
+                    totalAmount += line.getPrice() * line.getQuantity();
+                }
+            }
             
             // Set attributes for JSP
             request.setAttribute("user", user);
             request.setAttribute("medicalRecord", record);
+            request.setAttribute("labRequests", labRequests);
+            request.setAttribute("prescriptions", prescriptions);
+            request.setAttribute("services", services);
+            request.setAttribute("totalAmount", totalAmount);
             request.setAttribute("customerCurrentPage", "medical-history");
 
             // Forward to detail JSP

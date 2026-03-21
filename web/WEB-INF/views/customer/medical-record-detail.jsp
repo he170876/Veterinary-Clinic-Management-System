@@ -1,5 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="model.User,model.MedicalRecord,java.time.format.DateTimeFormatter" %>
+<%@ page import="model.User,model.MedicalRecord,model.LabTestRequest,model.Prescription,model.RecordServiceLine,java.time.format.DateTimeFormatter,java.util.List" %>
 <%
     User user = (User) request.getAttribute("user");
     MedicalRecord record = (MedicalRecord) request.getAttribute("medicalRecord");
@@ -32,6 +32,15 @@
     String note = (record.getNote() != null && !record.getNote().trim().isEmpty())
             ? record.getNote() : "No additional notes";
     String visitStatus = record.getVisitStatus() != null ? record.getVisitStatus() : "Unknown";
+        @SuppressWarnings("unchecked")
+        List<LabTestRequest> labRequests = (List<LabTestRequest>) request.getAttribute("labRequests");
+        if (labRequests == null) labRequests = java.util.Collections.emptyList();
+        @SuppressWarnings("unchecked")
+        List<Prescription> prescriptions = (List<Prescription>) request.getAttribute("prescriptions");
+        if (prescriptions == null) prescriptions = java.util.Collections.emptyList();
+        @SuppressWarnings("unchecked")
+        List<RecordServiceLine> services = (List<RecordServiceLine>) request.getAttribute("services");
+        if (services == null) services = java.util.Collections.emptyList();
     request.setAttribute("customerHeaderTitle", "Medical Record Details");
     request.setAttribute("customerHeaderSubtitle", "Record #" + record.getRecordId());
     request.setAttribute("customerHeaderBackUrl", ctx + "/customer/medical-history");
@@ -108,36 +117,100 @@
                 </div>
             </div>
 
-            <!-- Diagnosis Card -->
+            <!-- 1. Lab Test Results -->
             <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
                 <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-primary">diagnosis</span>
-                    <h3 class="text-lg font-bold">Diagnosis</h3>
+                    <span class="material-symbols-outlined text-primary">biotech</span>
+                    <h3 class="text-lg font-bold">1. Lab Test Results</h3>
                 </div>
-                <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 rounded-lg p-4">
-                    <p class="text-sm text-[#181410] dark:text-[#f8f7f5] leading-relaxed"><%= diagnosis %></p>
+                <% if (labRequests.isEmpty()) { %>
+                    <p class="text-sm text-[#8d755e]">No lab tests for this medical record.</p>
+                <% } else { %>
+                    <div class="space-y-3">
+                        <% for (LabTestRequest req : labRequests) {
+                               String testName = req.getTestName() != null ? req.getTestName() : "Lab Test";
+                               String status = req.getStatus() != null ? req.getStatus() : "Pending";
+                        %>
+                        <div class="flex items-center justify-between rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] p-3 bg-[#fcfbf9] dark:bg-[#34281d]">
+                            <p class="font-semibold text-sm"><%= testName %></p>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold <%= "Completed".equalsIgnoreCase(status) ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" %>">
+                                <%= status %>
+                            </span>
+                        </div>
+                        <% } %>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- 2. Observations (3 items) -->
+            <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-primary">visibility</span>
+                    <h3 class="text-lg font-bold">2. Observations (3 Items)</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="rounded-lg border border-blue-200 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10 p-4">
+                        <p class="text-xs uppercase font-bold text-[#8d755e] mb-1">Observation 1: Diagnosis</p>
+                        <p class="text-sm leading-relaxed"><%= diagnosis %></p>
+                    </div>
+                    <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] bg-[#fcfbf9] dark:bg-[#34281d] p-4">
+                        <p class="text-xs uppercase font-bold text-[#8d755e] mb-1">Observation 2: Clinical Notes</p>
+                        <p class="text-sm text-[#8d755e] leading-relaxed whitespace-pre-line"><%= note %></p>
+                    </div>
+                    <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] bg-[#fcfbf9] dark:bg-[#34281d] p-4">
+                        <p class="text-xs uppercase font-bold text-[#8d755e] mb-1">Observation 3: Visit Status</p>
+                        <p class="text-sm leading-relaxed"><%= visitStatus %></p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Treatment Card -->
+            <!-- 3. Medications -->
             <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
                 <div class="flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-primary">medication</span>
-                    <h3 class="text-lg font-bold">Treatment & Procedures</h3>
+                    <h3 class="text-lg font-bold">3. Medications</h3>
                 </div>
-                <div class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 rounded-lg p-4">
-                    <p class="text-sm text-[#181410] dark:text-[#f8f7f5] leading-relaxed whitespace-pre-line"><%= treatment %></p>
-                </div>
+                <% if (prescriptions.isEmpty()) { %>
+                    <p class="text-sm text-[#8d755e]">No prescribed medicine in this record.</p>
+                <% } else { %>
+                    <div class="space-y-3">
+                        <% for (Prescription pr : prescriptions) {
+                               String med = pr.getMedicineName() != null ? pr.getMedicineName() : "Medicine";
+                               String dose = pr.getDosage() != null ? pr.getDosage() : "-";
+                               String duration = pr.getDuration() != null ? pr.getDuration() : "-";
+                        %>
+                        <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] p-4 bg-[#fcfbf9] dark:bg-[#34281d]">
+                            <p class="font-semibold"><%= med %></p>
+                            <p class="text-sm text-[#8d755e]">Dosage: <%= dose %></p>
+                            <p class="text-sm text-[#8d755e]">Duration: <%= duration %></p>
+                        </div>
+                        <% } %>
+                    </div>
+                <% } %>
             </div>
 
-            <!-- Additional Notes Card -->
+            <!-- 4. Treatment Plan -->
             <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
                 <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-primary">note</span>
-                    <h3 class="text-lg font-bold">Additional Notes</h3>
+                    <span class="material-symbols-outlined text-primary">assignment</span>
+                    <h3 class="text-lg font-bold">4. Treatment Plan</h3>
                 </div>
-                <div class="bg-[#fcfbf9] dark:bg-[#34281d] border border-[#f5f2f0] dark:border-[#3d2f23] rounded-lg p-4">
-                    <p class="text-sm text-[#8d755e] leading-relaxed whitespace-pre-line"><%= note %></p>
+                <div class="rounded-lg border border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 p-4 mb-4">
+                    <p class="text-sm leading-relaxed whitespace-pre-line"><%= treatment %></p>
+                </div>
+                <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] overflow-hidden">
+                    <% if (services.isEmpty()) { %>
+                        <p class="p-4 text-sm text-[#8d755e]">No procedure lines attached.</p>
+                    <% } else {
+                        for (RecordServiceLine line : services) {
+                            String serviceName = line.getServiceName() != null ? line.getServiceName() : "Service";
+                            int qty = line.getQuantity();
+                    %>
+                    <div class="p-3 border-b border-[#f5f2f0] dark:border-[#3d2f23] bg-[#fcfbf9] dark:bg-[#34281d] last:border-b-0">
+                        <p class="text-sm"><%= serviceName %><% if (qty > 1) { %> (x<%= qty %>)<% } %></p>
+                    </div>
+                    <%  }
+                       } %>
                 </div>
             </div>
 
