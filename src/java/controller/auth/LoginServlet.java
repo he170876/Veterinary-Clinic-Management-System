@@ -117,7 +117,7 @@ public class LoginServlet extends HttpServlet {
                 path = contextPath + "/staff/dashboard";
                 break;
             case 4:  // LabStaff
-                path = contextPath + "/lab/dashboard";
+                path = contextPath + "/lab/labqueue";
                 break;
             case 1:  // Customer
             default:

@@ -91,13 +91,32 @@
                         <span class="material-symbols-outlined">settings</span>
                     </button>
                 </div>
-                <% if (hasProfilePic) { %>
-                <img src="<%= ctx %><%= profilePicUrl %>" alt="<%= displayName %>" class="rounded-full size-10 border-2 border-primary/20 object-cover" title="<%= displayName %>"/>
-                <% } else { %>
-                <div class="bg-primary/10 rounded-full size-10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-lg" title="<%= displayName %>">
-                    <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
+                <div class="relative">
+                    <button type="button"
+                            id="customer-profile-toggle"
+                            class="size-10 rounded-full border-2 border-primary/20 overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-bold text-lg hover:brightness-95 transition-colors"
+                            title="<%= displayName %>">
+                        <% if (hasProfilePic) { %>
+                        <img src="<%= ctx %><%= profilePicUrl %>" alt="<%= displayName %>" class="w-full h-full object-cover"/>
+                        <% } else { %>
+                        <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
+                        <% } %>
+                    </button>
+                    <div id="customer-profile-menu"
+                         class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 z-50"
+                         style="display:none;">
+                        <a href="<%= ctx %>/customer/profile"
+                           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-t-xl flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-primary">person</span>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="<%= ctx %>/logout"
+                           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-xl flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-primary">logout</span>
+                            <span>Sign out</span>
+                        </a>
+                    </div>
                 </div>
-                <% } %>
             </div>
         </header>
         <div class="p-8 max-w-7xl mx-auto w-full">
@@ -292,6 +311,22 @@
 </div>
 <% } %>
 
+<script>
+    (function() {
+        var toggle = document.getElementById('customer-profile-toggle');
+        var menu = document.getElementById('customer-profile-menu');
+        if (!toggle || !menu) return;
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+            if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    })();
+</script>
 <script>
 (function() {
     var modal = document.getElementById('modalChangePassword');

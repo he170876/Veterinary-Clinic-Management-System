@@ -18,9 +18,11 @@ public class LabTestRequest {
     // Display (from JOINs)
     private String petName;
     private String species;
+    private String breed;
     private String ownerName;
     private String veterinarianName;
     private String testName;
+    private String clinicalNotes;
 
     public int getRequestId() { return requestId; }
     public void setRequestId(int requestId) { this.requestId = requestId; }
@@ -38,10 +40,14 @@ public class LabTestRequest {
     public void setPetName(String petName) { this.petName = petName; }
     public String getSpecies() { return species; }
     public void setSpecies(String species) { this.species = species; }
+    public String getBreed() { return breed; }
+    public void setBreed(String breed) { this.breed = breed; }
     public String getOwnerName() { return ownerName; }
     public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
     public String getVeterinarianName() { return veterinarianName; }
     public void setVeterinarianName(String veterinarianName) { this.veterinarianName = veterinarianName; }
     public String getTestName() { return testName; }
     public void setTestName(String testName) { this.testName = testName; }
+    public String getClinicalNotes() { return clinicalNotes; }
+    public void setClinicalNotes(String clinicalNotes) { this.clinicalNotes = clinicalNotes; }
 }

@@ -73,7 +73,8 @@ public class VetLabRequestServlet extends HttpServlet {
         }
         //tạo lab request
         LabTestRequestDAO labDao = new LabTestRequestDAO();
-        labDao.createRequest(visit.getVisitId(), testId, visit.getVeterinarianId());
+        String clinicalNotes = request.getParameter("clinicalNotes");
+        labDao.createRequest(visit.getVisitId(), testId, visit.getVeterinarianId(), clinicalNotes);
 
         // Notify Lab Technician(s) that a new lab request was created
         NotificationDAO ndao = new NotificationDAO();

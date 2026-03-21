@@ -94,19 +94,7 @@
                 <span class="material-symbols-outlined">pending_actions</span>
                 <span class="font-medium">Request Center</span>
             </a>
-            <!-- Settings -->
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="font-medium">Settings</span>
-            </a>
         </nav>
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800 mt-4">
-            <a href="${pageContext.request.contextPath}/logout"
-               class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors">
-                <span class="material-symbols-outlined text-[18px]">logout</span>
-                Log Out
-            </a>
-        </div>
     </aside>
 
     <main class="flex-1 flex flex-col min-h-screen">
@@ -125,7 +113,38 @@
                             <c:out value="${not empty sessionScope.currentUser.role ? sessionScope.currentUser.role.roleName : 'User'}"/>
                         </p>
                     </div>
-                    <img alt="Profile" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbM3tqKcwxIsoi5slYj6Kdkox1ysp7KyLPDUH241MYJyDiLgGIKJ9QfoxuwyxV7s__5dZyVili1E1pp7xhQFoF-V8TeZNJinkVaQLjApB2--PT016uBomLlR7k5ltY6L9ulS8rA6R9XrEDYfPiKRJAXNwpDWjOg_9KCYs2yO3_5n8QJ1kKKmQloVoxUx4kSNIbI7UBGluY2j-V8Oysu6VNuosQ1slgZWJMFmS4Rk4Ivn1Jv10A3YoUxgz9L5k5j8p-uVqiMJH_3EY"/>
+                        <div class="relative">
+                            <button type="button"
+                                    id="receptionist-profile-toggle"
+                                    class="w-10 h-10 rounded-full overflow-hidden focus:outline-none">
+                                <c:choose>
+                                    <c:when test="${not empty sessionScope.currentUser.profilePictureUrl}">
+                                        <img alt="Profile"
+                                             class="w-full h-full object-cover"
+                                             src="${pageContext.request.contextPath}${sessionScope.currentUser.profilePictureUrl}"/>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="material-symbols-outlined text-primary bg-primary/10 w-full h-full flex items-center justify-center">
+                                            person
+                                        </span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </button>
+                            <div id="receptionist-profile-menu"
+                                 class="absolute right-0 mt-2 w-44 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
+                                 style="display:none;">
+                                <a href="${pageContext.request.contextPath}/Receptionist/profile"
+                                   class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-t-xl flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base text-primary">person</span>
+                                    <span>My Profile</span>
+                                </a>
+                                <a href="${pageContext.request.contextPath}/logout"
+                                   class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-b-xl flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base text-primary">logout</span>
+                                    <span>Sign out</span>
+                                </a>
+                            </div>
+                        </div>
                 </div>
             </div>
         </header>
@@ -242,5 +261,21 @@
             </div>
         </div>
     </main>
+    <script>
+        (function() {
+            var toggle = document.getElementById('receptionist-profile-toggle');
+            var menu = document.getElementById('receptionist-profile-menu');
+            if (!toggle || !menu) return;
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+            });
+            document.addEventListener('click', function(e) {
+                if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+                    menu.style.display = 'none';
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

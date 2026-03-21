@@ -54,6 +54,16 @@
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <!-- Main Content -->
     <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 backdrop-blur-sm sticky top-0 z-10">
+        <div class="flex items-center gap-4">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h2>
+            <span class="text-xs text-slate-500 dark:text-slate-400">Veterinary Medical Center</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
+            <%@ include file="/WEB-INF/includes/customer-profile-dropdown.jspf" %>
+        </div>
+    </header>
     <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <!-- Welcome Banner -->
         <div class="bg-gradient-to-r from-primary to-red-400 rounded-2xl p-8 text-white mb-8">

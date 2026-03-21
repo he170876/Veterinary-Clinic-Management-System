@@ -125,7 +125,7 @@
 <p class="text-sm font-bold"><%= customerName %></p>
 <p class="text-xs text-[#8d755e]">Pet Parent</p>
 </div>
-<div class="size-10 bg-center bg-no-repeat bg-cover rounded-full border border-primary/20" style='background-image: url("<%= customerAvatar %>");'></div>
+<%@ include file="/WEB-INF/includes/customer-profile-dropdown.jspf" %>
 </div>
 </div>
 </header>

@@ -92,6 +92,7 @@
             </div>
             <div class="flex items-center gap-4">
                 <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
+                <%@ include file="/WEB-INF/includes/customer-profile-dropdown.jspf" %>
                 <div class="text-right hidden sm:block">
                     <p class="text-sm font-bold text-slate-900 dark:text-slate-100"><%= user.getFullName() != null ? user.getFullName() : "Customer" %></p>
                     <p class="text-xs text-slate-500">Pet Owner</p>

@@ -64,21 +64,7 @@
                 <span class="material-symbols-outlined">pending_actions</span>
                 <span class="font-medium">Request Center</span>
             </a>
-            <!-- Settings -->
-            <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors" href="#">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="font-medium">Settings</span>
-            </a>
         </nav>
-
-        <!-- Logout button -->
-        <div class="p-4 border-t border-slate-200 mt-4">
-            <a href="${pageContext.request.contextPath}/logout"
-               class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors">
-                <span class="material-symbols-outlined text-[18px]">logout</span>
-                Log Out
-            </a>
-        </div>
     </aside>
 
     <!-- Main Content -->
@@ -96,7 +82,38 @@
                         <p class="text-sm font-semibold">${not empty currentUser ? currentUser.fullName : 'User'}</p>
                         <p class="text-xs text-slate-500"><c:out value="${not empty sessionScope.currentUser.role ? sessionScope.currentUser.role.roleName : 'User'}"/></p>
                     </div>
-                    <img alt="Profile" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbM3tqKcwxIsoi5slYj6Kdkox1ysp7KyLPDUH241MYJyDiLgGIKJ9QfoxuwyxV7s__5dZyVili1E1pp7xhQFoF-V8TeZNJinkVaQLjApB2--PT016uBomLlR7k5ltY6L9ulS8rA6R9XrEDYfPiKRJAXNwpDWjOg_9KCYs2yO3_5n8QJ1kKKmQloVoxUx4kSNIbI7UBGluY2j-V8Oysu6VNuosQ1slgZWJMFmS4Rk4Ivn1Jv10A3YoUxgz9L5k5j8p-uVqiMJH_3EY"/>
+                    <div class="relative">
+                        <button type="button"
+                                id="receptionist-profile-toggle"
+                                class="w-10 h-10 rounded-full overflow-hidden focus:outline-none">
+                            <c:choose>
+                                <c:when test="${not empty sessionScope.currentUser.profilePictureUrl}">
+                                    <img alt="Profile"
+                                         class="w-full h-full object-cover"
+                                         src="${pageContext.request.contextPath}${sessionScope.currentUser.profilePictureUrl}"/>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="material-symbols-outlined text-primary bg-primary/10 w-full h-full flex items-center justify-center">
+                                        person
+                                    </span>
+                                </c:otherwise>
+                            </c:choose>
+                        </button>
+                        <div id="receptionist-profile-menu"
+                             class="absolute right-0 mt-2 w-44 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
+                             style="display:none;">
+                            <a href="${pageContext.request.contextPath}/Receptionist/profile"
+                               class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-t-xl flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base text-primary">person</span>
+                                <span>My Profile</span>
+                            </a>
+                            <a href="${pageContext.request.contextPath}/logout"
+                               class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-b-xl flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base text-primary">logout</span>
+                                <span>Sign out</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -788,7 +805,34 @@
         }
 
         function markAsPaid(appointmentId, button) {
-            updateStatus(appointmentId, 'Completed', button);
+            if (button) {
+                button.disabled = true;
+                button.textContent = '...';
+            }
+
+            fetch('MarkInvoicePaid', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
+                },
+                body: 'appointmentId=' + encodeURIComponent(appointmentId)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Payment confirmed');
+                    setTimeout(() => { location.reload(); }, 1500);
+                } else {
+                    alert('Error: ' + (data.message || 'Unable to confirm payment'));
+                    if (button) button.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while confirming payment');
+                if (button) button.disabled = false;
+            });
         }
 
         function viewInvoice(appointmentId) {
@@ -911,6 +955,22 @@
     </style>
     <jsp:include page="book-appointment-modal.jsp"/>
     <jsp:include page="emergency-appointment-modal.jsp"/>
+    <script>
+        (function() {
+            var toggle = document.getElementById('receptionist-profile-toggle');
+            var menu = document.getElementById('receptionist-profile-menu');
+            if (!toggle || !menu) return;
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+            });
+            document.addEventListener('click', function(e) {
+                if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+                    menu.style.display = 'none';
+                }
+            });
+        })();
+    </script>
     </body>
 </html>
 

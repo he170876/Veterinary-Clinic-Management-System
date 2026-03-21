@@ -1,0 +1,66 @@
+<%@ page import="model.User" %>
+<%
+    // Important: use a unique variable name because many parent JSPs already define `ctx`.
+    String profileCtx = request.getContextPath();
+    User u = (User) request.getAttribute("user");
+    if (u == null && session != null) {
+        u = (User) session.getAttribute("currentUser");
+    }
+
+    String displayName = (u != null && u.getFullName() != null && !u.getFullName().isEmpty())
+            ? u.getFullName()
+            : (u != null ? u.getEmail() : "Customer");
+
+    String profilePicUrl = u != null ? u.getProfilePictureUrl() : null;
+    boolean hasProfilePic = profilePicUrl != null && !profilePicUrl.isEmpty();
+%>
+
+<div class="relative">
+    <button type="button"
+            id="customer-profile-toggle"
+            class="size-10 rounded-full border-2 border-primary/20 overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-bold hover:brightness-95 transition-colors focus:outline-none"
+            title="<%= displayName %>">
+        <% if (hasProfilePic) { %>
+        <img alt="Profile"
+             class="w-full h-full object-cover"
+             src="<%= profileCtx %><%= profilePicUrl %>"/>
+        <% } else { %>
+        <span class="material-symbols-outlined text-base">person</span>
+        <% } %>
+    </button>
+
+    <div id="customer-profile-menu"
+         class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
+         style="display:none;">
+        <a href="<%= profileCtx %>/customer/profile"
+           class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-t-xl flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-primary">person</span>
+            <span>My Profile</span>
+        </a>
+        <a href="<%= profileCtx %>/logout"
+           class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-b-xl flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-primary">logout</span>
+            <span>Sign out</span>
+        </a>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var toggle = document.getElementById('customer-profile-toggle');
+        var menu = document.getElementById('customer-profile-menu');
+        if (!toggle || !menu) return;
+
+        toggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    })();
+</script>
+

@@ -258,11 +258,15 @@ public class VetExaminationServlet extends HttpServlet {
         }
 //sau khi hoàn thành examation sẽ xóa cái recordservices đi và tính số tiền 
         String action = request.getParameter("action");
-        if ("complete".equals(action)) {
-            if (visit != null) {
-                visitDao.completeVisit(visit.getVisitId());
-            }
-            appDao.updateAppointmentStatus(appointmentId, "Waiting for Payment");
+        if ("complete".equals(action) && visit != null) {
+            visitDao.completeVisit(visit.getVisitId());
+            // After vet completes examination, receptionist must confirm payment.
+            // UI/flow expects "Waiting-for-Payment" before it becomes "Done".
+            appDao.updateAppointmentStatus(appointmentId, "Waiting-for-Payment");
+
+            // Auto-cancel all pending lab requests belonging to this visit
+            LabTestRequestDAO labDao = new LabTestRequestDAO();
+            labDao.cancelPendingByVisitId(visit.getVisitId());
             // Record amount spent (from medical record services)
             if (record != null && visit != null) {
                 List<RecordServiceLine> lines = recordDao.getServicesForRecord(record.getRecordId());

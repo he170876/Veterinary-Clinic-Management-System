@@ -71,6 +71,7 @@
 </div>
 </div>
 <div class="flex items-center gap-6">
+    <%@ include file="/WEB-INF/includes/customer-profile-dropdown.jspf" %>
 <div class="flex items-center gap-3 pl-4 border-l border-[#f5f2f0] dark:border-[#3d2f23]">
 <div class="text-right">
 <p class="text-sm font-bold"><%= user.getFullName() != null ? user.getFullName() : user.getEmail() %></p>

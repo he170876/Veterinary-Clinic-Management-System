@@ -329,7 +329,7 @@ public class GoogleLoginServlet extends HttpServlet {
                 response.sendRedirect(ctx + "/staff/dashboard");
                 break;
             case 4:  // LabStaff
-                response.sendRedirect(ctx + "/lab/dashboard");
+                response.sendRedirect(ctx + "/lab/labqueue");
                 break;
             case 1:  // Customer
             default:

@@ -99,6 +99,7 @@
                 <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                 <div class="h-8 w-px bg-slate-200 dark:border-slate-800"></div>
                 <div class="flex items-center gap-3">
+                    <%@ include file="/WEB-INF/includes/customer-profile-dropdown.jspf" %>
                     <div class="text-right hidden sm:block">
                         <p class="text-sm font-bold text-slate-900 dark:text-slate-100"><%= user != null ? user.getFullName() : "Customer" %></p>
                         <p class="text-xs text-slate-500">Pet Owner</p>

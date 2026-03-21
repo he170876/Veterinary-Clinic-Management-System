@@ -74,8 +74,26 @@
                 </nav>
             </div>
             <div class="flex items-center gap-4">
-                <div class="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary font-bold text-sm">
-                    <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
+                <div class="relative">
+                    <button type="button"
+                            id="customer-edit-profile-toggle"
+                            class="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary font-bold text-sm hover:brightness-95 transition-colors focus:outline-none">
+                        <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
+                    </button>
+                    <div id="customer-edit-profile-menu"
+                         class="absolute right-0 mt-2 w-52 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
+                         style="display:none;">
+                        <a href="<%= ctx %>/customer/profile"
+                           class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-t-xl flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-primary">person</span>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="<%= ctx %>/logout"
+                           class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-b-xl flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-primary">logout</span>
+                            <span>Sign out</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </header>
@@ -176,6 +194,22 @@
         </div>
     </main>
 </div>
+<script>
+    (function() {
+        var toggle = document.getElementById('customer-edit-profile-toggle');
+        var menu = document.getElementById('customer-edit-profile-menu');
+        if (!toggle || !menu) return;
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+            if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    })();
+</script>
 <script>
 (function() {
     var input = document.getElementById('profilePictureInput');

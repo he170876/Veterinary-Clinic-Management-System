@@ -86,6 +86,7 @@ Quay lại trang đầu
 </a>
 <% } %>
 <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
+<%@ include file="/WEB-INF/includes/customer-profile-dropdown.jspf" %>
 <button class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
 <span class="material-symbols-outlined">help_outline</span>
 </button>
