@@ -37,20 +37,54 @@ public class LabTestRequestDAO extends DBContext {
 
     /** Create a lab test request (status Pending). */
     public LabTestRequest createRequest(int visitId, int testId, int veterinarianId) {
-        String sql = "INSERT INTO LabTestRequests (visit_id, test_id, veterinarian_id, request_time, status) OUTPUT INSERTED.request_id VALUES (?, ?, ?, GETDATE(), 'Pending')";
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, visitId);
-            ps.setInt(2, testId);
-            ps.setInt(3, veterinarianId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    LabTestRequest r = new LabTestRequest();
-                    r.setRequestId(rs.getInt(1));
-                    r.setVisitId(visitId);
-                    r.setTestId(testId);
-                    r.setVeterinarianId(veterinarianId);
-                    r.setStatus("Pending");
-                    return r;
+        return createRequest(visitId, testId, veterinarianId, null);
+    }
+
+    /**
+     * Create a lab test request (status Pending) with optional clinical notes.
+     * Works with both schemas:
+     * - If column clinical_notes exists: store it.
+     * - If not: falls back to legacy insert.
+     */
+    public LabTestRequest createRequest(int visitId, int testId, int veterinarianId, String clinicalNotes) {
+        String sqlWithNotes = "INSERT INTO LabTestRequests (visit_id, test_id, veterinarian_id, request_time, status, clinical_notes) OUTPUT INSERTED.request_id VALUES (?, ?, ?, GETDATE(), 'Pending', ?)";
+        String sqlLegacy = "INSERT INTO LabTestRequests (visit_id, test_id, veterinarian_id, request_time, status) OUTPUT INSERTED.request_id VALUES (?, ?, ?, GETDATE(), 'Pending')";
+        try (Connection con = getConnection()) {
+            // Try insert with clinical_notes first
+            try (PreparedStatement ps = con.prepareStatement(sqlWithNotes)) {
+                ps.setInt(1, visitId);
+                ps.setInt(2, testId);
+                ps.setInt(3, veterinarianId);
+                ps.setString(4, clinicalNotes);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        LabTestRequest r = new LabTestRequest();
+                        r.setRequestId(rs.getInt(1));
+                        r.setVisitId(visitId);
+                        r.setTestId(testId);
+                        r.setVeterinarianId(veterinarianId);
+                        r.setStatus("Pending");
+                        r.setClinicalNotes(clinicalNotes);
+                        return r;
+                    }
+                }
+            } catch (SQLException ignored) {
+                // Fallback to legacy schema
+                try (PreparedStatement ps = con.prepareStatement(sqlLegacy)) {
+                    ps.setInt(1, visitId);
+                    ps.setInt(2, testId);
+                    ps.setInt(3, veterinarianId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            LabTestRequest r = new LabTestRequest();
+                            r.setRequestId(rs.getInt(1));
+                            r.setVisitId(visitId);
+                            r.setTestId(testId);
+                            r.setVeterinarianId(veterinarianId);
+                            r.setStatus("Pending");
+                            return r;
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
@@ -62,9 +96,10 @@ public class LabTestRequestDAO extends DBContext {
     /** Pending requests for lab queue (FIFO by request_time), with pet, owner, vet, test name. */
     public List<LabTestRequest> getPendingRequests() {
         List<LabTestRequest> list = new ArrayList<>();
-        String sql = """
+        String sqlWithNotes = """
             SELECT ltr.request_id, ltr.visit_id, ltr.test_id, ltr.veterinarian_id, ltr.request_time, ltr.status,
-                   p.name AS pet_name, p.species,
+                   ltr.clinical_notes,
+                   p.name AS pet_name, p.species, p.breed,
                    u.full_name AS owner_name,
                    vet_u.full_name AS veterinarian_name,
                    lt.test_name
@@ -77,24 +112,219 @@ public class LabTestRequestDAO extends DBContext {
             JOIN Users vet_u ON vet.user_id = vet_u.user_id
             JOIN LabTests lt ON ltr.test_id = lt.test_id
             WHERE ltr.status = 'Pending'
-            ORDER BY ltr.request_time ASC
+            ORDER BY ltr.request_time ASC, ltr.request_id ASC
             """;
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                LabTestRequest r = new LabTestRequest();
-                r.setRequestId(rs.getInt("request_id"));
-                r.setVisitId(rs.getInt("visit_id"));
-                r.setTestId(rs.getInt("test_id"));
-                r.setVeterinarianId(rs.getInt("veterinarian_id"));
-                Timestamp t = rs.getTimestamp("request_time");
-                if (t != null) r.setRequestTime(t.toLocalDateTime());
-                r.setStatus(rs.getString("status"));
-                r.setPetName(rs.getString("pet_name"));
-                r.setSpecies(rs.getString("species"));
-                r.setOwnerName(rs.getString("owner_name"));
-                r.setVeterinarianName(rs.getString("veterinarian_name"));
-                r.setTestName(rs.getString("test_name"));
-                list.add(r);
+        String sqlLegacy = """
+            SELECT ltr.request_id, ltr.visit_id, ltr.test_id, ltr.veterinarian_id, ltr.request_time, ltr.status,
+                   p.name AS pet_name, p.species, p.breed,
+                   u.full_name AS owner_name,
+                   vet_u.full_name AS veterinarian_name,
+                   lt.test_name
+            FROM LabTestRequests ltr
+            JOIN Visits v ON ltr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            JOIN Customers c ON v.customer_id = c.customer_id
+            JOIN Users u ON c.user_id = u.user_id
+            JOIN Veterinarians vet ON ltr.veterinarian_id = vet.veterinarian_id
+            JOIN Users vet_u ON vet.user_id = vet_u.user_id
+            JOIN LabTests lt ON ltr.test_id = lt.test_id
+            WHERE ltr.status = 'Pending'
+            ORDER BY ltr.request_time ASC, ltr.request_id ASC
+            """;
+        try (Connection con = getConnection()) {
+            try (PreparedStatement ps = con.prepareStatement(sqlWithNotes); ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LabTestRequest r = new LabTestRequest();
+                    r.setRequestId(rs.getInt("request_id"));
+                    r.setVisitId(rs.getInt("visit_id"));
+                    r.setTestId(rs.getInt("test_id"));
+                    r.setVeterinarianId(rs.getInt("veterinarian_id"));
+                    Timestamp t = rs.getTimestamp("request_time");
+                    if (t != null) r.setRequestTime(t.toLocalDateTime());
+                    r.setStatus(rs.getString("status"));
+                    r.setPetName(rs.getString("pet_name"));
+                    r.setSpecies(rs.getString("species"));
+                    r.setBreed(rs.getString("breed"));
+                    r.setOwnerName(rs.getString("owner_name"));
+                    r.setVeterinarianName(rs.getString("veterinarian_name"));
+                    r.setTestName(rs.getString("test_name"));
+                    r.setClinicalNotes(rs.getString("clinical_notes"));
+                    list.add(r);
+                }
+                return list;
+            } catch (SQLException ignored) {
+                try (PreparedStatement ps = con.prepareStatement(sqlLegacy); ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        LabTestRequest r = new LabTestRequest();
+                        r.setRequestId(rs.getInt("request_id"));
+                        r.setVisitId(rs.getInt("visit_id"));
+                        r.setTestId(rs.getInt("test_id"));
+                        r.setVeterinarianId(rs.getInt("veterinarian_id"));
+                        Timestamp t = rs.getTimestamp("request_time");
+                        if (t != null) r.setRequestTime(t.toLocalDateTime());
+                        r.setStatus(rs.getString("status"));
+                        r.setPetName(rs.getString("pet_name"));
+                        r.setSpecies(rs.getString("species"));
+                        r.setBreed(rs.getString("breed"));
+                        r.setOwnerName(rs.getString("owner_name"));
+                        r.setVeterinarianName(rs.getString("veterinarian_name"));
+                        r.setTestName(rs.getString("test_name"));
+                        list.add(r);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Count pending lab requests for lab queue with optional search.
+     * Search matches pet name OR owner name (LIKE) OR request_id/visit_id (exact numeric).
+     */
+    public int countPendingRequests(String query) {
+        String q = query == null ? "" : query.trim();
+        boolean hasQ = !q.isEmpty();
+        String sql = """
+            SELECT COUNT(*)
+            FROM LabTestRequests ltr
+            JOIN Visits v ON ltr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            JOIN Customers c ON v.customer_id = c.customer_id
+            JOIN Users u ON c.user_id = u.user_id
+            WHERE ltr.status = 'Pending'
+            """ + (hasQ ? " AND (p.name LIKE ? OR u.full_name LIKE ? OR CAST(ltr.request_id AS NVARCHAR(20)) = ? OR CAST(ltr.visit_id AS NVARCHAR(20)) = ?)" : "");
+
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            if (hasQ) {
+                ps.setString(1, "%" + q + "%");
+                ps.setString(2, "%" + q + "%");
+                ps.setString(3, q);
+                ps.setString(4, q);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Page pending requests for lab queue (FIFO), with optional search.
+     * Order is stable: request_time ASC, request_id ASC.
+     */
+    public List<LabTestRequest> getPendingRequestsPage(int offset, int pageSize, String query) {
+        List<LabTestRequest> list = new ArrayList<>();
+        if (offset < 0) offset = 0;
+        if (pageSize <= 0) pageSize = 10;
+        String q = query == null ? "" : query.trim();
+        boolean hasQ = !q.isEmpty();
+
+        String baseSelectWithNotes = """
+            SELECT ltr.request_id, ltr.visit_id, ltr.test_id, ltr.veterinarian_id, ltr.request_time, ltr.status,
+                   ltr.clinical_notes,
+                   p.name AS pet_name, p.species, p.breed,
+                   u.full_name AS owner_name,
+                   vet_u.full_name AS veterinarian_name,
+                   lt.test_name
+            FROM LabTestRequests ltr
+            JOIN Visits v ON ltr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            JOIN Customers c ON v.customer_id = c.customer_id
+            JOIN Users u ON c.user_id = u.user_id
+            JOIN Veterinarians vet ON ltr.veterinarian_id = vet.veterinarian_id
+            JOIN Users vet_u ON vet.user_id = vet_u.user_id
+            JOIN LabTests lt ON ltr.test_id = lt.test_id
+            WHERE ltr.status = 'Pending'
+            """;
+        String baseSelectLegacy = """
+            SELECT ltr.request_id, ltr.visit_id, ltr.test_id, ltr.veterinarian_id, ltr.request_time, ltr.status,
+                   p.name AS pet_name, p.species, p.breed,
+                   u.full_name AS owner_name,
+                   vet_u.full_name AS veterinarian_name,
+                   lt.test_name
+            FROM LabTestRequests ltr
+            JOIN Visits v ON ltr.visit_id = v.visit_id
+            JOIN Pets p ON v.pet_id = p.pet_id
+            JOIN Customers c ON v.customer_id = c.customer_id
+            JOIN Users u ON c.user_id = u.user_id
+            JOIN Veterinarians vet ON ltr.veterinarian_id = vet.veterinarian_id
+            JOIN Users vet_u ON vet.user_id = vet_u.user_id
+            JOIN LabTests lt ON ltr.test_id = lt.test_id
+            WHERE ltr.status = 'Pending'
+            """;
+
+        String filter = hasQ ? " AND (p.name LIKE ? OR u.full_name LIKE ? OR CAST(ltr.request_id AS NVARCHAR(20)) = ? OR CAST(ltr.visit_id AS NVARCHAR(20)) = ?)" : "";
+        String paging = " ORDER BY ltr.request_time ASC, ltr.request_id ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+
+        try (Connection con = getConnection()) {
+            String sqlWithNotes = baseSelectWithNotes + filter + paging;
+            try (PreparedStatement ps = con.prepareStatement(sqlWithNotes)) {
+                int idx = 1;
+                if (hasQ) {
+                    ps.setString(idx++, "%" + q + "%");
+                    ps.setString(idx++, "%" + q + "%");
+                    ps.setString(idx++, q);
+                    ps.setString(idx++, q);
+                }
+                ps.setInt(idx++, offset);
+                ps.setInt(idx, pageSize);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        LabTestRequest r = new LabTestRequest();
+                        r.setRequestId(rs.getInt("request_id"));
+                        r.setVisitId(rs.getInt("visit_id"));
+                        r.setTestId(rs.getInt("test_id"));
+                        r.setVeterinarianId(rs.getInt("veterinarian_id"));
+                        Timestamp t = rs.getTimestamp("request_time");
+                        if (t != null) r.setRequestTime(t.toLocalDateTime());
+                        r.setStatus(rs.getString("status"));
+                        r.setPetName(rs.getString("pet_name"));
+                        r.setSpecies(rs.getString("species"));
+                        r.setBreed(rs.getString("breed"));
+                        r.setOwnerName(rs.getString("owner_name"));
+                        r.setVeterinarianName(rs.getString("veterinarian_name"));
+                        r.setTestName(rs.getString("test_name"));
+                        r.setClinicalNotes(rs.getString("clinical_notes"));
+                        list.add(r);
+                    }
+                    return list;
+                }
+            } catch (SQLException ignored) {
+                String sqlLegacy = baseSelectLegacy + filter + paging;
+                try (PreparedStatement ps = con.prepareStatement(sqlLegacy)) {
+                    int idx = 1;
+                    if (hasQ) {
+                        ps.setString(idx++, "%" + q + "%");
+                        ps.setString(idx++, "%" + q + "%");
+                        ps.setString(idx++, q);
+                        ps.setString(idx++, q);
+                    }
+                    ps.setInt(idx++, offset);
+                    ps.setInt(idx, pageSize);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            LabTestRequest r = new LabTestRequest();
+                            r.setRequestId(rs.getInt("request_id"));
+                            r.setVisitId(rs.getInt("visit_id"));
+                            r.setTestId(rs.getInt("test_id"));
+                            r.setVeterinarianId(rs.getInt("veterinarian_id"));
+                            Timestamp t = rs.getTimestamp("request_time");
+                            if (t != null) r.setRequestTime(t.toLocalDateTime());
+                            r.setStatus(rs.getString("status"));
+                            r.setPetName(rs.getString("pet_name"));
+                            r.setSpecies(rs.getString("species"));
+                            r.setBreed(rs.getString("breed"));
+                            r.setOwnerName(rs.getString("owner_name"));
+                            r.setVeterinarianName(rs.getString("veterinarian_name"));
+                            r.setTestName(rs.getString("test_name"));
+                            list.add(r);
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -314,6 +544,19 @@ public class LabTestRequestDAO extends DBContext {
             e.printStackTrace();
         }
         return list;
+    }
+
+    /** Cancel all pending lab requests for a given visit (used when examination is completed). */
+    public int cancelPendingByVisitId(int visitId) {
+        if (visitId <= 0) return 0;
+        String sql = "UPDATE LabTestRequests SET status = 'Cancelled' WHERE visit_id = ? AND status = 'Pending'";
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, visitId);
+            return ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     /** Detailed result for a specific lab request, used by vet viewer modal. */

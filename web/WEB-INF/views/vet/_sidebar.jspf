@@ -6,11 +6,25 @@
     }
     String sidebarRoleTitle = (sidebarUser != null && sidebarUser.getRole() != null && sidebarUser.getRole().getRoleName() != null)
             ? sidebarUser.getRole().getRoleName() : "Veterinarian";
-    String currentPath = request.getRequestURI();
-    boolean onDashboard = currentPath.endsWith("/vet/dashboard");
-    boolean onQueue = currentPath.endsWith("/vet/queue") || currentPath.endsWith("/vet/examination");
-    boolean onRecords = currentPath.endsWith("/vet/records") || currentPath.endsWith("/vet/record");
-    boolean onProfile = currentPath.endsWith("/vet/profile") || currentPath.endsWith("/vet/edit-profile");
+    // Robust active detection (handles servlet forward + url variations)
+    String fwdServletPath = (String) request.getAttribute("jakarta.servlet.forward.servlet_path");
+    if (fwdServletPath == null) fwdServletPath = (String) request.getAttribute("javax.servlet.forward.servlet_path");
+    String fwdRequestUri = (String) request.getAttribute("jakarta.servlet.forward.request_uri");
+    if (fwdRequestUri == null) fwdRequestUri = (String) request.getAttribute("javax.servlet.forward.request_uri");
+
+    String currentPath = null;
+    if (fwdServletPath != null && !fwdServletPath.isEmpty()) currentPath = fwdServletPath;
+    else if (fwdRequestUri != null && !fwdRequestUri.isEmpty()) currentPath = fwdRequestUri;
+    else currentPath = request.getRequestURI();
+    if (currentPath == null) currentPath = "";
+
+    if (sidebarCtx != null && !sidebarCtx.isEmpty() && currentPath.startsWith(sidebarCtx)) {
+        currentPath = currentPath.substring(sidebarCtx.length());
+    }
+
+    boolean onDashboard = currentPath.contains("/vet/dashboard");
+    boolean onQueue = currentPath.contains("/vet/queue") || currentPath.contains("/vet/examination");
+    boolean onRecords = currentPath.contains("/vet/records") || currentPath.contains("/vet/record");
 %>
 <!-- Unified Vet Sidebar -->
 <aside id="vet-sidebar" class="hidden lg:flex w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col">
@@ -42,27 +56,7 @@
             <span class="material-symbols-outlined">calendar_today</span>
             <span class="text-sm font-medium">Medical Records</span>
         </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                  text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= onProfile ? " bg-primary/10 text-primary" : "" %>"
-           href="<%= sidebarCtx %>/vet/profile">
-            <span class="material-symbols-outlined">person</span>
-            <span class="text-sm font-medium">My Profile</span>
-        </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
-            <span class="material-symbols-outlined">lab_panel</span>
-            <span class="text-sm font-medium">Lab Results</span>
-        </a>
     </nav>
-    <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-        <div class="flex items-center gap-3 p-2">
-            <div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-500 dark:text-slate-400 text-sm font-bold"<% if (sidebarUser != null && sidebarUser.getProfilePictureUrl() != null && !sidebarUser.getProfilePictureUrl().isEmpty()) { %> style="background-image: url('<%= sidebarCtx %><%= sidebarUser.getProfilePictureUrl() %>'); background-size: cover;"<% } %>><% if (sidebarUser == null || sidebarUser.getProfilePictureUrl() == null || sidebarUser.getProfilePictureUrl().isEmpty()) { %><%= (sidebarUser != null && sidebarUser.getFullName() != null && !sidebarUser.getFullName().isEmpty()) ? String.valueOf(sidebarUser.getFullName().charAt(0)) : "?" %><% } %></div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold truncate"><%= sidebarUser != null && sidebarUser.getFullName() != null ? sidebarUser.getFullName() : "" %></p>
-                <p class="text-xs text-slate-500 truncate"><%= sidebarRoleTitle %></p>
-            </div>
-        </div>
-        <a href="<%= sidebarCtx %>/logout" class="block mt-2 text-center text-xs text-slate-500 hover:text-primary transition-colors">Sign out</a>
-    </div>
 </aside>
 
 <script>
@@ -80,4 +74,5 @@ window.addEventListener('load', function() {
   }
 });
 </script>
+
 

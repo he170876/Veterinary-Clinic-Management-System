@@ -1,0 +1,61 @@
+<%-- Lab sidebar (shared): unified style like Vet/Customer sidebar --%>
+<%
+    String labCtx = request.getContextPath();
+
+    model.User sidebarUser = (model.User) request.getAttribute("user");
+    if (sidebarUser == null && session != null) {
+        sidebarUser = (model.User) session.getAttribute("currentUser");
+    }
+
+    String sidebarRoleTitle = (sidebarUser != null && sidebarUser.getRole() != null && sidebarUser.getRole().getRoleName() != null)
+            ? sidebarUser.getRole().getRoleName() : "Lab Staff";
+
+    String _labSidebarActive = (String) request.getAttribute("labSidebarActive");
+    if (_labSidebarActive == null) _labSidebarActive = "";
+
+    // Robust active detection for fragments forwarded to /WEB-INF views
+    if (_labSidebarActive.isEmpty()) {
+        String fwdServletPath = (String) request.getAttribute("jakarta.servlet.forward.servlet_path");
+        if (fwdServletPath == null) fwdServletPath = (String) request.getAttribute("javax.servlet.forward.servlet_path");
+        String fwdRequestUri = (String) request.getAttribute("jakarta.servlet.forward.request_uri");
+        if (fwdRequestUri == null) fwdRequestUri = (String) request.getAttribute("javax.servlet.forward.request_uri");
+
+        String currentPath = null;
+        if (fwdServletPath != null && !fwdServletPath.isEmpty()) currentPath = fwdServletPath;
+        else if (fwdRequestUri != null && !fwdRequestUri.isEmpty()) currentPath = fwdRequestUri;
+        else currentPath = request.getRequestURI();
+        if (currentPath == null) currentPath = "";
+        if (ctx != null && !ctx.isEmpty() && currentPath.startsWith(ctx)) {
+            currentPath = currentPath.substring(ctx.length());
+        }
+
+        if (currentPath.contains("/lab/labqueue") || currentPath.contains("/lab/dashboard")) _labSidebarActive = "queue";
+        else if (currentPath.contains("/lab/profile") || currentPath.contains("/lab/edit-profile")) _labSidebarActive = "profile";
+    }
+
+    String baseLinkClass = "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors " +
+            "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800";
+
+    String _labQueueClass = baseLinkClass + ("queue".equals(_labSidebarActive) ? " bg-primary/10 text-primary !font-bold" : "");
+    String _labProfileClass = baseLinkClass + ("profile".equals(_labSidebarActive) ? " bg-primary/10 text-primary !font-bold" : "");
+%>
+
+<aside id="lab-sidebar" class="hidden lg:flex w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col">
+    <div class="p-6 flex items-center gap-3">
+        <div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+            <span class="material-symbols-outlined text-2xl">science</span>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Anipats Lab</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Clinical Terminal</p>
+        </div>
+    </div>
+
+    <nav class="flex-1 px-4 space-y-2 mt-4">
+        <a class="<%= _labQueueClass %>" href="<%= labCtx %>/lab/labqueue">
+            <span class="material-symbols-outlined">list_alt</span>
+            <span>Lab Queue</span>
+        </a>
+    </nav>
+</aside>
+

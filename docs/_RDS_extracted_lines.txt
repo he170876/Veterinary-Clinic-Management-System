@@ -1,0 +1,2384 @@
+﻿Requirement & Design Specification
+Veterinary Clinic Management System(VCMS)
+Version: 1.0
+– Hanoi, November 2025 –
+Record of Changes
+Version
+Date
+A*
+M, D
+In charge
+Change Description
+V1.0
+10/1/2026
+A
+PhiNH
+System context
+V1.0
+10/1/2026
+A
+QuangNP
+Veterinarian UC, Screen Flow
+V1.0
+13/1/2026
+A
+QuangNP
+Functional Requirement
+V1.0
+12/1/2026
+A
+HieuTH
+Customer UC
+V1.0
+12/1/2026
+A
+ManhLD
+Staff UC
+V1.0
+17/01/2026
+A
+HungVN
+Clinic Owner UC
+V1.0
+18/1/2026
+A
+QuangNP
+Veterinarian Functional Requirement
+V1.0
+20/1/2026
+A
+PhiNH
+User Requirements 
+V1.0
+20/01/2026
+A
+HieuTH
+Business Process Diagram
+V1.0
+20/01/2026
+A
+ManhLD
+State Diagram 
+V1.0
+21/01/2026
+A
+HieuTH
+Entity Relationship Diagram
+V1.0
+21/01/2026
+A
+HieuTH
+Database Schema, Table Descriptions
+V1.0
+21/01/2026
+A
+HungVN
+Description Clinic Owner
+V1.0
+27/01/2026
+M
+HieuTH
+Business Process Diagram
+V1.0
+03/02/2026
+A
+PhiNH
+External Entities
+V1.0
+03/02/2026
+A
+PhiNH
+Overall Architectural Diagram
+V1.0
+03/02/2026
+A
+PhiNH
+ Component Descriptions
+V1.0
+03/02/2026
+A
+QuangNP
+Package Diagram
+V1.0
+05/02/2026
+A
+PhiNH
+Non-UI Functions
+V1.0
+24/2/2026
+M
+ManhLD
+State Diagram 
+*A - Added M - Modified D - Deleted
+Contents
+Record of Changes
+2
+Component Descriptions
+2
+I. Overview
+5
+1. System Context
+5
+2. External Entities
+6
+3. Business Processes
+6
+3.1 Customer Booking Process
+6
+3.2 Examination & Treatment Process
+7
+4. User Requirements
+7
+4.1 UCs for Customer
+10
+4.2 UCs for Veterinarian
+10
+4.3 UCs for Staff
+12
+4.4 UCs for Clinic Owner
+13
+5. System Functionalities
+13
+5.1 Screens Flow
+13
+5.2 Screen Authorization
+14
+5.3 Non-UI Functions
+15
+II. Functional Requirements
+17
+1. Common
+17
+1.1 Authentication
+17
+2. Service Management
+26
+2.1 Service List
+26
+2.2 Add Service
+27
+2.3 Edit Service
+28
+3. System
+29
+3.1 Master Data
+29
+4. Veterinarian
+29
+4.1 Appointment Management
+29
+4.2 Pet Management
+34
+4.3 Notification Center
+36
+5. Customer
+37
+5.2 Pet Management
+37
+5.3 Medical History
+44
+6. Clinic Owner management
+45
+6.1 Manage Shop Users and Roles
+45
+6.2 Clinic Reports and Statistics
+47
+6.3 Services and System Configuration
+49
+6.4 Clinic Owner Dashboard
+51
+7. Blog management
+53
+7.1 Blog Management Dashboard
+53
+7.2 Create New Blog Post
+54
+7.3 Edit Blog Post
+55
+7.3 Delete Blog Post
+57
+7.4 View Blog Post
+58
+III. System Design
+59
+1. Software Architecture
+59
+1.1 Overall Architectural Diagram
+60
+1.2 Component Descriptions
+60
+2. Code Package Design
+61
+2.1 Package Diagram
+61
+2.2 Package Descriptions
+61
+3. Database Design
+62
+3.1 Database Schema
+62
+3.2 Table Descriptions
+62
+6. Requirement Appendix
+67
+I. Overview
+1. System Context 
+The 
+Veterinary Clinic Management System (VCMS)
+ is a software system designed to support veterinary clinics in managing appointment scheduling, customer and pet information, medical records, and clinic operations. The system replaces manual or fragmented processes (such as paper records, phone calls, and spreadsheets) with a centralized digital platform.
+The system allows 
+customers (pet owners)
+ to register accounts, manage their pets’ profiles, book appointments, and view the medical history of their pets. 
+Clinic staff
+ can manage schedules, services, and customer records, while 
+veterinary doctors
+ can access assigned appointments, review pet medical histories, and record diagnoses and treatments. 
+Clinic owner
+ oversee user management, role-based access control, and system-level reporting.
+The Veterinary Clinic Management System interacts with several external entities, including human users (customers, staff, doctors, Clinic owner) and an external email service for notification delivery. The context diagram defines the system boundary and illustrates the data flows between the system and its external entities, such as appointment requests, medical records, notifications, and Clinic owner reports.
+2. External Entities
+The following table describes the external entities that interact with the Veterinary Clinic Management System, as identified in the system context diagram.
+#
+Entity
+Description
+1
+Customer
+A pet owner who uses the system to register an account, manage personal and pet information, book veterinary appointments, receive notifications, and view the medical history of their pets.
+2
+Laboratory staff
+Personnel responsible for conducting laboratory tests (e.g., blood tests, urine tests) based on veterinary requests. They update test results in the system and ensure accurate and timely reporting for diagnosis and treatment.
+3
+Veterinarian 
+A licensed veterinarian who accesses assigned schedules, reviews pet medical records, records diagnoses and treatments, prescribes medication or services, and provides follow-up notes.
+4
+Clinic owner 
+System Clinic responsible for managing user accounts, assigning roles and permissions, monitoring system usage, and generating statistical reports.
+5
+Gmail(Email Service)
+An external email service used by the system to send appointment confirmations, reminders, and other notification messages to users.
+6
+Receptionist
+Front-desk staff who assist in managing customer check-ins, scheduling appointments, updating basic customer and pet information, and coordinating communication between customers and veterinarians.
+3. Business Processes
+3.1 
+Customer Booking Process
+3.2 
+Examination & Treatment Process
+  
+4. User Requirements
+ID
+Use Case
+Feature
+Main Actor
+Use Case Description
+AL-01
+Login
+Authentication
+All Users
+Users can log in to the system using registered email and password to access personal features.
+AL-02
+Logout
+Authentication
+All Users
+Users can log out from the system to end the current session securely.
+AL-03
+Reset password
+Account Recovery
+All Users
+Users can request password reset via email when forgetting login credentials.
+AL-04
+Manage Profile
+User Profile
+All Users
+Users can request password reset via email when forgetting login credentials.
+AL-05
+Blog List View
+Blog 
+All Users
+Users can view a list of published blog posts containing clinic news and pet care information.
+AL-06
+Blog Detail View
+Blog 
+All Users
+Users can read full blog content including title, text, and publish date.
+CT-01
+Manage Pet Information
+Pet Management
+Customer
+Customers can add, update, and view pet information including species, breed, and age.
+CT-02
+Request Appointment
+Appointment Management
+Customer
+Customers can submit an appointment request by selecting service type and preferred date.
+CT-03
+View Appointment Status
+Appointment Management
+Customer
+Customers can view appointment confirmation, status, and assigned veterinarian.
+CT-04
+Receive Notifications
+Notifications
+Customer
+Customers can receive email notifications for appointment confirmation and reminders.
+CT-05
+View Medical Records
+Medical Record
+Customer
+Customers
+ can view pet medical records after examination by veterinarian.
+CT-06
+View Payment Receipt
+In Previous Visits
+Payment
+Customer
+Customers
+ can view and receive transaction receipt after successful payment.
+CT-07
+View Schedule
+Schedule Management
+Customer
+Veterinarians
+ can view the assigned appointment schedule.
+VT-01
+Update Availability
+Schedule Management
+Veterinarian
+Veterinarians
+ can update availability or request leave.
+VT-02
+Update Examination Record
+Medical Record
+Veterinarian
+Veterinarians
+ can create and update diagnosis, treatment, and prescriptions.
+VT-03
+View Schedule
+Schedule Management
+Veterinarian
+Veterinarians
+ can view the assigned appointment schedule.
+VT-04
+Access Pet Records
+Medical Record
+Veterinarian
+Veterinarians
+ can access pet medical history for assigned appointments.
+VT-05
+Request Examination
+Laboratory Management
+Veterinarian
+Veterinarians can request laboratory tests for pets.
+ST-01
+Manage Appointments
+Schedule Management
+Staff
+Staff can view, confirm, reschedule, or 
+cancel appointments.
+LB-01
+View Examination Requests
+Laboratory Management
+Laboratory Staff
+Laboratory staff can view incoming examination requests.
+LB-02
+Record Examination Results
+Laboratory Management
+Laboratory Staff
+Laboratory staff can upload and update examination results.
+LB-03
+Update Examination Status
+Laboratory Management
+Laboratory Staff
+Laboratory staff can update test status (pending, completed).
+RC-01
+Manage Appointments
+Schedule Management
+Receptionist
+Receptionists can confirm, reschedule, or cancel appointments.
+RC-02
+Manage Clinic Schedules
+Schedule Management
+Receptionist
+Receptionists can manage clinic schedules and assign veterinarians.
+RC-03
+View Customer Information
+Customer Management
+Receptionist
+Receptionists can configure available services and pricing.
+RC-04
+Search Appointments
+Appointment Management
+Receptionist
+Receptionists can search appointments by date, customer, or pet.
+CO-01
+Assign Roles
+Authorization
+Clinic owner
+Clinic owners
+ can assign roles and permissions to users.
+CO-02
+View Shop User List
+User Management
+Clinic owner
+Clinic owners can view the list of all users (staff and veterinarians) belonging to their clinic.
+CO-03
+View Reports
+Reporting
+Clinic owner
+Clinic owners can view system reports and statistics such as appointments, revenue, and service usage of their clinic.
+CO-04
+Manage System Configuration
+Configuration
+Clinic owner
+Clinic owners can configure system settings including email, notification, and security policies for their clinic system.
+CO-05
+Manage Services
+Service Management
+Clinic owner
+Clinic owners can create, update, and remove veterinary services and configure service pricing for their clinic.
+CO-06
+Clinic Owner Dashbroad
+Dashboard
+Clinic owner
+Clinic owners can view an overview dashboard displaying key system information such as total users, appointments, revenue statistics, and system status for monitoring and decision-making.
+CO-07
+Manage Services
+Service Management
+Clinic Owner
+Clinic owners can create, update, or remove clinic services.
+CO-08
+Blog Manage
+Blog Management
+Clinic Owner
+Clinic owners can create, update, publish , or remove blog posts.
+4.1 UCs for Customer
+4.2 UCs for Veterinarian
+4.3 UCs for Staff
+4.4 UCs for Clinic Owner
+5. System Functionalities
+5.1 Screens Flow
+5.2 Screen Authorization
+Screen
+Customer
+Shop owner
+Staff
+Veterinarian
+Homepage
+X
+X
+X
+X
+Login
+X
+X
+X
+X
+        Register
+X
+        Forgot Password
+X
+X
+X
+X
+        Reset Password
+X
+X
+X
+X
+Appointment Booking
+X
+    
+    Appointment Status
+X
+X
+X
+    
+    Appointment Notification
+X
+Profile
+X
+X
+X
+X
+    
+    View Profile
+X
+X
+X
+X
+    
+    Edit Profile
+X
+X
+X
+X
+User Management
+X
+        Edit Role
+X
+        View Employee
+X
+        Assign Role
+X
+Statistics
+X
+        Total Users
+X
+        Total Appointments
+X
+Appointment Management
+X
+X
+X
+        Create Appointment
+X
+        View Appointment List/ Detail                    
+X
+X
+X
+        Assign Appointment
+X
+        Update Appointment Status
+X
+Service Management
+X
+       Create Service
+X
+       View Service
+X
+X
+X
+X
+       Edit Service
+X
+       Delete Service
+X
+Pet Management
+X
+X
+X
+       Create Pet
+X
+       View Pet Detail
+X
+X
+X
+       View Pet Medication History
+X
+X
+X
+       Examination Form
+X
+5.3 Non-UI Functions
+#
+Feature
+System Function
+Description
+1
+Authentication
+Password Security
+The system must store user passwords using secure hashing.
+2
+Authorization
+Role Restriction
+Users can only access functions permitted by their assigned role.
+3
+Appointment Management
+No Overlapping Appointments
+Users can only access functions permitted by their assigned role.
+4
+Medical Records
+Record Integrity
+Medical records cannot be deleted or overwritten.
+5
+Laboratory
+Lab Result Control
+Only lab staff can update lab result status.
+6
+Notification
+Reminder Condition
+Reminders are sent only for confirmed appointments.
+7
+User Management
+Account Status Enforcement
+Inactive accounts cannot log in to the system.
+8
+Data Integrity
+Input Validation
+All required data must be validated before saving.
+6. Business Rule
+ID
+Rule Definition
+BR01
+Only authorized doctors can create or update medical records for pets.
+BR02
+Only authorized doctors can create or update medical records for pets.
+BR03
+Lab results can only be verified and updated by lab staff.
+BR04 
+User accounts cannot be removed if they are linked to existing medical records or appointments.
+BR05
+A doctor cannot be assigned to more than one appointment at the same time.
+BR06
+Inactive or disabled user accounts are not allowed to access the system.
+7. Sate Machine Diagram 
+Appointment State Description
+Main Workflow:
+Pending → Confirmed → Checked-in → In Examination → Waiting for Payment → Paid
+1. Pending
+Description:
+ The appointment has been created and is waiting for confirmation from the clinic.
+Available Actions:
+Confirm
+Reject
+Performed by: 
+Receptionist
+2. Confirmed
+Description:
+ The appointment has been confirmed and is scheduled for the selected date and time.
+Available Actions:
+Check-in
+Reschedule
+Cancel
+Performed by: 
+Receptionist
+3. Re-Scheduled
+Description:
+ The appointment time has been changed and updated in the system.
+Available Actions:
+Confirm new schedule
+Cancel
+Performed by: 
+Receptionist
+4. Checked-in
+Description:
+ The customer has arrived at the clinic and completed the check-in process.
+Available Actions:
+Start Examination
+Cancel (in exceptional cases)
+Performed by:
+Receptionist (Check-in)
+Doctor (Start Examination)
+5. In Examination
+Description:
+ The doctor is currently examining or treating the pet.
+Available Actions: 
+Mark as Completed
+Performed by: 
+Doctor
+6. Waiting for Payment
+Description:
+ The examination has been completed and the appointment is waiting for payment processing.
+Available Actions: 
+Confirm Payment
+Performed by: 
+Receptionist
+7. Paid
+Description:
+ The payment has been successfully completed. The appointment is considered fully finished.
+Available Actions:
+View Details
+View Invoice
+Performed by: 
+Receptionist
+8. Rejected
+Description:
+ The appointment request has been declined by the clinic.
+Available Actions: 
+View Details
+Performed by: 
+Receptionist
+9. Canceled
+Description:
+ The appointment has been canceled after confirmation or during processing.
+Available Actions:
+View Details
+Rebook (optional, if supported)
+Performed by:
+Receptionist
+(Optional: Customer, if self-cancel feature is implemented)
+8. Entity Relationship Diagram
+II. Functional Requirements
+1. Common
+1.1 Authentication
+1.1.1 Login Screen
+The Login screen allows registered users to access the system by entering their Email/Username and password.
+After successful authentication, the system redirects the user to the appropriate dashboard based on their role (Shop owner, Staff, Doctor, or Customer).
+Field Name
+Description
+Email / Username
+Input field. Allows users to enter a registered email address for authentication.
+Password
+Password input. Allows users to enter password; characters are masked.
+Show/Hide Password Icon
+Icon button. Toggles visibility of password text.
+Forgot Password Link
+Text link. Navigates users to the Forgot Password screen.
+Remember Me Checkbox
+Checkbox. Allows system to remember user login session for 30 days.
+Login Button
+Primary action button. Submits login credentials for authentication.
+Divider (“Or continue with”)
+UI separator. Visually separates standard login from social login.
+Login with Google Button
+OAuth button. Allows users to log in using Google authentication.
+Sign Up Link
+Text link. Redirects users to the Customer Registration screen if they do not have an account.
+1.1.2 Registration screen
+Field Name
+Description
+Full Name Field
+Text input. Allows user to enter their full legal name for account creation.
+Email Address Field
+Password input. Allows users to enter password; characters are masked.
+Phone Number Field
+Numeric input. Stores contact number for notifications and verification.
+Password Field
+Password input. User enters a secure password; characters are masked.
+Confirm Password Field
+Text link. Navigates users to the Forgot Password screen.
+Terms & Privacy Checkbox
+Checkbox. User must agree to Terms of Service and Privacy Policy before registering.
+Create Account Button
+Primary action button. Submits registration data to create a new account.
+Divider (“OR SIGN UP WITH”)
+UI separator. Separates traditional registration from social login options.
+Sign Up with Google Button
+OAuth button. Allows registration using Google account.
+Sign Up with Facebook Button
+OAuth button. Allows registration using Facebook account.
+Sign In Link
+Text link. Redirects users to Login screen if they already have an account.
+1.1.3 Forgot password screen
+1.1.4 Confirm Email Screen
+Field Name
+Description
+Full Name Field
+Text label describing the email input field.
+Email Address Field
+Input field. User enters the email address associated with their VMCS account. Includes email icon for clarity.
+Phone Number Field
+Primary action button. Submits the email address and triggers sending a password reset link via email.
+1.1.5 Change password Screen
+ 
+Field Name
+Description
+Current Password
+New password set by the user; must meet security requirements (minimum length, character rules).
+New Password
+New password set by the user; must meet security requirements (minimum length, character rules).
+Confirm New Password
+Re-entered a new password to ensure it matches the new password entered above.
+Update Password
+Action button to submit and save the new password after successful validation.
+Cancel
+Cancels the password change process and closes the screen without saving changes.
+Password Strength Indicator
+Visual indicator showing whether the new password meets security criteria.
+Error Message
+Displays validation errors such as weak password or mismatched confirmation.
+1.1.6 User Profile screen
+1.1.7 Booking Appointment Modal
+Field Name
+Description
+Owner Name
+Text input for the full name of the person booking the appointment.
+Email Address
+Input for sending booking confirmations and digital receipts.
+Phone Number
+Field for the contact number to reach the owner for reminders.
+Select Service
+A dropdown menu to choose from predefined clinic services.
+Pet Name & Type
+Fields to identify the animal's name and species (e.g., Dog, Cat).
+Preferred Date & Time
+Calendar and time pickers to select the desired slot.
+Symptoms / Notes
+A larger text field for the owner to describe the reason for the visit.
+Confirm Booking
+The submission button to finalize and save the appointment to the database.
+2. Service Management
+2.1 Service List
+Field Name
+Description
+Search Bar
+A search field at the top to look for services, categories, or prices within the system.
+Add Service
+A call-to-action button to create and add a new medical service to the list.
+Service Name
+Displays the name of the service (e.g., Rabies Vaccination) along with a brief description.
+Category
+Indicates the classification of the service, such as Prevention, Hygiene, or Clinical.
+Duration
+Shows the estimated time required to perform the service in minutes.
+Price
+Displays the cost of the service in a specific currency (USD).
+Actions
+Provides quick access to "Edit" or "Delete" a specific service record.
+Pagination
+Navigation controls (Previous/Next) to move through multiple pages of services.
+Navigation Sidebar
+Menu containing links to Dashboard, Services, Staff, Reports, and Settings.
+2.2 Add Service
+Field Name
+Description
+Service Name
+A text input field to enter the formal name of the veterinary service (e.g., Annual Wellness Checkup).
+Category
+A dropdown menu to select the classification of the service (e.g., Consultation, Prevention).
+Standard Duration (min)
+A numeric input field to set the estimated time required for the service in minutes.
+Price ($)
+An input field to define the monetary cost of the service in USD.
+Description
+A large text area for entering detailed information about what the service includes.
+Cancel
+A button to discard the current entries and return to the previous screen without saving.
+Save Service
+A primary action button to submit the form and add the new service to the database.
+Search Bar
+Located at the top, used for global searches of services, patients, or staff.
+2.3 Edit Service
+Field Name
+Description
+Service Name
+A text input field to enter the formal name of the veterinary service (e.g., Annual Wellness Checkup).
+Category
+A dropdown menu to select the classification of the service (e.g., Consultation, Prevention).
+Standard Duration (min)
+A numeric input field to set the estimated time required for the service in minutes.
+Price ($)
+An input field to define the monetary cost of the service in USD.
+Description
+A large text area for entering detailed information about what the service includes.
+Cancel
+A button to discard the current entries and return to the previous screen without saving.
+Save Service
+A primary action button to submit the form and add the new service to the database.
+Search Bar
+Located at the top, used for global searches of services, patients, or staff.
+3. System 
+3.1 Master Data
+4. Veterinarian 
+4.1 Appointment Management
+4.1.1 View Appointment Schedule
+Field Name
+Description
+Anipat Logo
+Click to return to the home dashboard
+Dashboard
+The current view providing a high-level overview of daily statistics and schedules.
+Schedule
+Navigates to a detailed calendar view
+Patients
+Manages the database of pets, including their profiles and medical history.
+Records
+Accesses medical records, treatment history, and billing documents.
+User Profile
+Displays the logged-in doctor's information and provides account logout/profile options.
+This screen allows the Veterinary to:
+Track Daily Progress:
+ Monitor the total volume of appointments and the progress of patient check-ins for the current day.
+Facilitate Patient Flow:
+ Initiate upcoming appointments ahead of schedule using the "Start Early" function for confirmed bookings.
+Monitor Task Completion:
+ Stay updated on outstanding administrative or clinical "Pending Tasks" that require immediate attention.
+Search Records:
+ Quickly look up specific patients, owners, or medical records using the global search bar at the top.
+Navigate System Modules:
+ Access core areas of the application including the full Schedule, Patient list, Medical Records, and System Settings via the side navigation bar.
+View Appointment Details:
+ See a summary of each appointment, including the pet's name, breed, owner's name, and the specific reason for the visit (e.g., Vaccination, Dental Cleaning).
+Check Notifications:
+ Monitor system alerts and notifications through the bell icon.
+4.1.2  Appointment List
+Field Name
+Description
+Anipat Logo
+Click to return to the home dashboard
+Global Search
+Allows searching for patients, owners, or records across the system.
+Notification Icon
+Displays system alerts and notifications.
+User Profile
+Shows the logged-in user’s profile and account options.
+Sidebar Navigation
+Provides access to core modules: Dashboard, Schedule, Patients, Records, Settings.
+Appointments Title
+Indicates the current screen for managing appointments.
+Date Selector
+Allows the receptionist to select the date to view scheduled appointments.
+New Appointment Button
+Creates a new appointment booking.
+Status Tabs
+Filters appointments by status: All, Pending, Checked-in, In Examination, Done, Canceled.
+Appointment Table
+Displays the list of appointments for the selected date.
+Pagination
+Navigates between multiple pages of appointment records.
+This screen allows the Receptionist to:
+Monitor Daily Appointments:
+ View a complete list of all appointments scheduled for the selected day, displayed in chronological order to support efficient front-desk operations.
+Track Appointment Timing:
+ See the scheduled time for each appointment to manage patient flow and reduce waiting times.
+Identify Patient and Owner: 
+Quickly identify each pet by name and avatar, along with the corresponding owner’s name, to ensure accurate check-in and communication.
+Review Service Types:
+ View the type of service associated with each appointment, such as Vaccination, Dental Cleaning, General Checkup, or Wound Dressing.
+Monitor Appointment Status:
+ Track the real-time status of each appointment, including Pending, Checked-in, In Examination, Done, or Canceled.
+Manage Administrative Actions:
+ Perform front-desk actions such as confirming or rejecting pending appointments, assigning or changing the doctor, and checking in arriving patients.
+Filter Appointments:
+ Filter the appointment list using status tabs (All, Pending, Checked-in, In Examination, Done, Canceled) to focus on relevant tasks.
+Search Appointments:
+ Use the global search bar to quickly locate appointments by pet name, owner name, or related records.
+Navigate Dates:
+ Switch between different appointment dates using the date selector to review past or upcoming schedules.
+Access Appointment Details:
+ Open the detailed view of an appointment to review full patient, owner, and scheduling information.
+4.1.3 Appointment Detail(Role Receptionist)
+Field Name
+Description
+Close Button
+Closes the popup and returns to the Appointment Schedule screen.
+Service
+Indicates the type of service booked for the appointment.
+Assigned Doctor
+Displays the assigned doctor and allows reassignment if permitted.
+Confirm Visit Button
+Confirm the appointment.
+Reject Button
+Reject the appointment.
+Monitor Daily Appointments:
+ View a complete list of all appointments scheduled for the selected day, displayed in chronological order to support efficient front-desk operations.
+Identify Patient and Owner:
+ Quickly identify each pet by name and avatar, along with the corresponding owner’s name, to ensure accurate check-in and communication.
+Access Appointment Details:
+ Open the detailed view of an appointment to review full patient, owner, and scheduling information.
+4.1.4 Appointment Detail(Role Veterinarian)
+Field Name
+Description
+Name
+Data type: non-digit string, max length of 20 characters
+Type
+Initial data values: all active setting names (with null or blank type)
+Value
+Data type: any string, max length of 100 characters
+Priority
+Data type: a positive integer
+Description
+Data type: any string, max length of 200 characters
+This screen allows the Veterinarian to:
+Review Patient Profile:
+ Access essential medical data including the animal's species, breed, age, gender, and current weight (e.g., 32.4 kg).
+Verify Owner Contact Information:
+ View the owner’s full name, phone number, email address, and home address for communication purposes.
+Analyze Visit Logistics:
+ Confirm the scheduled date, precise time, expected duration, and the specific service type assigned (e.g., Post-Op Surgery Follow-up).
+Read Internal Notes:
+ Review clinical observations or temperament warnings from previous visits to provide tailored care.
+Initiate Medical Procedures:
+ Use the "Start Examination" action to begin the formal check-up process.
+Manage Appointment Status:
+ Update or modify the visit by using "Edit Details" or "Cancel Appointment".
+Track Record History:
+ View the "View Log" to see the audit trail of changes made to the appointment.
+Check Status Freshness:
+ See exactly when the appointment information was last updated (e.g., 15 minutes ago).
+Access System Alerts:
+ Monitor notifications through the global bell icon in the header.
+4.2 Pet Management
+4.2.1 Pet Profile
+Field Name
+Description
+Name
+Data type: non-digit string, max length of 20 characters
+Type
+Initial data values: all active setting names (with null or blank type)
+Value
+Data type: any string, max length of 100 characters
+Priority
+Data type: a positive integer
+Description
+Data type: any string, max length of 200 characters
+Field Name
+Description
+Name
+Data type: non-digit string, max length of 20 characters
+Type
+Initial data values: all active setting names (with null or blank type)
+Value
+Data type: any string, max length of 100 characters
+Priority
+Data type: a positive integer
+Description
+Data type: any string, max length of 200 characters
+4.2.1 3 Record Medical Examination
+Field Name
+Description
+Name
+Data type: non-digit string, max length of 20 characters
+Type
+Initial data values: all active setting names (with null or blank type)
+Value
+Data type: any string, max length of 100 characters
+Priority
+Data type: a positive integer
+Description
+Data type: any string, max length of 200 characters
+4.3 Notification Center
+4.3.1 Receive Appointment Notifications
+Field Name
+Description
+Name
+Data type: non-digit string, max length of 20 characters
+Type
+Initial data values: all active setting names (with null or blank type)
+Value
+Data type: any string, max length of 100 characters
+Priority
+Data type: a positive integer
+Description
+Data type: any string, max length of 200 characters
+5. Customer 
+5.2 Pet Management
+5.2.1 Pet List
+This screen allows the user to manage their pets and view related medical information. The user can see an overview of all registered pets, monitor upcoming appointments and visit history, and perform actions such as viewing details, editing pet information, or accessing medical records.
+The screen provides a centralized place for tracking pet health status and clinic interactions.
+On this screen, the user can:
+View a summary of their pets and clinic interactions.
+View the list of all registered pets.
+See basic information for each pet such as species, breed, age, and health status.
+Monitor the last visit date of each pet.
+Add a new pet to the system.
+View, edit, or access medical records for a specific pet.
+Field Name
+Description
+Total Pets
+Displays the total number of pets registered by the user.
+Upcoming Appointments
+Displays the number of upcoming appointments for all pets.
+Total Visits
+Displays the total number of clinic visits across all pets.
+5.2.2 Pet Details
+This screen allows the user to view detailed information about a selected pet, including basic profile details, health status, visit history summary, and upcoming care reminders. It serves as a quick overview of the pet’s overall health and clinic interaction history.
+On this screen, the user can:
+View detailed pet profile information.
+Monitor the current health status of the pet.
+View last visit information.
+See upcoming care reminders.
+Access pet medical history.
+Edit pet information.
+Displays pet name, species, breed, and age.
+Includes action buttons:
+Edit Pet: Navigate to pet edit screen.
+View Medical History: Navigate to the medical history screen of the pet.
+Field Name
+Description
+Pet Photo
+Displays the pet’s profile image.
+Gender
+Displays the pet’s gender.
+Weight
+Displays the pet’s weight (kg).
+Color
+Displays the pet’s color.
+Date of Birth
+Displays the pet’s birth date.
+Last Visit
+Displays the most recent visit date and doctor.
+Current Health Status
+Displays current health status (e.g., Healthy).
+Upcoming Care
+Lists upcoming vaccinations or recommended treatments.
+Quick Stats
+Displays total visits and total vaccinations.
+5.2.3 Add Pet  
+This screen allows the user to add a new pet to their account by entering pet information and uploading a pet photo. Required fields must be completed before the pet can be saved.
+Upload a pet photo.
+Enter basic and additional pet information.
+Save or cancel pet creation.
+Allows the user to upload a pet profile image.
+Displays a preview after upload.
+Field Name
+Description
+Pet Name
+Required field to enter pet name.
+Species
+Required dropdown to select pet species.
+Breed
+Allows entering pet breed.
+Gender
+Select pet gender (Male/Female).
+Date of Birth
+Required date picker input.
+Weight
+Allows entering pet weight (kg).
+Save Pet
+Saves pet information and adds the pet to the system.
+Cancel
+Discards entered information and returns to previous screen.
+5.2.4. Edit Pet 
+This screen allows the user to edit an existing pet’s information in their account, including updating basic details, additional information, and the pet photo.
+ All required fields must be valid before the changes can be saved.
+Update or change the pet’s profile photo.
+Edit basic and additional pet information.
+Save changes or cancel editing and return to the previous screen.
+Allows the user to upload a new pet profile image.
+Displays a preview after upload.
+If no new image is uploaded, the existing photo remains unchanged.
+Field Name
+Description
+Pet Name
+Required field to enter pet name.
+Species
+Required dropdown to select pet species.
+Breed
+Allows entering pet breed.
+Gender
+Select pet gender (Male/Female).
+Date of Birth
+Required date picker input.
+Weight
+Allows entering pet weight (kg).
+Color / Markings
+Optional description of pet appearance.
+Additional Notes
+Optional notes related to the pet.
+Save Pet
+Saves pet information and adds the pet to the system.
+Cancel
+Discards entered information and returns to previous screen.
+5.3 Medical History 
+This screen allows the user to view the medical history and visit records of their pets. Users can filter records by pet and date range and view detailed information for each visit.
+Select a pet to view medical records.
+Filter records by date range.
+View visit summaries.
+Navigate through paginated medical records.
+View detailed visit information.
+Field Name
+Description
+Select Pet
+Dropdown to choose a pet.
+Date Range
+Allows filtering records by predefined date ranges.
+Apply Filters
+Applies selected filters to the record list.
+Visit Date
+Date and time of the visit.
+Doctor
+Veterinarian in charge of the visit.
+Diagnosis
+Displays diagnosis summary.
+Treatment
+Displays treatment provided.
+Action
+Allows viewing visit details.
+6. Clinic Owner management
+6.1 Manage Shop Users and Roles
+Screen Description: 
+This screen allows the Clinic Owner to manage clinic staff accounts and assign appropriate roles within the veterinary clinic system. The Clinic Owner can view the list of staff members, check their current roles and statuses, search or filter staff records, and assign or update roles as needed.
+This screen allows the Clinic Owner to: 
+View the list of all clinic staff members, including veterinarians, technicians, and receptionists.
+View detailed staff information such as staff name, email, current role, and account status.
+Assign or change roles for clinic staff members (e.g., Veterinarian, Vet Technician, Receptionist).
+Monitor staff working status (e.g., Active, On Leave).
+Add new staff members to the clinic system.
+On the screen, s/he can also 
+Search staff members by name or email using the search box.
+Filter staff records based on predefined conditions (e.g., role or status).
+Navigate between pages of staff records using pagination controls.
+View summarized statistics of clinic staff by role, including:
+- Total number of Veterinarians
+- Total number of Technicians
+- Total number of Receptionists
+Field Description
+Field Name
+Description
+Search Staff
+Allows the Clinic Owner to search staff members by entering staff name or email address.
+Filter
+Allows filtering staff list based on role or status criteria.
+Add New Staff
+Button that allows the Clinic Owner to create a new staff account for the clinic.
+Staff Member
+Displays the full name and basic profile information of the staff member.
+Email
+Displays the registered email address of the staff member.
+Current Role
+Displays the currently assigned role of the staff member (e.g., Veterinarian, Vet Technician, Receptionist).
+Status
+Displays the current working status of the staff member (e.g., Active, On Leave).
+Assign Role
+Action button that allows the Clinic Owner to assign or update the role of a selected staff member.
+Pagination
+Allows navigation between multiple pages of staff records.
+Role Summary Cards
+Displays total number of staff grouped by roles (Veterinarians, Technicians, Receptionists).
+6.2 Clinic Reports and Statistics
+Screen Description: 
+This screen provides the 
+Clinic Owner
+ with an overview of clinic performance through visual reports and statistical data. It supports decision-making by presenting key business metrics such as revenue, appointment volume, customer growth, and service performance in charts and summary indicators.
+This screen allows the Clinic Owner to: 
+View 
+key performance indicators (KPIs)
+ of the clinic, including:
+- Total Revenue 
+- Total Appointments
+- Number of New Pets
+- Customer Satisfaction Rate
+Monitor 
+revenue trends
+ over a selected time period.
+Analyze 
+revenue distribution by service category
+ (e.g., Consultation, Surgery, Pharmacy).
+View 
+appointment statistics
+ by week and appointment type.
+Identify
+ top-performing services
+ based on number of bookings and revenue contribution.
+On the screen, s/he can also 
+Select a date range to filter report data.
+Export reports in Excel format.
+Switch between different reporting views (e.g., monthly or weekly statistics).
+Quickly assess clinic performance using visual charts and summary cards.
+Field Description
+Field Name
+Description
+Date Range Selector
+Allows the Clinic Owner to select a specific time period for viewing report data.
+Export Excel
+Allows exporting the displayed report data to an Excel file.
+Total Revenue
+Displays the total revenue generated by the clinic within the selected time period.
+Total Appointments
+Displays the total number of appointments booked in the selected time period.
+New Pets
+Displays the number of newly registered pets during the selected time period.
+Customer Satisfaction
+Displays the overall customer satisfaction rate based on feedback or ratings.
+Revenue Growth Chart
+Bar chart showing revenue trends over time (e.g., weekly revenue in the selected month).
+Revenue by Category
+Pie chart showing revenue distribution by service categories such as consultation, surgery, and pharmacy.
+Top Performing Services
+Displays a list of services with the highest performance, including bookings, revenue, and growth rate.
+Appointment Statistics
+Displays appointment volume statistics by week and appointment type (e.g., emergency, regular).
+6.3 Services and System Configuration
+Screen Description: 
+This screen allows the Clinic Owner to manage clinic services and configure basic system settings related to service offerings. The Clinic Owner can view, add, update, and remove veterinary services, including service details such as category, duration, and pricing.
+This screen allows the Clinic Owner to: 
+View the list of all available clinic services.
+Create new veterinary services for the clinic.
+Update existing service information such as:
+- Service name
+- Service category
+- Service duration
+- Service price
+Remove services that are no longer provided by the clinic.
+Manage clinic offerings to ensure accurate service information for appointment booking and billing.
+On the screen, s/he can also 
+Search services by service name using the search box
+Switch between Clinic Services and System Settings tabs
+Quickly access service actions such as Edit and Delete
+Maintain up-to-date service configurations for customer booking and internal operations.
+Field Description
+Field Name
+Description
+Clinic Services Tab
+Displays the list of all veterinary services provided by the clinic.
+System Settings Tab
+Allows navigation to system-level configuration settings.
+Search Services
+Allows the Clinic Owner to search services by entering service name keywords.
+Add New Service
+Button that allows the Clinic Owner to create a new clinic service.
+Service Name
+Displays the name of the veterinary service.
+Category
+Displays the service category (e.g., Preventative Care, Grooming, Examination).
+Duration
+Displays the estimated service duration in minutes.
+Price
+Displays the service price charged to customers.
+Edit Service
+Allows updating details of an existing service.
+Delete Service
+Allows removing a service from the clinic system.
+6.4 Clinic Owner Dashboard
+Screen Description: 
+The Clinic Owner Dashboard provides a high-level overview of clinic operations and system status. This screen helps the Clinic Owner quickly monitor key metrics, recent activities, and overall system performance to support timely decision-making.
+This screen allows the Clinic Owner to: 
+View key operational indicators, including:
+- Total number of system users
+- Number of appointments scheduled today
+- Monthly revenue
+- Overall system status and availability
+Monitor revenue and appointment trends over a selected time period.
+Track recent system activities such as new appointments, payments, user registrations, and service updates.
+Quickly assess the overall health and performance of the clinic system.
+On the screen, s/he can also 
+Search system records using the 
+global search bar.
+View notifications related to system activities.
+Navigate to detailed management screens such as Users, Roles, Services, Reports, and Settings
+Access recent activities and view a full activity log
+Explore additional system features and reporting options via dashboard shortcuts.
+Field Description
+Field Name
+Description
+Total Users
+Displays the total number of registered users in the clinic system.
+Today’s Appointments
+Displays the total number of appointments scheduled for the current day.
+Monthly Revenue
+Displays the total revenue generated in the current month.
+System Status
+Displays the current operational status of the system (e.g., Stable, Online).
+Revenue vs. Appointments Chart
+Line chart comparing revenue and appointment trends over a selected period.
+Recent Activity
+Displays a list of the most recent system activities such as appointments, payments, and updates.
+Search Records
+Allows the Clinic Owner to search across system records from the dashboard.
+Notifications
+Displays system notifications and alerts.
+Navigation Menu
+Allows navigation to other Clinic Owner management modules.
+Explore Features
+Shortcut for accessing advanced features or reports.
+7. Blog management
+7.1 Blog Management Dashboard
+Screen Description: 
+The 
+Blog Management Dashboard
+ allows the 
+Clinic Owner
+ to manage all blog posts published on the Anipats Veterinary Clinic system. This screen provides an overview of existing blog posts, their publication status, authorship, and update history, enabling efficient content management and communication with customers.
+This screen allows the Clinic Owner to: 
+View the list of all blog posts created within the system.
+View key blog information including:
+- Blog title
+- Publication status (Draft / Published)
+- Author
+- Created date
+- Last updated time
+Create new blog posts to share clinic news and pet care knowledge.
+Edit existing blog posts to update or correct content.
+Delete blog posts that are no longer relevant.
+Manage blog publication status to control visible content for customers.
+On the screen, s/he can also 
+Search blog posts by blog title using the search bar.
+Quickly identify blog status through visual status labels.
+Navigate between multiple pages of blog posts using pagination controls.
+Access blog actions (Edit, Delete) directly from the blog list.
+Preview blog content by selecting a specific blog post.
+Field Description
+Field Name
+Description
+Search Blog Posts
+Allows the Clinic Owner to search blog posts by entering blog title keywords.
+Create Blog
+Primary action button that allows the Clinic Owner to create a new blog post.
+Thumbnail
+Displays a thumbnail image representing the blog post.
+Blog Title
+Displays the title of the blog post.
+Status
+Displays the current publication status of the blog post (Draft or Published).
+Author
+Displays the name of the user who created the blog post.
+Created Date
+Displays the date when the blog post was created.
+Last Updated
+Displays the most recent update time of the blog post.
+Edit Blog
+Action icon that allows editing the selected blog post.
+Delete Blog
+Action icon that allows deleting the selected blog post after confirmation.
+Pagination
+Allows navigation between multiple pages of blog posts.
+7.2 Create New Blog Post
+Screen Description: 
+The 
+Create New Blog Post
+ screen allows the 
+Clinic Owner
+ to create and publish new blog content for the Anipats Veterinary Clinic system. This screen provides a structured form for entering blog information, uploading a thumbnail image, composing rich text content, and configuring publication settings before saving or publishing the blog post.
+This screen allows the Clinic Owner to: 
+Enter a blog title to define the main subject of the blog post.
+Upload a thumbnail image to visually represent the blog content.
+Write and format blog content using a rich text editor.
+Configure the publication status of the blog post (Draft or Published).
+Save the blog post as a draft for later editing.
+Publish the blog post to make it visible to customers.
+Cancel the blog creation process and return to the blog list.
+On the screen, s/he can also 
+Navigate back to the blog management screen using the 
+Back to Blogs
+ option.
+Preview uploaded thumbnail images before publishing.
+Automatically save draft content to prevent data loss.
+Receive system guidance through informational tips and SEO preview sections.
+Review basic SEO preview information related to the blog post.
+Field Description
+Field Name
+Description
+Blog Title
+Text input field that allows the Clinic Owner to enter the title of the blog post.
+Thumbnail Image
+Upload area that allows the Clinic Owner to upload a thumbnail image for the blog post (supports common image formats).
+Publication Status
+Option that allows selecting the blog status as Draft or Published.
+Blog Content
+Rich text editor that allows composing and formatting the main content of the blog post.
+Back to Blogs
+Navigation button that returns the user to the blog management screen without saving changes.
+Save as Draft
+Action button that saves the blog post as a draft without publishing it.
+Publish Blog
+Primary action button that publishes the blog post and makes it visible to customers.
+Cancel
+Action button that discards changes and exits the blog creation screen.
+SEO Preview
+Displays a preview snippet showing how the blog post may appear in search results.
+Pro Tip
+Informational section providing content creation tips to the Clinic Owner.
+7.3 Edit Blog Post
+Screen Description: 
+The 
+Edit Blog Post
+ screen allows the 
+Clinic Owner
+ to modify and update existing blog content in the Anipats Veterinary Clinic system. This screen enables updating blog information, content, publishing settings, featured images, and SEO details to ensure blog posts remain accurate, up to date, and relevant to pet owners.
+This screen allows the Clinic Owner to: 
+View existing blog post information including creation date and last updated time
+Edit the blog title to reflect updated content
+Update the blog URL slug for better readability and SEO
+View the author information of the blog post
+Modify and format blog content using a rich text editor
+Change the publication status of the blog post (Draft / Published
+Assign or update the blog category
+Update the featured image associated with the blog post
+Update SEO information such as meta description and tags
+Save and apply changes to the blog post.
+On the screen, s/he can also 
+Automatically save changes through the auto-save mechanism
+Cancel editing and return to the blog management screen without saving changes
+Preview updated content before publishing
+Review system guidance such as image size recommendations
+Track content update status through update indicators.
+Field Description
+Field Name
+Description
+Blog Title
+Text input field that allows the Clinic Owner to enter the title of the blog post.
+URL Slug
+Editable field that defines the blog URL path for SEO-friendly access.
+Author
+Displays the name of the blog author (read-only).
+Content
+Rich text editor that allows editing and formatting the main blog content.
+Status
+Dropdown field that allows setting the blog publication status (Draft or Published).
+Category
+Dropdown field that allows selecting the blog category (e.g., Pet Care & Nutrition).
+Update Blog
+Primary action button that saves and applies all changes to the blog post.
+Cancel
+Action button that discards changes and exits the edit screen.
+Featured Image
+Displays and allows updating the featured image of the blog post.
+SEO Meta Description
+Text area that allows editing the meta description for search engine optimization.
+SEO Tags
+Input field that allows entering comma-separated tags for the blog post.
+Created Date
+Displays the original creation date of the blog post.
+Last Updated
+Displays the most recent update time of the blog post.
+7.3 Delete Blog Post
+Screen Description: 
+The 
+Delete Blog Post
+ confirmation modal allows the 
+Clinic Owner
+ to permanently delete an existing blog post from the Anipats Veterinary Clinic system. This screen is designed to prevent accidental deletion by requiring explicit confirmation before the blog post is removed.
+This screen allows the Clinic Owner to: 
+Review the blog post selected for deletion.
+Confirm the deletion of the selected blog post.
+Cancel the deletion action and return to the blog management screen without making any changes.
+On the screen, s/he can also 
+View a warning message indicating that the deletion action is irreversible.
+Verify the blog post title before confirming deletion.
+Exit the confirmation modal safely without deleting the blog post.
+Field Description
+Field Name
+Description
+Delete Blog Title
+Displays the title of the blog post selected for deletion.
+Warning Message
+Displays a warning message indicating that the deletion action cannot be undone.
+Cancel
+Action button that closes the confirmation modal and cancels the delete operation.
+Delete Post
+Destructive action button that permanently deletes the selected blog post from the system.
+7.4 View Blog Post
+Screen Description: 
+The 
+View Blog Post (Preview)
+ screen allows the 
+Clinic Owner
+ to view the full content of a blog post as it appears to end users. This screen provides a read-only preview of the blog post, including publication status, author information, featured image, and formatted content, enabling the Clinic Owner to review published or draft blogs and manage them effectively.
+This screen allows the Clinic Owner to: 
+View the full blog post content in a public-style layout.
+View blog publication status (Published / Draft).
+View author information and published date.
+Review the blog title, subtitle, featured image, and formatted content.
+Access blog management actions such as editing or deleting the blog post.
+Verify how the blog post appears to customers before or after publishing.
+On the screen, s/he can also 
+Navigate back to the Blog Management screen.
+Access the 
+Edit Blog
+ function directly from the preview screen.
+Access the 
+Delete Blog
+ function to remove the blog post.
+Identify whether the blog is publicly visible through status indicators.
+Use breadcrumb navigation to understand the current navigation path.
+Open the public view of the blog post.
+Field Description
+Field Name
+Description
+Blog Title
+Displays the main title of the blog post.
+Publication Status
+Displays the current status of the blog post (Published or Draft).
+Public View Indicator
+Indicates whether the blog post is publicly visible to customers.
+Author Information
+Displays the author’s name and role information.
+Published Date
+Displays the date when the blog post was published.
+Featured Image
+Displays the main image associated with the blog post.
+Blog Content
+Displays the full formatted content of the blog post.
+Edit Blog
+Action button that navigates to the Edit Blog screen.
+Delete Blog
+Action button that opens the Delete Blog confirmation modal.
+Breadcrumb Navigation
+Displays the navigation path (Dashboard → Blog Management → Preview Post).
+III. System Design
+1. Software Architecture
+1.1 Overall Architectural Diagram
+1.2 Component Descriptions
+No
+Component
+Description
+01
+Presentation Logic Layer
+Acts as the client side of the system. It sends HTTP requests to the server and receives HTTP responses. Users interact with the VMCS system through a web browser.
+02
+User Interface
+Provides the graphical user interface of the system. JSP pages are responsible for displaying data to users and collecting user inputs before forwarding them to the Presentation Layer.
+03
+Presentation Logic Layer (Servlet)
+Handles HTTP requests from the Web Browser. It processes user actions, controls navigation flow, validates input data, and forwards requests to the Service Interface layer.
+04
+Service Interface
+Defines the service contracts of the system. It separates the presentation layer from business logic, ensuring loose coupling and better maintainability.
+05
+Service Implement
+Implements business logic and use cases of the VMCS system. It processes core operations such as scheduling, customer management, veterinarian management, and clinic services.
+06
+Model Classes (Domain Models)
+Represents business entities such as Customer, Pet, Appointment, Veterinarian, and Medical Record. These classes encapsulate system data and business rules.
+07
+Common Classes (Java)
+Contains shared utility classes and common functions such as constants, helpers, validators, and exception handling used across multiple layers.
+08
+Data Access Interface (DAO Interface)
+Defines methods for accessing and manipulating data in the database. It abstracts database operations to isolate business logic from data persistence details.
+010
+DAO JDBC Implement
+Implements DAO interfaces using JDBC. It executes SQL queries, handles database connections, and maps result sets to domain models.
+011
+SQL Server
+The relational database management system used to store and manage all persistent data of the VMCS system, including users, appointments, pets, and medical records.
+-
+2. Code Package Design
+2.1 Package Diagram
+2.2 Package Descriptions
+No
+Package
+Description
+01
+controller
+Handles HTTP requests/responses and forwards/redirects to views.
+02
+service
+Defines business logic operations (interfaces).
+03
+service.impl
+Implements business logic defined in the service layer.
+04
+dao
+Defines database access methods (interfaces).
+05
+dao.impl
+Implements SQL queries and database operations.
+06
+model
+Contains entity/POJO classes representing system data.
+07
+utils
+Provides reusable helper classes (DB connection, validation, hashing, etc.).
+08
+filter
+Intercepts requests for authentication, authorization, logging, and encoding.
+3. Database Design
+3.1 Database Schema
+3.2 Table Descriptions
+3.2.1 Roles
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+role_id
+x
+x
+Primary key. Unique identifier for each role
+02
+role_name
+x
+Name of the role (Admin, Owner, Veterinarian, Receptionist, Customer, etc.)
+3.2.2. Users
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+user_id
+x
+x
+Primary key. Unique identifier for each user
+02
+email
+x
+x
+Email address used for login
+03
+password
+x
+Encrypted login password
+04
+role_id
+x
+x
+References Roles(role_id)
+05
+status
+Account status (Active, Inactive, Locked, etc.)
+06
+created_at
+Account creation timestamp
+07
+updated_at
+Last updated timestamp
+08
+full_name
+Full name of the user
+09
+phone
+Contact phone number
+10
+address
+User address
+11
+isDeleted
+x
+Soft delete
+3.2.3. Customers
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+customer_id
+x
+x
+Primary key of the customer
+02
+user_id
+x
+x
+x
+References Users(user_id)
+3.2.4. Veterinarians
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+veterinarian_id
+x
+x
+Primary key of the veterinarian
+02
+user_id
+x
+x
+x
+References Users(user_id)
+03
+specialization
+Area of medical specialization
+3.2.5. Receptionists
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+receptionist_id
+x
+x
+Primary key of the receptionist
+02
+user_id
+x
+x
+x
+References Users(user_id)
+3.2.6. LabStaff
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+staff_id
+x
+x
+Primary key of lab staff
+02
+user_id
+x
+x
+x
+References Users(user_id)
+03
+position
+Job position or title
+3.2.7. Pets
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+pet_id
+x
+x
+Primary key of the pet
+02
+customer_id
+x
+x
+References Customers(customer_id)
+03
+name
+Pet name
+04
+species
+Species (Dog, Cat, etc.)
+05
+breed
+Breed
+06
+gender
+Gender
+07
+birth_date
+Date of birth
+08
+weight
+Weight of the pet
+09
+created_at
+Record creation date
+10
+isDeleted
+x
+Soft delete
+3.2.8. Appointments
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+appointment_id
+x
+x
+Primary key of the appointment
+02
+pet_id
+x
+x
+Pet being examined
+03
+customer_id
+x
+x
+Customer
+04
+veterinarian_id
+x
+x
+Assigned veterinarian
+05
+appointment_time
+x
+Scheduled appointment time
+06
+status
+Appointment status
+07
+created_at
+Creation timestamp
+3.2.9. Visits
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+visit_id
+x
+x
+Primary key of the visit
+02
+appointment_id
+x
+Related appointment
+03
+pet_id
+x
+x
+Pet
+04
+customer_id
+x
+x
+Customer
+05
+check_in_time
+Check-in time
+06
+check_out_time
+Check-out time
+07
+visit_status
+Visit status
+08
+staff_id
+x
+Receptionist in charge
+09
+veterinarian_id
+x
+Attending veterinarian
+3.2.10. MedicalRecords
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+record_id
+x
+x
+Primary key of the medical record
+02
+visit_id
+x
+x
+Related visit
+03
+veterinarian_id
+x
+x
+Veterinarian who created the record
+04
+diagnosis
+Diagnosis details
+05
+treatment
+Treatment plan
+06
+note
+Additional notes
+07
+created_at
+Record creation date
+3.2.11. Services
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+service_id
+x
+x
+Primary key of the service
+02
+name
+Service name
+03
+price
+Service price
+04
+description
+Service description
+3.2.12. MedicalRecordServices
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+record_service_id
+x
+x
+Primary key
+02
+record_id
+x
+x
+Medical record
+03
+service_id
+x
+x
+Service
+04
+quantity
+Quantity used
+05
+price
+Price at time of use
+3.2.13. Prescriptions
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+prescription_id
+x
+x
+Primary key of the prescription
+02
+record_id
+x
+x
+Related medical record
+03
+medicine_name
+Medicine name
+04
+dosage
+Dosage instructions
+05
+duration
+Treatment duration
+3.2.14. LabTests
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+test_id
+x
+x
+Primary key of the lab test
+02
+test_name
+Test name
+03
+description
+Test description
+04
+normal_range
+Normal reference range
+05
+unit
+Measurement unit
+06
+status
+Test status
+3.2.15. LabTestRequests
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+request_id
+x
+x
+Primary key of the request
+02
+visit_id
+x
+x
+Related visit
+03
+test_id
+x
+x
+Requested lab test
+04
+veterinarian_id
+x
+x
+Requesting veterinarian
+05
+request_time
+Request creation time
+06
+status
+Request status
+3.2.16. LabTestResults
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+result_id
+x
+x
+Primary key of the result
+02
+request_id
+x
+x
+x
+Related lab test request
+03
+result_value
+Test result value
+04
+result_note
+Additional notes
+05
+result_file
+Attached result file
+06
+result_date
+Result date
+07
+lab_staff_id
+x
+Lab staff who performed the test
+3.2.17. Invoices
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+invoice_id
+x
+x
+Primary key of the invoice
+02
+visit_id
+x
+x
+Related visit
+03
+total_amount
+Total amount
+04
+status
+Invoice status
+05
+created_at
+Invoice creation date
+3.2.18. InvoiceItems
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+item_id
+x
+x
+Primary key of the invoice item
+02
+invoice_id
+x
+x
+Related invoice
+03
+item_type
+Item type (Service, Medicine, Test, etc.)
+04
+ref_id
+Reference ID
+05
+name_snapshot
+Item name snapshot
+06
+unit_price
+Unit price
+07
+quantity
+Quantity
+08
+total_price
+Total price
+3.2.19. Notifications
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+notification_id
+x
+x
+Primary key of the notification
+02
+user_id
+x
+x
+Recipient user
+03
+title
+Notification title
+04
+message
+Notification content
+05
+created_at
+Creation date
+3.2.20. Blogs
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+blog_id
+x
+x
+Primary key of the blog
+02
+title
+x
+Blog title
+03
+content
+x
+Blog content
+04
+status
+x
+Draft / Published / Hidden
+05
+author_user_id
+x
+x
+Author of blog (Users.user_id)
+06
+slug
+x
+SEO-friendly URL
+07
+category
+Blog category
+08
+meta_description
+SEO description
+09
+updated_at
+Last update time
+10
+created_at
+x
+Creation date
+3.2.21. Images
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+id
+x
+x
+Primary key
+02
+entity_type
+x
+BLOG / USER / PET
+03
+entity_id
+x
+ID of entity
+04
+image_type
+thumbnail / avatar / gallery
+05
+url
+x
+Image URL
+06
+alt_text
+Alt text
+07
+sort_order
+x
+Display order
+08
+created_at
+x
+Creation date
+3.2.22. PasswordResetTokens
+No
+Field
+PK
+FK
+UN
+NN
+Description
+01
+token
+x
+x
+x
+Unique token used for password reset verification
+02
+email
+x
+Email address of the user requesting the password reset
+03
+expires_at
+x
+Expiration timestamp of the reset token
+04
+created_at
+x
+Timestamp when the reset token was created
+6. Requirement Appendix 
+6.1 Business Rules 
+ID
+Rule Definition
+BR-01
+Passwords must be stored using secure hashing (no plaintext storage).
+BR-02
+Role-based access control (RBAC) must be enforced: users can only access functions permitted by their assigned role.
+BR-03
+Inactive accounts must not be allowed to log in.
+BR-04
+After successful login, the system must redirect the user to the correct dashboard based on role (Clinic owner/Staff/Veterinarian/Customer).
+BR-05
+Registration must require accepting Terms & Privacy before creating an account.
+BR-06
+Appointment booking must capture owner contact information (email/phone) to support confirmations and reminders.
+BR-07
+The system must prevent overlapping appointments for the same time slot.
+BR-08
+Only authorized operational roles (Receptionist/Staff) may confirm, reschedule, or cancel appointments.
+BR-09
+Receptionists must be able to search appointments by date, customer, or pet; search results must not expose data outside permitted scope.
+BR-10
+Appointment listing and filtering must follow defined status categories (e.g., Pending, Checked-in, In Examination, Done, Canceled).
+BR-11
+Appointment detail actions (confirm/reject and assign/reassign doctor where permitted) must be logged and must follow role permission.
+BR-12
+Medical records must be protected against unauthorized access and tampering (access control + auditability).
+BR-13
+Reminder notifications must be sent only for confirmed appointments.
+BR-14
+All required fields must be validated before saving any create/update operation.
+BR-15
+Pet creation/editing must enforce required fields (e.g., Pet Name, Species, Date of Birth) before saving.
+BR-16
+Authorization must follow “deny by default”: if a permission is not explicitly granted, access must be denied.
+BR-17
+Users may view blog list and blog details only for published posts.
+BR-18
+Only clinic owners may create/update/publish/remove blog posts.
+BR-19
+Staff management must support search/filter and display role + status (e.g., Active, On Leave).
+BR-20
+Only clinic owners may manage clinic staff accounts and assign/update roles.
+BR-21
+Only laboratory staff can update lab test/result status (e.g., pending/completed).
+BR-22
+Laboratory staff must be able to upload and update examination results.
+BR-23
+Laboratory staff must be able to view incoming examination requests.

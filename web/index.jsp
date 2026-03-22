@@ -23,21 +23,21 @@ Anipats landing page - VCMS (Tailwind design)
         
         int roleId = (loggedUser.getRole() != null) ? loggedUser.getRole().getRoleId() : 0;
         switch (roleId) {
-            case 5: // Admin
-            case 6: // ClinicOwner
+        case 5: // Admin
+        case 6: // ClinicOwner
             roleDashboardUrl = ctx + "/owner/dashboard";
             break;
-            case 2: // Veterinarian
+        case 2: // Veterinarian
             roleDashboardUrl = ctx + "/vet/dashboard";
             break;
-            case 3: // Receptionist
+        case 3: // Receptionist
             roleDashboardUrl = ctx + "/staff/dashboard";
             break;
-            case 4: // LabStaff
-            roleDashboardUrl = ctx + "/lab/dashboard";
+        case 4: // LabStaff
+            roleDashboardUrl = ctx + "/lab/labqueue";
             break;
-            case 1: // Customer
-            default:
+        case 1: // Customer
+        default:
             roleDashboardUrl = ctx + "/customer/dashboard";
             break;
         }

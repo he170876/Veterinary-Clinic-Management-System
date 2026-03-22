@@ -94,9 +94,7 @@
     <style>
         body { font-family: 'Manrope', sans-serif; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-        #revisit-modal:target { display: flex; }
         #lab-request-modal:target { display: flex; }
-        .revisit-time.revisit-time-selected { border-color: #f14437; color: #f14437; background: rgba(241,68,55,0.08); }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
@@ -119,12 +117,30 @@
 <p class="text-xs font-bold text-slate-900 dark:text-white leading-none"><%= user.getFullName() %></p>
 <p class="text-[10px] text-slate-500"><%= roleTitle %></p>
 </div>
-<div class="size-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-primary font-bold">
-<% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %>
-<img alt="Doctor Profile" class="w-full h-full object-cover" src="<%= ctx %><%= user.getProfilePictureUrl() %>"/>
-<% } else { %>
-<%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %>
-<% } %>
+<div class="relative">
+    <button type="button"
+            id="vet-profile-toggle"
+            class="size-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-primary font-bold hover:brightness-95 transition-colors">
+        <% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %>
+        <img alt="Doctor Profile" class="w-full h-full object-cover" src="<%= ctx %><%= user.getProfilePictureUrl() %>"/>
+        <% } else { %>
+        <%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %>
+        <% } %>
+    </button>
+    <div id="vet-profile-menu"
+         class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 z-50"
+         style="display:none;">
+        <a href="<%= ctx %>/vet/profile"
+           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-t-xl flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-primary">person</span>
+            <span>My Profile</span>
+        </a>
+        <a href="<%= ctx %>/logout"
+           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-xl flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-primary">logout</span>
+            <span>Sign out</span>
+        </a>
+    </div>
 </div>
 </div>
 </div>
@@ -203,7 +219,6 @@
 <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><%= line.getServiceName() != null ? line.getServiceName() : "" %></span>
 </div>
 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-edit" aria-label="Edit"><span class="material-symbols-outlined text-lg">edit</span></button>
 <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
 </div>
 </div>
@@ -215,7 +230,6 @@
 <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><%= ap.getService() %></span>
 </div>
 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-edit" aria-label="Edit"><span class="material-symbols-outlined text-lg">edit</span></button>
 <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
 </div>
 </div>
@@ -226,7 +240,6 @@
 <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">General Consultation</span>
 </div>
 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-edit" aria-label="Edit"><span class="material-symbols-outlined text-lg">edit</span></button>
 <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
 </div>
 </div>
@@ -237,8 +250,15 @@
                                 </button>
 <% if (!clinicServices.isEmpty()) { %>
 <div id="add-service-dropdown" class="hidden mt-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto">
-<% for (Service svc : clinicServices) { %>
-<button type="button" class="add-service-option w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-primary/10 rounded-lg flex justify-between items-center" data-id="<%= svc.getServiceId() %>" data-name="<%= svc.getName() %>"><span><%= svc.getName() %></span><span class="text-xs text-slate-400"><%= String.format("%.2f", svc.getPrice()) %> </span></button>
+<%
+    java.util.Set<Integer> seenServiceIds = new java.util.HashSet<>();
+    for (Service svc : clinicServices) {
+        if (svc == null) continue;
+        int sid = svc.getServiceId();
+        if (seenServiceIds.contains(sid)) continue;
+        seenServiceIds.add(sid);
+%>
+<button type="button" class="add-service-option w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-primary/10 rounded-lg flex justify-between items-center" data-id="<%= sid %>" data-name="<%= svc.getName() %>"><span><%= svc.getName() %></span><span class="text-xs text-slate-400"><%= String.format("%.2f", svc.getPrice()) %> </span></button>
 <% } %>
 </div>
 <% } %>
@@ -280,15 +300,6 @@
                             </h4>
 <div class="space-y-3">
 <textarea name="treatment" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm" placeholder="Step-by-step treatment instructions..." rows="3"><%= treatmentText %></textarea>
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-slate-400 text-lg">event_repeat</span>
-<select class="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm py-2">
-<option>Schedule next checkup</option>
-<option>In 3 days</option>
-<option>In 1 week</option>
-<option>In 2 weeks</option>
-</select>
-</div>
 </div>
     </div>
 </div>
@@ -300,10 +311,6 @@
 <a href="#lab-request-modal" class="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all text-center no-underline">
 <span class="material-symbols-outlined text-xl">biotech</span>
                                 Request Lab Test
-                            </a>
-<a class="w-full border-2 border-primary text-primary py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary/5 transition-all text-center cursor-pointer" href="#revisit-modal">
-<span class="material-symbols-outlined text-xl">event_available</span>
-                                Schedule Revisit
                             </a>
 </div>
 <div class="space-y-3">
@@ -516,43 +523,7 @@
     </div>
 </div>
 <% } %>
-<div class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4" id="revisit-modal">
-<div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-<div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-<h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-<span class="material-symbols-outlined text-primary">calendar_month</span>
-                Schedule Follow-up
-            </h3>
-<a class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" href="#" aria-label="Close"><span class="material-symbols-outlined">close</span></a>
-</div>
-<form id="revisit-form" action="<%= ctx %>/vet/schedule-revisit" method="post" class="p-8 space-y-6">
-<input type="hidden" name="petId" value="<%= petId %>"/>
-<input type="hidden" name="customerId" value="<%= cust != null ? cust.getCustomerId() : "" %>"/>
-<input type="hidden" name="veterinarianId" value="<%= ap.getVeterinarianId() %>"/>
-<input type="hidden" name="revisitTime" id="revisitTimeInput" value="10:30"/>
-<div>
-<label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2" for="revisitDateInput">Preferred Date</label>
-<input id="revisitDateInput" class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-primary focus:border-primary p-3" type="date" name="revisitDate" required/>
-</div>
-<div>
-<label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Preferred Time</label>
-<div class="grid grid-cols-3 gap-2" id="revisit-time-buttons">
-<button type="button" class="revisit-time py-2 text-xs font-semibold border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary hover:text-primary transition-colors" data-time="09:00">09:00 AM</button>
-<button type="button" class="revisit-time revisit-time-selected py-2 text-xs font-semibold border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary hover:text-primary transition-colors" data-time="10:30">10:30 AM</button>
-<button type="button" class="revisit-time py-2 text-xs font-semibold border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary hover:text-primary transition-colors" data-time="13:00">01:00 PM</button>
-<button type="button" class="revisit-time py-2 text-xs font-semibold border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary hover:text-primary transition-colors" data-time="14:30">02:30 PM</button>
-<button type="button" class="revisit-time py-2 text-xs font-semibold border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary hover:text-primary transition-colors" data-time="16:00">04:00 PM</button>
-<button type="button" class="revisit-time py-2 text-xs font-semibold border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary hover:text-primary transition-colors" data-time="17:30">05:30 PM</button>
-</div>
-</div>
-<div class="pt-2">
-<button type="submit" form="revisit-form" class="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
-                    Confirm Appointment
-                </button>
-</div>
-</form>
-</div>
-</div>
+<!-- Revisit schedule modal removed by design -->
 
 <script>
 (function() {
@@ -592,7 +563,6 @@
                 row.setAttribute('data-service-name', name);
                 row.innerHTML = '<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span><span class="text-sm font-semibold text-slate-700 dark:text-slate-200">' + (name || '').replace(/</g, '&lt;') + '</span></div>' +
                     '<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">' +
-                    '<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-edit" aria-label="Edit"><span class="material-symbols-outlined text-lg">edit</span></button>' +
                     '<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button></div>';
                 row.querySelector('.service-remove').addEventListener('click', function() { row.remove(); });
                 list.appendChild(row);
@@ -607,18 +577,7 @@
         });
     });
 
-    // Revisit modal: time selection and prescription add/remove
-    var revisitTimeInput = document.getElementById('revisitTimeInput');
-    document.querySelectorAll('.revisit-time').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var time = this.getAttribute('data-time');
-            if (time && revisitTimeInput) {
-                revisitTimeInput.value = time;
-                document.querySelectorAll('.revisit-time').forEach(function(b) { b.classList.remove('revisit-time-selected'); });
-                this.classList.add('revisit-time-selected');
-            }
-        });
-    });
+    // Prescription add/remove
     var addMedBtn = document.getElementById('add-medication-btn');
     var prescriptionsList = document.getElementById('prescriptions-list');
 
@@ -659,8 +618,8 @@
 
 <!-- Lab Request Modal -->
 <div class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="lab-request-modal">
-<div class="relative z-20 w-full max-w-xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden flex flex-col">
-<div class="flex items-center justify-between px-8 py-5 border-b border-slate-100 dark:border-slate-800">
+<div class="relative z-20 w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
+<div class="flex items-center justify-between px-8 py-5 border-b border-slate-200 dark:border-slate-800">
 <div>
 <h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold tracking-tight">New Lab Request</h2>
 <p class="text-slate-500 text-xs mt-0.5">Fill in the clinical details for the examination</p>
@@ -670,7 +629,7 @@
 </a>
 </div>
 <div class="px-8 py-6 space-y-6">
-<div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-100 dark:border-slate-800">
+<div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
 <div class="grid grid-cols-3 gap-4">
 <div>
 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Patient</p>
@@ -715,22 +674,6 @@
 </div>
 <div class="space-y-1.5">
 <label class="text-slate-700 dark:text-slate-300 text-xs font-bold uppercase tracking-wide flex items-center gap-1.5">
-<span class="material-symbols-outlined text-primary text-base">priority_high</span>
-                    Priority Level
-                </label>
-<div class="flex h-10 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 gap-1">
-<label class="flex-1 flex items-center justify-center cursor-pointer rounded-md transition-all has-[:checked]:bg-white dark:has-[:checked]:bg-slate-700 has-[:checked]:shadow-sm has-[:checked]:text-slate-900 text-slate-500 font-semibold text-xs">
-<input checked class="hidden" name="priority" type="radio" value="normal"/>
-<span>Normal</span>
-</label>
-<label class="flex-1 flex items-center justify-center cursor-pointer rounded-md transition-all has-[:checked]:bg-primary has-[:checked]:text-white text-slate-500 font-semibold text-xs">
-<input class="hidden" name="priority" type="radio" value="urgent"/>
-<span>Urgent</span>
-</label>
-</div>
-</div>
-<div class="space-y-1.5">
-<label class="text-slate-700 dark:text-slate-300 text-xs font-bold uppercase tracking-wide flex items-center gap-1.5">
 <span class="material-symbols-outlined text-primary text-base">description</span>
                     Clinical Notes
                 </label>
@@ -738,11 +681,11 @@
 </div>
 </form>
 </div>
-<div class="px-8 py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-end gap-3">
-<a href="#" class="px-5 py-2 rounded-lg text-slate-600 dark:text-slate-400 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<div class="px-8 py-5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-end gap-3">
+<a href="#" class="px-5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             Cancel
         </a>
-<button type="submit" form="lab-request-form" class="px-7 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-md shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-2">
+<button type="submit" form="lab-request-form" class="px-7 py-2.5 rounded-lg bg-primary text-white font-semibold text-sm shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-2">
 <span>Submit Request</span>
 <span class="material-symbols-outlined text-base">send</span>
 </button>
@@ -862,6 +805,71 @@
 
         /* ── server autosave + lab request submit ── */
         if (!examForm || !labForm) return;
+
+        // Nếu user chọn Lab Test Type trước khi submit, auto-add service vào Services (UI)
+        (function () {
+            const testSelect = labForm.querySelector('select[name="testId"]');
+            const servicesList = document.getElementById('examination-services-list');
+            const serviceIdsInput = document.getElementById('serviceIds');
+            if (!testSelect || !servicesList || !serviceIdsInput) return;
+
+            const norm = (s) => String(s || '').trim().toLowerCase();
+
+            function updateServiceIds() {
+                const ids = [];
+                servicesList.querySelectorAll('.service-row').forEach(function (r) {
+                    const id = r.getAttribute('data-service-id');
+                    if (id && id !== '') ids.push(id);
+                });
+                serviceIdsInput.value = ids.join(',');
+            }
+
+            async function ensureServiceForSelectedTest() {
+                const testId = testSelect.value;
+                const testName = (testSelect.options[testSelect.selectedIndex] && testSelect.options[testSelect.selectedIndex].text) || '';
+                const testNorm = norm(testName);
+                if (!testId || !testNorm) return;
+
+                // Avoid duplicates by service name
+                let exists = false;
+                servicesList.querySelectorAll('.service-row').forEach(function (row) {
+                    if (norm(row.getAttribute('data-service-name')) === testNorm) exists = true;
+                });
+                if (exists) return;
+
+                try {
+                    const r = await fetch('<%= ctx %>/vet/lab-service?testId=' + encodeURIComponent(testId), {
+                        credentials: 'same-origin'
+                    });
+                    if (!r.ok) return;
+                    const json = await r.json();
+                    if (!json || !json.success || !json.serviceId) return;
+
+                    const displayName = String(json.serviceName || testName);
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row';
+                    row.setAttribute('data-service-id', String(json.serviceId));
+                    row.setAttribute('data-service-name', displayName);
+                    row.innerHTML =
+                        '<div class="flex items-center gap-3">' +
+                        '<span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>' +
+                        '<span class="text-sm font-semibold text-slate-700 dark:text-slate-200">' + escHtml(displayName) + '</span>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">' +
+                        '<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove">' +
+                        '<span class="material-symbols-outlined text-lg">delete</span></button></div>';
+                    row.querySelector('.service-remove').addEventListener('click', function () { row.remove(); updateServiceIds(); });
+                    servicesList.appendChild(row);
+                    updateServiceIds();
+                } catch (e) {
+                    // ignore
+                }
+            }
+
+            testSelect.addEventListener('change', function () {
+                ensureServiceForSelectedTest();
+            });
+        })();
 
         let isSubmitting = false;
         labForm.addEventListener('submit', async function (e) {
@@ -1094,6 +1102,21 @@
             if (this.value.trim()) {
                 setFieldError(this, false);
                 if (errEl) errEl.classList.add('hidden');
+            }
+        });
+    }
+
+    // Profile dropdown toggle (header)
+    var vetToggle = document.getElementById('vet-profile-toggle');
+    var vetMenu = document.getElementById('vet-profile-menu');
+    if (vetToggle && vetMenu) {
+        vetToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            vetMenu.style.display = (vetMenu.style.display === 'none' || vetMenu.style.display === '') ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+            if (!vetMenu.contains(e.target) && !vetToggle.contains(e.target)) {
+                vetMenu.style.display = 'none';
             }
         });
     }

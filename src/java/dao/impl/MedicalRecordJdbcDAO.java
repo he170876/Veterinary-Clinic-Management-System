@@ -4,7 +4,6 @@ import dao.BaseDAO;
 import dao.MedicalRecordDAO;
 import model.MedicalRecord;
 import model.Pet;
-import model.Customer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -344,9 +343,11 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 p.weight
             FROM MedicalRecords mr
             JOIN Visits v ON mr.visit_id = v.visit_id
+            JOIN Appointments a ON v.appointment_id = a.appointment_id
             JOIN Pets p ON v.pet_id = p.pet_id
             LEFT JOIN Users u ON mr.veterinarian_id = u.user_id
-            WHERE v.customer_id = ?
+            -- Only show to customer after receptionist confirms payment (Done)
+            WHERE v.customer_id = ? AND a.status = 'Done'
             """);
         
         if (petId != null) {
@@ -399,8 +400,10 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
             SELECT COUNT(*) as total
             FROM MedicalRecords mr
             JOIN Visits v ON mr.visit_id = v.visit_id
+            JOIN Appointments a ON v.appointment_id = a.appointment_id
             JOIN Pets p ON v.pet_id = p.pet_id
-            WHERE v.customer_id = ?
+            -- Only show to customer after receptionist confirms payment (Done)
+            WHERE v.customer_id = ? AND a.status = 'Done'
             """);
         
         if (petId != null) {

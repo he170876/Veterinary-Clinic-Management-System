@@ -61,4 +61,27 @@ public class InvoiceDAO extends DBContext {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Returns the latest invoice_id for a given appointment.
+     * Used by receptionist UI when it doesn't have invoiceId on the page.
+     */
+    public int getLatestInvoiceIdByAppointmentId(int appointmentId) {
+        String sql = """
+            SELECT TOP 1 i.invoice_id
+            FROM Invoices i
+            JOIN Visits v ON i.visit_id = v.visit_id
+            WHERE v.appointment_id = ?
+            ORDER BY i.invoice_id DESC
+        """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("invoice_id") : 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 }
