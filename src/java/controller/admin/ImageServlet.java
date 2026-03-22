@@ -51,11 +51,9 @@ public class ImageServlet extends HttpServlet {
             return;
         }
 
-        // Check admin or clinic owner role (case-insensitive)
+        // Check admin or clinic owner role (accept both "ClinicOwner" and "Clinic Owner")
         User currentUser = (User) session.getAttribute("currentUser");
-        String roleName = currentUser.getRole() != null && currentUser.getRole().getRoleName() != null
-                ? currentUser.getRole().getRoleName().trim().toLowerCase() : "";
-        if (!(roleName.equals("admin") || roleName.equals("clinicowner"))) {
+        if (!hasImageManagementAccess(currentUser)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
             return;
         }
@@ -75,9 +73,9 @@ public class ImageServlet extends HttpServlet {
             return;
         }
 
-        // Check admin role
+        // Keep same access policy as GET to avoid owner being blocked on form submit
         User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser.getRole() == null || !"admin".equalsIgnoreCase(currentUser.getRole().getRoleName())) {
+        if (!hasImageManagementAccess(currentUser)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
             return;
         }
@@ -168,7 +166,7 @@ public class ImageServlet extends HttpServlet {
 
             Image created = imageService.createImage(image);
             if (created != null) {
-                response.sendRedirect(request.getContextPath() + "/admin/images");
+                response.sendRedirect(request.getContextPath() + "/owner/images");
             } else {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to create image");
             }
@@ -229,7 +227,7 @@ public class ImageServlet extends HttpServlet {
             }
 
             if (imageService.updateImage(image)) {
-                response.sendRedirect(request.getContextPath() + "/admin/images");
+                response.sendRedirect(request.getContextPath() + "/owner/images");
             } else {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to update image");
             }
@@ -246,7 +244,7 @@ public class ImageServlet extends HttpServlet {
             throws IOException {
         try {
             if (imageService.deleteImage(id)) {
-                response.sendRedirect(request.getContextPath() + "/admin/images");
+                response.sendRedirect(request.getContextPath() + "/owner/images");
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image not found or already deleted");
             }
@@ -321,7 +319,21 @@ public class ImageServlet extends HttpServlet {
             }
             return path;
         }
-
         return System.getProperty("user.dir") + File.separator + "uploads";
+    }
+
+    private boolean hasImageManagementAccess(User user) {
+        if (user == null || user.getRole() == null || user.getRole().getRoleName() == null) {
+            return false;
+        }
+        String normalizedRole = user.getRole().getRoleName()
+                .trim()
+                .toLowerCase()
+                .replace("_", "")
+                .replace(" ", "");
+
+        return "admin".equals(normalizedRole)
+                || "clinicowner".equals(normalizedRole)
+                || "owner".equals(normalizedRole);
     }
 }

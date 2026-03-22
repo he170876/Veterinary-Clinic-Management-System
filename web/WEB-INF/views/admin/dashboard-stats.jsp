@@ -1,3 +1,5 @@
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
     <meta charset="utf-8"/>
@@ -163,7 +165,7 @@
                         </div>
                         <p class="text-[#9e6b47] text-sm font-semibold uppercase tracking-wider">New Registrations</p>
                         <h3 class="text-3xl font-extrabold text-[#1c130d] dark:text-white">${newRegistrations7Days}</h3>
-                        <p class="text-xs text-[#9e6b47] mt-2 italic">In the last 7 days</p>
+                        <p class="text-xs text-[#9e6b47] mt-2 italic">Customer accounts this week</p>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-[#2d1e14] rounded-xl border border-[#e9d9ce] shadow-sm overflow-hidden">
@@ -173,116 +175,127 @@
                             <p class="text-sm text-[#9e6b47]">Monitor and manage upcoming pet visits</p>
                         </div>
                         <div class="inline-flex p-1 bg-[#f4ece6] rounded-full">
-                            <button class="px-6 py-2 rounded-full text-sm font-bold bg-white text-primary shadow-sm transition-all">Today</button>
-                            <button class="px-6 py-2 rounded-full text-sm font-bold text-[#9e6b47] hover:text-[#1c130d] transition-all">This Week</button>
-                            <button class="px-6 py-2 rounded-full text-sm font-bold text-[#9e6b47] hover:text-[#1c130d] transition-all">This Month</button>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-[#fcfaf8] dark:bg-[#3d2c1f] text-[#9e6b47] text-xs font-bold uppercase tracking-widest border-b border-[#f4ece6]">
-                                <tr>
-                                    <th class="px-6 py-4">Pet Name</th>
-                                    <th class="px-6 py-4">Owner</th>
-                                    <th class="px-6 py-4">Date &amp; Time</th>
-                                    <th class="px-6 py-4">Service Type</th>
-                                    <th class="px-6 py-4">Status</th>
-                                    <th class="px-6 py-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-[#f4ece6]">
-                                <c:forEach var="appointment" items="${appointments}">
-                                    <tr class="hover:bg-[#fcfaf8] transition-colors">
-                                        <td class="px-6 py-5">
-                                            <div class="flex items-center gap-3">
-                                                <img alt="Pet photo" class="w-10 h-10 rounded-full object-cover" src="${appointment.pet.photoUrl != null ? appointment.pet.photoUrl : '/web/anipat-master/img/default-pet.png'}"/>
-                                                <div>
-                                                    <p class="text-sm font-bold text-[#1c130d] dark:text-white">${appointment.pet.name}</p>
-                                                    <p class="text-xs text-[#9e6b47]">${appointment.pet.breed} •
-                                                        <c:choose>
-                                                            <c:when test="${appointment.pet.birthDate != null}">
-                                                                <c:set var="age" value="${pageContext.request.time.year - appointment.pet.birthDate.year}"/>
-                                                                ${age}yr
-                                                            </c:when>
-                                                            <c:otherwise>N/A</c:otherwise>
-                                                            </c:choose>
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-5 text-sm font-medium">${appointment.customer.name}</td>
-                                            <td class="px-6 py-5">
-                                                <div class="flex flex-col">
-                                                    <span class="text-sm font-bold text-[#1c130d] dark:text-white">${appointment.formattedDate}</span>
-                                                    <span class="text-xs text-[#9e6b47]">${appointment.formattedTime}</span>
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-5">
-                                                <span class="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-600 rounded-full">${appointment.service}</span>
-                                            </td>
-                                            <td class="px-6 py-5">
-                                                <c:choose>
-                                                    <c:when test="${appointment.status eq 'Confirmed'}">
-                                                        <div class="flex items-center gap-1.5 text-green-600 font-bold text-xs">
-                                                            <span class="w-2 h-2 rounded-full bg-green-600"></span>
-                                                            Confirmed
-                                                        </div>
-                                                    </c:when>
-                                                    <c:when test="${appointment.status eq 'Pending'}">
-                                                        <div class="flex items-center gap-1.5 text-primary font-bold text-xs">
-                                                            <span class="w-2 h-2 rounded-full bg-primary"></span>
-                                                            Pending
-                                                        </div>
-                                                    </c:when>
-                                                    <c:when test="${appointment.status eq 'Rescheduled'}">
-                                                        <div class="flex items-center gap-1.5 text-gray-500 font-bold text-xs">
-                                                            <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                                            Rescheduled
-                                                        </div>
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <div class="flex items-center gap-1.5 text-[#9e6b47] font-bold text-xs">
-                                                            <span class="w-2 h-2 rounded-full bg-[#9e6b47]"></span>
-                                                            ${appointment.status}
-                                                        </div>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </td>
-                                            <td class="px-6 py-5 text-right">
-                                                <button class="text-[#9e6b47] hover:text-primary transition-colors">
-                                                    <span class="material-symbols-outlined">more_vert</span>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </c:forEach>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="p-4 bg-[#fcfaf8] dark:bg-[#3d2c1f] flex items-center justify-between">
-                            <p class="text-xs text-[#9e6b47] font-medium">
-                                Showing
-                                <c:out value="${appointments.size()}"/> of <c:out value="${appTotal}"/> appointments
-                                </p>
-                                <div class="flex gap-2">
-                                    <form method="get" action="dashboard-stats" style="display:inline;">
-                                        <input type="hidden" name="appPage" value="${appPage - 1}"/>
-                                        <button class="p-1 rounded bg-white border border-[#e9d9ce] text-[#1c130d]" ${appPage == 1 ? 'disabled' : ''}>
-                                            <span class="material-symbols-outlined text-sm leading-none">chevron_left</span>
-                                        </button>
-                                    </form>
-                                    <span class="px-2 text-xs">Page <c:out value="${appPage}"/> of <c:out value="${appTotalPages}"/></span>
-                                    <form method="get" action="dashboard-stats" style="display:inline;">
-                                        <input type="hidden" name="appPage" value="${appPage + 1}"/>
-                                        <button class="p-1 rounded bg-white border border-[#e9d9ce] text-[#1c130d]" ${appPage == appTotalPages ? 'disabled' : ''}>
-                                            <span class="material-symbols-outlined text-sm leading-none">chevron_right</span>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </main>
+                            <a href="${pageContext.request.contextPath}/owner/dashboard?appScope=today&appPage=1"
+                            class="px-6 py-2 rounded-full text-sm font-bold transition-all ${appScope eq 'today' ? 'bg-white text-primary shadow-sm' : 'text-[#9e6b47] hover:text-[#1c130d]'}">
+                            Today
+                        </a>
+                        <a href="${pageContext.request.contextPath}/owner/dashboard?appScope=week&appPage=1"
+                        class="px-6 py-2 rounded-full text-sm font-bold transition-all ${appScope eq 'week' ? 'bg-white text-primary shadow-sm' : 'text-[#9e6b47] hover:text-[#1c130d]'}">
+                        This Week
+                    </a>
+                    <a href="${pageContext.request.contextPath}/owner/dashboard?appScope=month&appPage=1"
+                    class="px-6 py-2 rounded-full text-sm font-bold transition-all ${appScope eq 'month' ? 'bg-white text-primary shadow-sm' : 'text-[#9e6b47] hover:text-[#1c130d]'}">
+                    This Month
+                </a>
             </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-[#fcfaf8] dark:bg-[#3d2c1f] text-[#9e6b47] text-xs font-bold uppercase tracking-widest border-b border-[#f4ece6]">
+                    <tr>
+                        <th class="px-6 py-4">Pet Name</th>
+                        <th class="px-6 py-4">Owner</th>
+                        <th class="px-6 py-4">Date &amp; Time</th>
+                        <th class="px-6 py-4">Service Type</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#f4ece6]">
+                    <c:forEach var="appointment" items="${appointments}">
+                        <tr class="hover:bg-[#fcfaf8] transition-colors">
+                            <td class="px-6 py-5">
+                                <div class="flex items-center gap-3">
+                                    <img alt="Pet photo" class="w-10 h-10 rounded-full object-cover" src="${appointment.pet.photoUrl != null ? appointment.pet.photoUrl : '/web/anipat-master/img/default-pet.png'}"/>
+                                    <div>
+                                        <p class="text-sm font-bold text-[#1c130d] dark:text-white">${appointment.pet.name}</p>
+                                        <p class="text-xs text-[#9e6b47]">${appointment.pet.breed} •
+                                            <c:choose>
+                                                <c:when test="${appointment.pet.birthDate != null}">
+                                                    <c:set var="age" value="${pageContext.request.time.year - appointment.pet.birthDate.year}"/>
+                                                    ${age}yr
+                                                </c:when>
+                                                <c:otherwise>N/A</c:otherwise>
+                                                </c:choose>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 text-sm font-medium">${appointment.customer.name}</td>
+                                <td class="px-6 py-5">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-[#1c130d] dark:text-white">${appointment.formattedDate}</span>
+                                        <span class="text-xs text-[#9e6b47]">${appointment.formattedTime}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <span class="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-600 rounded-full">${appointment.service}</span>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <c:choose>
+                                        <c:when test="${appointment.status eq 'Confirmed'}">
+                                            <div class="flex items-center gap-1.5 text-green-600 font-bold text-xs">
+                                                <span class="w-2 h-2 rounded-full bg-green-600"></span>
+                                                Confirmed
+                                            </div>
+                                        </c:when>
+                                        <c:when test="${appointment.status eq 'Pending'}">
+                                            <div class="flex items-center gap-1.5 text-primary font-bold text-xs">
+                                                <span class="w-2 h-2 rounded-full bg-primary"></span>
+                                                Pending
+                                            </div>
+                                        </c:when>
+                                        <c:when test="${appointment.status eq 'Rescheduled'}">
+                                            <div class="flex items-center gap-1.5 text-gray-500 font-bold text-xs">
+                                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                                                Rescheduled
+                                            </div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div class="flex items-center gap-1.5 text-[#9e6b47] font-bold text-xs">
+                                                <span class="w-2 h-2 rounded-full bg-[#9e6b47]"></span>
+                                                ${appointment.status}
+                                            </div>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td class="px-6 py-5 text-right">
+                                    <button class="text-[#9e6b47] hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined">more_vert</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 bg-[#fcfaf8] dark:bg-[#3d2c1f] flex items-center justify-between">
+                <p class="text-xs text-[#9e6b47] font-medium">
+                    Showing
+                    <c:out value="${appointments.size()}"/> of <c:out value="${appTotal}"/> appointments
+                    </p>
+                    <div class="flex gap-2">
+                        <form method="get" action="${pageContext.request.contextPath}/owner/dashboard" style="display:inline;">
+                            <input type="hidden" name="appScope" value="${appScope}"/>
+                            <input type="hidden" name="appPage" value="${appPage - 1}"/>
+                            <button class="p-1 rounded bg-white border border-[#e9d9ce] text-[#1c130d]" ${appPage == 1 ? 'disabled' : ''}>
+                                <span class="material-symbols-outlined text-sm leading-none">chevron_left</span>
+                            </button>
+                        </form>
+                        <span class="px-2 text-xs">Page <c:out value="${appPage}"/> of <c:out value="${appTotalPages}"/></span>
+                        <form method="get" action="${pageContext.request.contextPath}/owner/dashboard" style="display:inline;">
+                            <input type="hidden" name="appScope" value="${appScope}"/>
+                            <input type="hidden" name="appPage" value="${appPage + 1}"/>
+                            <button class="p-1 rounded bg-white border border-[#e9d9ce] text-[#1c130d]" ${appPage == appTotalPages ? 'disabled' : ''}>
+                                <span class="material-symbols-outlined text-sm leading-none">chevron_right</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
 
         <script>
             (function () {

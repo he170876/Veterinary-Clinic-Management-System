@@ -50,7 +50,7 @@ public class ChangeUserStatusServlet extends HttpServlet {
 
         append(redirect, "keyword", keyword);
         append(redirect, "filterRoleId", roleId);
-        append(redirect, "status", filterStatus); // filter status
+        append(redirect, "filterStatus", filterStatus);
         append(redirect, "sort", sort);
         append(redirect, "page", page);
 

@@ -34,13 +34,17 @@ import java.util.Set;
 public class RoleBasedAccessFilter implements Filter {
 
     private static final Set<String> CUSTOMER_ROLES = set("Customer");
-    private static final Set<String> OWNER_ROLES = set("Admin", "ClinicOwner");
+    private static final Set<String> OWNER_ROLES = set("Admin", "ClinicOwner", "Clinic Owner", "Owner");
     private static final Set<String> VET_ROLES = set("Veterinarian");
     private static final Set<String> RECEPTIONIST_ROLES = set("Receptionist");
-    private static final Set<String> LAB_ROLES = set("LabStaff","lab");
+    private static final Set<String> LAB_ROLES = set("LabStaff", "lab");
 
     private static Set<String> set(String... roles) {
-        return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(roles)));
+        Set<String> normalized = new HashSet<>();
+        for (String role : Arrays.asList(roles)) {
+            normalized.add(normalizeRole(role));
+        }
+        return Collections.unmodifiableSet(normalized);
     }
 
     @Override
@@ -59,7 +63,7 @@ public class RoleBasedAccessFilter implements Filter {
 
         User user = (User) session.getAttribute("currentUser");
         String roleName = (user.getRole() != null && user.getRole().getRoleName() != null)
-                ? user.getRole().getRoleName().trim() : "";
+            ? normalizeRole(user.getRole().getRoleName()) : "";
 
         Set<String> allowed = allowedRolesForPath(path);
         if (allowed != null && !allowed.contains(roleName)) {
@@ -77,5 +81,12 @@ public class RoleBasedAccessFilter implements Filter {
         if (path.startsWith("/Receptionist/")) return RECEPTIONIST_ROLES;
         if (path.startsWith("/lab/")) return LAB_ROLES;
         return null;
+    }
+
+    private static String normalizeRole(String role) {
+        if (role == null) {
+            return "";
+        }
+        return role.trim().toLowerCase().replace("_", "").replace(" ", "");
     }
 }

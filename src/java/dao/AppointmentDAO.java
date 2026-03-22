@@ -863,6 +863,122 @@ public class AppointmentDAO extends DBContext {
         return 0;
     }
 
+    public List<Appointment> getAppointmentsByDateRange(LocalDate fromDate, LocalDate toDate, int offset, int pageSize) {
+        List<Appointment> list = new ArrayList<>();
+        if (fromDate == null || toDate == null || pageSize <= 0 || offset < 0) {
+            return list;
+        }
+
+        String legacySql = """
+            SELECT a.appointment_id, a.appointment_time, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
+                   p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
+                   c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
+            WHERE p.isDeleted = 0
+              AND CAST(a.appointment_time AS DATE) >= ?
+              AND CAST(a.appointment_time AS DATE) <= ?
+            ORDER BY a.appointment_time ASC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+            """;
+
+        String dateSlotSql = """
+            SELECT a.appointment_id, a.appointment_date, a.time_slot, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
+                   p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
+                   c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            JOIN customers c ON a.customer_id = c.customer_id
+            JOIN users u ON c.user_id = u.user_id
+            LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
+            LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
+            LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
+            LEFT JOIN services s ON aps.service_id = s.service_id
+            WHERE p.isDeleted = 0
+              AND a.appointment_date >= ?
+              AND a.appointment_date <= ?
+            ORDER BY a.appointment_date ASC,
+                     CASE WHEN UPPER(COALESCE(a.time_slot, 'AM')) = 'PM' THEN 1 ELSE 0 END ASC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+            """;
+
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasDateSlot = appointmentColumns.contains("appointment_date")
+                    && appointmentColumns.contains("time_slot");
+            String sql = hasDateSlot ? dateSlotSql : legacySql;
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setDate(1, java.sql.Date.valueOf(fromDate));
+                ps.setDate(2, java.sql.Date.valueOf(toDate));
+                ps.setInt(3, offset);
+                ps.setInt(4, pageSize);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Appointment ap = hasDateSlot
+                                ? mapAppointmentFromDateSlotRs(rs)
+                                : mapAppointmentFromRs(rs);
+                        list.add(ap);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public int countAppointmentsByDateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate == null || toDate == null) {
+            return 0;
+        }
+
+        String legacySql = """
+            SELECT COUNT(*)
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            WHERE p.isDeleted = 0
+              AND CAST(a.appointment_time AS DATE) >= ?
+              AND CAST(a.appointment_time AS DATE) <= ?
+            """;
+
+        String dateSlotSql = """
+            SELECT COUNT(*)
+            FROM appointments a
+            JOIN pets p ON a.pet_id = p.pet_id
+            WHERE p.isDeleted = 0
+              AND a.appointment_date >= ?
+              AND a.appointment_date <= ?
+            """;
+
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasDateSlot = appointmentColumns.contains("appointment_date")
+                    && appointmentColumns.contains("time_slot");
+            String sql = hasDateSlot ? dateSlotSql : legacySql;
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setDate(1, java.sql.Date.valueOf(fromDate));
+                ps.setDate(2, java.sql.Date.valueOf(toDate));
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? rs.getInt(1) : 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
     public Appointment getAppointmentDetail(int appointmentId) {
         String sql = """
             SELECT

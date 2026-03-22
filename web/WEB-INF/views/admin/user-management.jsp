@@ -156,6 +156,11 @@
                     <h2 class="text-2xl font-bold tracking-tight">System Users</h2>
                     <p class="text-[#a17145] text-sm">Search and filter system users</p>
                 </div>
+                <button type="button"
+                        onclick="openCreateUserModal()"
+                        class="px-5 py-3 bg-primary hover:bg-[#e66f00] text-white rounded-xl font-bold shadow-sm">
+                    Add Account
+                </button>
             </div>
             <!-- FILTER -->
             <form action="user-management" method="get"
@@ -179,9 +184,9 @@
 
                 <select name="filterStatus" class="rounded-xl border px-4 py-3">
                     <option value="">All status</option>
-                    <option value="Active" ${param.status=='Active'?'selected':''}>Active</option>
-                    <option value="Inactive" ${param.status=='Inactive'?'selected':''}>Inactive</option>
-                    <option value="Blocked" ${param.status=='Blocked'?'selected':''}>Blocked</option>
+                    <option value="Active" ${param.filterStatus=='Active'?'selected':''}>Active</option>
+                    <option value="Inactive" ${param.filterStatus=='Inactive'?'selected':''}>Inactive</option>
+                    <option value="Blocked" ${param.filterStatus=='Blocked'?'selected':''}>Blocked</option>
                 </select>
 
                 <button class="bg-primary hover:bg-[#e66f00] text-white font-bold rounded-xl">Filter</button>
@@ -228,7 +233,7 @@
                             <td class="px-6 py-4">${u.email}</td>
                             <td class="px-6 py-4">${u.role.roleName}</td>
                             <td class="px-6 py-4">
-                                <form action="change-user-status" method="post">
+                                <form action="${pageContext.request.contextPath}/admin/change-user-status" method="post">
                                     <input type="hidden" name="id" value="${u.userId}" />
                                     <input type="hidden" name="keyword" value="${param.keyword}" />
                                     <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
@@ -334,6 +339,152 @@
     </div>
     </main>
 </div>
+
+        <!-- CREATE USER MODAL -->
+        <div id="createUserModal"
+             class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+            <div class="bg-white w-full max-w-xl rounded-2xl shadow-lg p-6 relative max-h-[90vh] overflow-y-auto">
+
+                <h3 class="text-2xl font-black mb-4">Add Account</h3>
+
+                <form id="createUserForm" action="${pageContext.request.contextPath}/owner/create-user" method="post" class="space-y-4">
+
+                    <input type="hidden" name="keyword" value="${param.keyword}" />
+                    <input type="hidden" name="filterRoleId" value="${param.filterRoleId}" />
+                    <input type="hidden" name="filterStatus" value="${param.filterStatus}" />
+                    <input type="hidden" name="page" value="${currentPage}" />
+                    <input type="hidden" name="sort" value="${sort}" />
+
+                    <div>
+                        <label class="font-semibold">Full Name</label>
+                        <input name="fullName"
+                               value="${fullName}"
+                               class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.fullName != null ? 'border-red-500' : ''}"/>
+                        <c:if test="${openCreateModal and errors.fullName != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.fullName}</p>
+                        </c:if>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold">Account (Email login)</label>
+                        <input name="email"
+                               value="${email}"
+                               class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.email != null ? 'border-red-500' : ''}"/>
+                        <c:if test="${openCreateModal and errors.email != null}">
+                            <p class="text-red-500 text-sm mt-1">${errors.email}</p>
+                        </c:if>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="font-semibold">Password</label>
+                            <input type="password"
+                                   name="password"
+                                   class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.password != null ? 'border-red-500' : ''}"/>
+                            <c:if test="${openCreateModal and errors.password != null}">
+                                <p class="text-red-500 text-sm mt-1">${errors.password}</p>
+                            </c:if>
+                        </div>
+                        <div>
+                            <label class="font-semibold">Confirm Password</label>
+                            <input type="password"
+                                   name="confirmPassword"
+                                   class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.confirmPassword != null ? 'border-red-500' : ''}"/>
+                            <c:if test="${openCreateModal and errors.confirmPassword != null}">
+                                <p class="text-red-500 text-sm mt-1">${errors.confirmPassword}</p>
+                            </c:if>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="font-semibold">Role</label>
+                            <select name="roleId"
+                                    class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.roleId != null ? 'border-red-500' : ''}">
+                                <option value="">Select role</option>
+                                <option value="1" ${roleId == 1 ? 'selected' : ''}>Customer</option>
+                                <option value="2" ${roleId == 2 ? 'selected' : ''}>Veterinarian</option>
+                                <option value="3" ${roleId == 3 ? 'selected' : ''}>Receptionist</option>
+                                <option value="4" ${roleId == 4 ? 'selected' : ''}>Lab Staff</option>
+                                <option value="5" ${roleId == 5 ? 'selected' : ''}>Admin</option>
+                                <option value="6" ${roleId == 6 ? 'selected' : ''}>Clinic Owner</option>
+                            </select>
+                            <c:if test="${openCreateModal and errors.roleId != null}">
+                                <p class="text-red-500 text-sm mt-1">${errors.roleId}</p>
+                            </c:if>
+                        </div>
+                        <div>
+                            <label class="font-semibold">Status</label>
+                            <select name="status"
+                                    class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.status != null ? 'border-red-500' : ''}">
+                                <option value="Active" ${status == 'Active' ? 'selected' : ''}>Active</option>
+                                <option value="Inactive" ${status == 'Inactive' ? 'selected' : ''}>Inactive</option>
+                                <option value="Blocked" ${status == 'Blocked' ? 'selected' : ''}>Blocked</option>
+                            </select>
+                            <c:if test="${openCreateModal and errors.status != null}">
+                                <p class="text-red-500 text-sm mt-1">${errors.status}</p>
+                            </c:if>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="font-semibold">Phone (optional)</label>
+                            <input name="phone"
+                                   value="${phone}"
+                                   class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.phone != null ? 'border-red-500' : ''}"/>
+                            <c:if test="${openCreateModal and errors.phone != null}">
+                                <p class="text-red-500 text-sm mt-1">${errors.phone}</p>
+                            </c:if>
+                        </div>
+                        <div>
+                            <label class="font-semibold">Address (optional)</label>
+                            <input name="address"
+                                   value="${address}"
+                                   class="w-full rounded-lg border px-4 py-2 ${openCreateModal and errors.address != null ? 'border-red-500' : ''}"/>
+                            <c:if test="${openCreateModal and errors.address != null}">
+                                <p class="text-red-500 text-sm mt-1">${errors.address}</p>
+                            </c:if>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4">
+                        <button type="button"
+                                onclick="closeCreateUserModal()"
+                                class="px-5 py-2 bg-gray-200 rounded-lg font-bold">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                class="px-5 py-2 bg-primary text-white rounded-lg font-bold hover:bg-[#e66f00]">
+                            Create Account
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function openCreateUserModal() {
+                const modal = document.getElementById('createUserModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function closeCreateUserModal() {
+                const modal = document.getElementById('createUserModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        </script>
+
+        <c:if test="${openCreateModal}">
+            <script>
+                openCreateUserModal();
+            </script>
+        </c:if>
 
         <!-- UPDATE USER STATUS -->
         <script>
