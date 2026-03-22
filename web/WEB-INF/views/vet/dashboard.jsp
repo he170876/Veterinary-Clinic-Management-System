@@ -94,9 +94,6 @@
         </a>
     </div>
 </div>
-<button class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-<span class="material-symbols-outlined">settings</span>
-</button>
 </div>
 </header>
 <!-- Dashboard Grid -->

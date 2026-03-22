@@ -6,12 +6,18 @@ import java.sql.SQLException;
 
 public class DBContext {
 
-    private static final String URL = "jdbc:sqlserver://localhost:1433"
+    /**
+     * Kết nối phải trùng cách bạn mở SSMS (server + instance hoặc cổng TCP).
+     * - Named instance (vd. MSI\\MSSQLSERVER12): dùng instanceName; cần SQL Server Browser chạy.
+     * - Hoặc thay bằng cổng thật: jdbc:sqlserver://localhost:64662;databaseName=...
+     *   (xem cổng trong SQL Server Configuration Manager → TCP/IP → IPAll).
+     */
+    private static final String URL = "jdbc:sqlserver://localhost;instanceName=MSSQLSERVER12"
             + ";databaseName=VetClinicManagement1"
             + ";encrypt=true;trustServerCertificate=true"
             + ";loginTimeout=15";
     private static final String USER = "sa";
-    private static final String PASS = "123456";
+    private static final String PASS = "123";
 
     static {
         try {
