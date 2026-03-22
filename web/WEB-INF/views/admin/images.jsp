@@ -68,10 +68,7 @@
                         <span class="text-sm font-bold">Images</span>
                     </a>
 
-                    <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
-                        <span class="material-symbols-outlined">settings</span>
-                        <span class="text-sm font-semibold">Settings</span>
-                    </a>
+
                 </nav>
             </aside>
 
@@ -203,7 +200,7 @@
                     </button>
                 </div>
 
-                <form id="imageForm" method="POST" action="${pageContext.request.contextPath}/admin/images" enctype="multipart/form-data" class="p-6 flex flex-col gap-4">
+                <form id="imageForm" method="POST" action="${pageContext.request.contextPath}/owner/images" enctype="multipart/form-data" class="p-6 flex flex-col gap-4">
                     <input type="hidden" name="action" id="formAction" value="create">
                     <input type="hidden" name="imageId" id="imageId">
 
@@ -291,7 +288,7 @@
                 if (confirm('Are you sure you want to delete this image?')) {
                     const form = document.createElement('form');
                     form.method = 'POST';
-                    form.action = '${pageContext.request.contextPath}/admin/images/delete/' + imageId;
+                    form.action = '${pageContext.request.contextPath}/owner/images/delete/' + imageId;
                     document.body.appendChild(form);
                     form.submit();
                 }

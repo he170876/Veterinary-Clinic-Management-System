@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-@WebServlet(name = "CreateUserServlet", urlPatterns = {"/admin/create-user"})
+@WebServlet(name = "CreateUserServlet", urlPatterns = {"/admin/create-user", "/owner/create-user"})
 public class CreateUserServlet extends HttpServlet {
 
     private final UserDAO userDAO = new UserJdbcDAO();
@@ -35,6 +35,8 @@ public class CreateUserServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
+        request.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
         /* ================= GET PARAM ================= */
 
@@ -142,7 +144,7 @@ public class CreateUserServlet extends HttpServlet {
             request.setAttribute("status", status);
             request.setAttribute("openCreateModal", true);
 
-            request.getRequestDispatcher("/admin/user-management")
+                request.getRequestDispatcher("/owner/user-management")
                     .forward(request, response);
             return;
         }
@@ -166,13 +168,13 @@ public class CreateUserServlet extends HttpServlet {
         boolean success = userDAO.create(user);
 
         if (!success) {
-            response.sendRedirect("user-management?error=createFailed");
+            response.sendRedirect(request.getContextPath() + "/owner/user-management?error=createFailed");
             return;
         }
 
         /* ================= REDIRECT KEEP FILTER ================= */
 
-        StringBuilder redirect = new StringBuilder("user-management?");
+        StringBuilder redirect = new StringBuilder(request.getContextPath() + "/owner/user-management?");
 
         append(redirect, "keyword", request.getParameter("keyword"));
         append(redirect, "filterRoleId", request.getParameter("filterRoleId"));
