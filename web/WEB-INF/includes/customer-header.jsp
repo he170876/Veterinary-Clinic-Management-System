@@ -14,9 +14,13 @@
         headerActionIcon = "arrow_back";
     }
 
-    User headerUser = (User) request.getAttribute("user");
+    Object headerUserObj = request.getAttribute("user");
+    User headerUser = (headerUserObj instanceof User) ? (User) headerUserObj : null;
     if (headerUser == null && session != null) {
-        headerUser = (User) session.getAttribute("currentUser");
+        Object sessionUserObj = session.getAttribute("currentUser");
+        if (sessionUserObj instanceof User) {
+            headerUser = (User) sessionUserObj;
+        }
     }
 
     if (headerDisplayName == null || headerDisplayName.trim().isEmpty()) {

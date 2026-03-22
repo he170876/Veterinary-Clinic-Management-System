@@ -58,7 +58,8 @@ public class VetLabRequestServlet extends HttpServlet {
         }
 
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
-        if (vetId <= 0 || ap.getVeterinarianId() != vetId) {
+        Integer appointmentVetId = ap.getVeterinarianId();
+        if (vetId <= 0 || (appointmentVetId != null && appointmentVetId > 0 && appointmentVetId != vetId)) {
             response.sendRedirect(request.getContextPath() + "/vet/queue");
             return;
         }
@@ -71,10 +72,17 @@ public class VetLabRequestServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/vet/queue?error=notcheckedin");
             return;
         }
+        int effectiveVetId = visit.getVeterinarianId() != null && visit.getVeterinarianId() > 0
+                ? visit.getVeterinarianId()
+                : vetId;
+        if (effectiveVetId <= 0) {
+            response.sendRedirect(request.getContextPath() + "/vet/queue?error=unauthorized");
+            return;
+        }
         //tạo lab request
         LabTestRequestDAO labDao = new LabTestRequestDAO();
         String clinicalNotes = request.getParameter("clinicalNotes");
-        labDao.createRequest(visit.getVisitId(), testId, visit.getVeterinarianId(), clinicalNotes);
+        labDao.createRequest(visit.getVisitId(), testId, effectiveVetId, clinicalNotes);
 
         // Notify Lab Technician(s) that a new lab request was created
         NotificationDAO ndao = new NotificationDAO();

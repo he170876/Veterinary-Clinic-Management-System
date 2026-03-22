@@ -70,7 +70,13 @@ public class CustomerDashboardServlet extends HttpServlet {
             return;
         }
 
-        User user = (User) session.getAttribute("currentUser");
+        Object currentUserObj = session.getAttribute("currentUser");
+        if (!(currentUserObj instanceof User)) {
+            session.invalidate();
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+        User user = (User) currentUserObj;
         String ctx = request.getContextPath();
 
         // Force customer to add phone if missing (e.g. Google account)

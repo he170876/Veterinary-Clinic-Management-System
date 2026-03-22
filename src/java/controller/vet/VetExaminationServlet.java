@@ -195,7 +195,8 @@ public class VetExaminationServlet extends HttpServlet {
         }
 
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
-        if (vetId <= 0 || ap.getVeterinarianId() != vetId) {
+        Integer appointmentVetId = ap.getVeterinarianId();
+        if (vetId <= 0 || (appointmentVetId != null && appointmentVetId > 0 && appointmentVetId != vetId)) {
             response.sendRedirect(request.getContextPath() + "/vet/queue");
             return;
         }
@@ -213,9 +214,12 @@ public class VetExaminationServlet extends HttpServlet {
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         MedicalRecord record = null;
         if (visit != null) {
+            int effectiveVetId = visit.getVeterinarianId() != null && visit.getVeterinarianId() > 0
+                    ? visit.getVeterinarianId()
+                    : vetId;
             record = recordDao.getByVisitId(visit.getVisitId());
             if (record == null) {
-                record = recordDao.create(visit.getVisitId(), visit.getVeterinarianId(), diagnosis, treatment, note);
+                record = recordDao.create(visit.getVisitId(), effectiveVetId, diagnosis, treatment, note);
             } else {
                 recordDao.update(record.getRecordId(), diagnosis, treatment, note);
             }

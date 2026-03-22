@@ -61,7 +61,7 @@ public class StaffCheckInServlet extends HttpServlet {
         }
 
         Appointment ap = appDao.getAppointmentDetail(appointmentId);
-        if (ap == null) {
+        if (ap == null || ap.getPet() == null || ap.getCustomer() == null) {
             response.sendRedirect(request.getContextPath() + "/staff/queue?error=notfound");
             return;
         }

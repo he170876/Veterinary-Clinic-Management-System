@@ -2,9 +2,13 @@
 <%
     // Important: use a unique variable name because many parent JSPs already define `ctx`.
     String profileCtx = request.getContextPath();
-    User u = (User) request.getAttribute("user");
+    Object userObj = request.getAttribute("user");
+    User u = (userObj instanceof User) ? (User) userObj : null;
     if (u == null && session != null) {
-        u = (User) session.getAttribute("currentUser");
+        Object sessionUserObj = session.getAttribute("currentUser");
+        if (sessionUserObj instanceof User) {
+            u = (User) sessionUserObj;
+        }
     }
 
     String displayName = (u != null && u.getFullName() != null && !u.getFullName().isEmpty())

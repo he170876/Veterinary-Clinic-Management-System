@@ -1,7 +1,14 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.User, model.MedicalRecord, java.util.List, java.time.format.DateTimeFormatter" %>
 <%
-    User user = (User) request.getAttribute("user");
+    Object userObj = request.getAttribute("user");
+    User user = (userObj instanceof User) ? (User) userObj : null;
+    if (user == null && session != null) {
+        Object sessionUserObj = session.getAttribute("currentUser");
+        if (sessionUserObj instanceof User) {
+            user = (User) sessionUserObj;
+        }
+    }
     List<MedicalRecord> recentMedicalRecords = (List<MedicalRecord>) request.getAttribute("recentMedicalRecords");
     Integer petCount = (Integer) request.getAttribute("petCount");
     Integer appointmentCount = (Integer) request.getAttribute("appointmentCount");

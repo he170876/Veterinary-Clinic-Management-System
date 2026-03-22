@@ -2,8 +2,14 @@
 <%
     String ctx = request.getContextPath();
     String currentPage = request.getAttribute("customerCurrentPage") != null ? (String) request.getAttribute("customerCurrentPage") : "";
-    model.User sidebarUser = (model.User) request.getAttribute("user");
-    if (sidebarUser == null && session != null) sidebarUser = (model.User) session.getAttribute("currentUser");
+    Object sidebarUserObj = request.getAttribute("user");
+    model.User sidebarUser = (sidebarUserObj instanceof model.User) ? (model.User) sidebarUserObj : null;
+    if (sidebarUser == null && session != null) {
+        Object sessionUserObj = session.getAttribute("currentUser");
+        if (sessionUserObj instanceof model.User) {
+            sidebarUser = (model.User) sessionUserObj;
+        }
+    }
     String sidebarName = (sidebarUser != null && sidebarUser.getFullName() != null && !sidebarUser.getFullName().isEmpty()) ? sidebarUser.getFullName() : (sidebarUser != null ? sidebarUser.getEmail() : "");
 %>
 <aside class="w-64 border-r border-[#f4f0f0] bg-white dark:bg-background-dark flex flex-col justify-between p-4 sticky top-0 h-screen shrink-0">

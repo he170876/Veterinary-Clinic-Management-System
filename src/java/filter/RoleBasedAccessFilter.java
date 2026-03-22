@@ -61,7 +61,14 @@ public class RoleBasedAccessFilter implements Filter {
             return;
         }
 
-        User user = (User) session.getAttribute("currentUser");
+        Object currentUserObj = session.getAttribute("currentUser");
+        if (!(currentUserObj instanceof User)) {
+            // The app can be hot-reloaded in development; clear stale session user from old classloader.
+            session.invalidate();
+            resp.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
+        User user = (User) currentUserObj;
         String roleName = (user.getRole() != null && user.getRole().getRoleName() != null)
             ? normalizeRole(user.getRole().getRoleName()) : "";
 

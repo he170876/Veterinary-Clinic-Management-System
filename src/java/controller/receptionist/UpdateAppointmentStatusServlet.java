@@ -47,9 +47,7 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
                         Appointment ap = dao.getAppointmentDetail(appointmentId);
                         if (ap == null
                                 || ap.getPet() == null
-                                || ap.getCustomer() == null
-                                || ap.getVeterinarianId() == null
-                                || ap.getVeterinarianId() <= 0) {
+                                || ap.getCustomer() == null) {
                             response.getWriter().write("{\"success\":false,\"message\":\"Missing appointment details to create visit.\"}");
                             return;
                         }

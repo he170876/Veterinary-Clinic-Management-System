@@ -64,14 +64,18 @@ public class VisitDAO extends DBContext {
     }
 
     /** Creates a visit when receptionist checks in: status Checked-in, staff_id set. */
-    public Visit createForCheckIn(int appointmentId, int petId, int customerId, int veterinarianId, int staffId) {
+    public Visit createForCheckIn(int appointmentId, int petId, int customerId, Integer veterinarianId, int staffId) {
         String sql = "INSERT INTO Visits (appointment_id, pet_id, customer_id, check_in_time, visit_status, staff_id, veterinarian_id) OUTPUT INSERTED.visit_id VALUES (?, ?, ?, GETDATE(), 'Checked-in', ?, ?)";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, appointmentId);
             ps.setInt(2, petId);
             ps.setInt(3, customerId);
             ps.setInt(4, staffId);
-            ps.setInt(5, veterinarianId);
+            if (veterinarianId != null && veterinarianId > 0) {
+                ps.setInt(5, veterinarianId);
+            } else {
+                ps.setNull(5, java.sql.Types.INTEGER);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     Visit v = new Visit();
