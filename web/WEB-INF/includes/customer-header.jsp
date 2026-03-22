@@ -65,8 +65,6 @@
             <p class="text-xs text-slate-500"><%= headerRoleText %></p>
         </div>
 
-        <div class="bg-primary/10 rounded-full size-10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-            <%= headerAvatarInitial %>
-        </div>
+        <%@ include file="/WEB-INF/includes/customer-profile-dropdown.jspf" %>
     </div>
 </header>

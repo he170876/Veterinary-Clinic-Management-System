@@ -346,8 +346,10 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
             JOIN Appointments a ON v.appointment_id = a.appointment_id
             JOIN Pets p ON v.pet_id = p.pet_id
             LEFT JOIN Users u ON mr.veterinarian_id = u.user_id
-            -- Only show to customer after receptionist confirms payment (Done)
-            WHERE v.customer_id = ? AND a.status = 'Done'
+                        -- Only show to customer after completion/payment confirmation.
+                        -- Support both legacy and current status values.
+                        WHERE v.customer_id = ?
+                            AND LOWER(COALESCE(a.status, '')) IN ('done', 'completed')
             """);
         
         if (petId != null) {
@@ -402,8 +404,10 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
             JOIN Visits v ON mr.visit_id = v.visit_id
             JOIN Appointments a ON v.appointment_id = a.appointment_id
             JOIN Pets p ON v.pet_id = p.pet_id
-            -- Only show to customer after receptionist confirms payment (Done)
-            WHERE v.customer_id = ? AND a.status = 'Done'
+                        -- Only show to customer after completion/payment confirmation.
+                        -- Support both legacy and current status values.
+                        WHERE v.customer_id = ?
+                            AND LOWER(COALESCE(a.status, '')) IN ('done', 'completed')
             """);
         
         if (petId != null) {

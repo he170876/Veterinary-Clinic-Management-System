@@ -399,8 +399,10 @@ public class VetMedicalRecordDAO extends DBContext {
             JOIN Pets p ON v.pet_id = p.pet_id
             JOIN Veterinarians vet ON mr.veterinarian_id = vet.veterinarian_id
             JOIN Users u ON vet.user_id = u.user_id
-            -- Customer can view records only after receptionist confirms payment (appointment is Done)
-            WHERE v.customer_id = ? AND a.status = 'Done'
+                        -- Customer can view records after completion/payment confirmation.
+                        -- Support both Done and Completed statuses.
+                        WHERE v.customer_id = ?
+                            AND LOWER(COALESCE(a.status, '')) IN ('done', 'completed')
             ORDER BY mr.created_at DESC
             """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
