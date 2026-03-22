@@ -1,5 +1,8 @@
 package controller.vet;
 
+import dao.NotificationDAO;
+import dao.UserDAO;
+import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -9,12 +12,20 @@ import jakarta.servlet.http.HttpSession;
 import model.User;
 
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Vet profile read-only page with change password modal, same flow as customer profile.
  */
 @WebServlet(name = "VetProfileServlet", urlPatterns = {"/vet/profile"})
 public class VetProfileServlet extends HttpServlet {
+
+    private UserDAO userDAO;
+
+    @Override
+    public void init() throws ServletException {
+        this.userDAO = new UserJdbcDAO();
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -25,9 +36,14 @@ public class VetProfileServlet extends HttpServlet {
             return;
         }
 
-        User user = (User) session.getAttribute("currentUser");
-        request.setAttribute("user", user);
+        User sessionUser = (User) session.getAttribute("currentUser");
+        User fresh = userDAO.findById(sessionUser.getUserId()).orElse(sessionUser);
+        session.setAttribute("currentUser", fresh);
+        request.setAttribute("user", fresh);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(fresh.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
+
         request.getRequestDispatcher("/WEB-INF/views/vet/profile.jsp").forward(request, response);
     }
 }
-

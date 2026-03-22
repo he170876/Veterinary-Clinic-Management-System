@@ -1,5 +1,7 @@
 package controller.receptionist;
 
+import dao.UserDAO;
+import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,6 +18,13 @@ import java.io.IOException;
 @WebServlet(name = "ReceptionistProfileServlet", urlPatterns = {"/Receptionist/profile"})
 public class ReceptionistProfileServlet extends HttpServlet {
 
+    private UserDAO userDAO;
+
+    @Override
+    public void init() throws ServletException {
+        this.userDAO = new UserJdbcDAO();
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -25,10 +34,12 @@ public class ReceptionistProfileServlet extends HttpServlet {
             return;
         }
 
-        User user = (User) session.getAttribute("currentUser");
+        User sessionUser = (User) session.getAttribute("currentUser");
+        User user = userDAO.findById(sessionUser.getUserId()).orElse(sessionUser);
+        session.setAttribute("currentUser", user);
+
         String ctx = request.getContextPath();
 
-        // Keep behavior consistent with customer: phone is required to continue.
         if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
             session.setAttribute("pendingPhoneRequired", Boolean.TRUE);
             response.sendRedirect(ctx + "/Receptionist/edit-profile?required=phone");
@@ -39,4 +50,3 @@ public class ReceptionistProfileServlet extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/profile.jsp").forward(request, response);
     }
 }
-

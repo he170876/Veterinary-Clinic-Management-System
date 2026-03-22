@@ -1,0 +1,52 @@
+<%
+    String rsCtx = request.getContextPath();
+    String fwdSp = (String) request.getAttribute("jakarta.servlet.forward.servlet_path");
+    if (fwdSp == null) fwdSp = (String) request.getAttribute("javax.servlet.forward.servlet_path");
+    String fwdUri = (String) request.getAttribute("jakarta.servlet.forward.request_uri");
+    if (fwdUri == null) fwdUri = (String) request.getAttribute("javax.servlet.forward.request_uri");
+    String curPath = "";
+    if (fwdSp != null && !fwdSp.isEmpty()) curPath = fwdSp;
+    else if (fwdUri != null && !fwdUri.isEmpty()) curPath = fwdUri;
+    else curPath = request.getRequestURI() != null ? request.getRequestURI() : "";
+    if (rsCtx != null && !rsCtx.isEmpty() && curPath.startsWith(rsCtx)) {
+        curPath = curPath.substring(rsCtx.length());
+    }
+    String lp = curPath.toLowerCase();
+    boolean rsOnDash = lp.contains("/receptionist/dashboard");
+    boolean rsOnSchedule = lp.contains("viewlistappointment");
+    boolean rsOnRequests = lp.contains("manageappointmentrequests");
+    boolean rsOnProfile = lp.contains("/receptionist/profile") || lp.contains("receptionist/edit-profile");
+%>
+<aside class="hidden lg:flex w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col">
+    <div class="p-6 flex items-center gap-3">
+        <div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+            <span class="material-symbols-outlined text-2xl">pets</span>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Anipats</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Front Desk</p>
+        </div>
+    </div>
+    <nav class="flex-1 px-4 space-y-2 mt-4">
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= rsOnDash ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= rsCtx %>/Receptionist/Dashboard">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= rsOnSchedule ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= rsCtx %>/Receptionist/ViewListAppointment">
+            <span class="material-symbols-outlined">calendar_today</span>
+            <span>Schedule</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= rsOnRequests ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= rsCtx %>/Receptionist/ManageAppointmentRequests">
+            <span class="material-symbols-outlined">pending_actions</span>
+            <span>Request Center</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= rsOnProfile ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= rsCtx %>/Receptionist/profile">
+            <span class="material-symbols-outlined">person</span>
+            <span>My Profile</span>
+        </a>
+    </nav>
+</aside>

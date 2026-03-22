@@ -11,21 +11,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import model.User;
+import utils.ProfilePictureUploadUtil;
 import utils.ValidationUtil;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Locale;
 
 /**
  * Receptionist edits basic profile information (name/phone/address) and avatar.
  */
-@MultipartConfig(fileSizeThreshold = 0, maxFileSize = 2 * 1024 * 1024, maxRequestSize = 3 * 1024 * 1024)
+@MultipartConfig(fileSizeThreshold = 512 * 1024, maxFileSize = 2 * 1024 * 1024, maxRequestSize = 6 * 1024 * 1024)
 @WebServlet(name = "ReceptionistEditProfileServlet", urlPatterns = {"/Receptionist/edit-profile"})
 public class ReceptionistEditProfileServlet extends HttpServlet {
 
@@ -44,7 +42,9 @@ public class ReceptionistEditProfileServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
-        User user = (User) session.getAttribute("currentUser");
+        User sessionUser = (User) session.getAttribute("currentUser");
+        User user = userDAO.findById(sessionUser.getUserId()).orElse(sessionUser);
+        session.setAttribute("currentUser", user);
         request.setAttribute("user", user);
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/edit-profile.jsp").forward(request, response);
     }
@@ -63,13 +63,7 @@ public class ReceptionistEditProfileServlet extends HttpServlet {
 
         User user = (User) session.getAttribute("currentUser");
 
-        // Read multipart part first (helps some containers parse multipart reliably)
-        Part profilePart = null;
-        try {
-            profilePart = request.getPart("profilePicture");
-        } catch (Exception ignored) {
-            // no multipart / no file
-        }
+        Part profilePart = ProfilePictureUploadUtil.findPart(request, "profilePicture");
 
         String fullName = ValidationUtil.normalizeFullName(request.getParameter("fullName"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
@@ -124,44 +118,21 @@ public class ReceptionistEditProfileServlet extends HttpServlet {
         user.setPhone(phone != null && phone.isEmpty() ? null : phone);
         user.setAddress(address != null && address.isEmpty() ? null : address);
 
-        // Remove photo if requested
-        if ("1".equals(ValidationUtil.trim(request.getParameter("removePhoto")))) {
-            deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
-            user.setProfilePictureUrl(null);
-        } else if (profilePart != null && profilePart.getSize() > 0) {
-            String submittedFileName = profilePart.getSubmittedFileName();
-            if (submittedFileName != null && !submittedFileName.isEmpty()) {
-                String contentType = profilePart.getContentType();
-                if (contentType != null) {
-                    String ct = contentType.toLowerCase(Locale.ROOT);
-                    if (ct.startsWith("image/jpeg") || ct.startsWith("image/png") || ct.startsWith("image/gif")) {
-                        String ext = ct.contains("png") ? "png" : ct.contains("gif") ? "gif" : "jpg";
-                        String fileName = user.getUserId() + "." + ext;
-                        String relativePath = "/uploads/avatars/" + fileName;
-
-                        Path baseDir = Paths.get(request.getServletContext().getRealPath("/"));
-                        Path uploadDir = baseDir.resolve("uploads").resolve("avatars");
-
-                        try {
-                            Files.createDirectories(uploadDir);
-                            Path targetFile = uploadDir.resolve(fileName);
-                            try (InputStream in = profilePart.getInputStream()) {
-                                Files.copy(in, targetFile.toAbsolutePath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            }
-
-                            deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
-                            user.setProfilePictureUrl(relativePath);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
+        boolean hadNonEmptyProfilePicture = ProfilePictureUploadUtil.hasNonEmptyFilePayload(profilePart, request);
+        String savedAvatarPath = null;
+        if (hadNonEmptyProfilePicture) {
+            savedAvatarPath = ProfilePictureUploadUtil.trySaveAvatarPart(request, profilePart, user.getUserId(), "");
+            if (savedAvatarPath != null) {
+                deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
+                user.setProfilePictureUrl(savedAvatarPath);
             }
         }
 
         boolean ok = userDAO.updateUser(user);
+        ProfilePictureUploadUtil.logEditProfilePostSummary(request, "ReceptionistEditProfileServlet", user.getUserId(),
+                profilePart, hadNonEmptyProfilePicture, savedAvatarPath, user.getProfilePictureUrl(), ok);
         if (ok) {
-            session.setAttribute("currentUser", user);
+            userDAO.findById(user.getUserId()).ifPresent(u -> session.setAttribute("currentUser", u));
             if (pendingPhone) {
                 session.removeAttribute("pendingPhoneRequired");
                     response.sendRedirect(ctx + "/Receptionist/Dashboard");
@@ -177,8 +148,9 @@ public class ReceptionistEditProfileServlet extends HttpServlet {
 
     private void deleteProfilePictureIfExists(HttpServletRequest request, String profilePictureUrl) {
         if (profilePictureUrl == null || profilePictureUrl.isEmpty()) return;
+        Path base = ProfilePictureUploadUtil.webappRootDirectory(request);
+        if (base == null) return;
         try {
-            Path base = Paths.get(request.getServletContext().getRealPath("/"));
             Path file = base.resolve(profilePictureUrl.replaceFirst("^/", "").replace("/", java.io.File.separator));
             if (Files.exists(file)) Files.delete(file);
         } catch (IOException ignored) {

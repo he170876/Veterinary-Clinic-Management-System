@@ -1,0 +1,107 @@
+﻿Test Case ID,Test Objective / Description,Steps to Reproduce / Execution Steps,Expected Result,Pre-conditions / Notes,Status,Date
+Function: Ảnh đại diện & cập nhật hồ sơ,,,,,,
+TC-PFP-01,Bác sĩ tải ảnh đại diện định dạng JPG hợp lệ và lưu hồ sơ thành công.,"1. Đăng nhập bằng tài khoản Bác sĩ thú y.
+2. Vào mục Hồ sơ của tôi, chọn Chỉnh sửa hồ sơ.
+3. Chọn ảnh JPG có dung lượng trong giới hạn cho phép (không vượt quá mức tối đa), dùng nút chọn ảnh.
+4. Bấm Lưu thay đổi.",Hệ thống lưu thành công; ảnh đại diện hiển thị đúng trên trang hồ sơ; thông tin lưu trữ ảnh trên hệ thống được cập nhật tương ứng.,Tài khoản bác sĩ đang hoạt động; file ảnh đúng định dạng và trong giới hạn dung lượng. | Loại: Tích cực,Pending,
+TC-PFP-02,"Người dùng các vai trò (khách, quản trị, xét nghiệm, lễ tân) tải ảnh PNG / GIF / WebP hợp lệ khi chỉnh sửa hồ sơ.","1. Đăng nhập theo từng vai trò được hỗ trợ chỉnh sửa hồ sơ.
+2. Mở màn hình Chỉnh sửa hồ sơ.
+3. Chọn ảnh PNG, GIF hoặc WebP trong giới hạn dung lượng.
+4. Lưu thay đổi.",Ảnh được lưu; hồ sơ cập nhật đường dẫn ảnh; ảnh hiển thị trên trang hồ sơ và (nếu có) khu vực đầu trang.,Tài khoản có quyền truy cập trang chỉnh sửa hồ sơ. | Loại: Tích cực,Pending,
+TC-PFP-03,Từ chối tải lên khi file ảnh vượt quá dung lượng cho phép.,"1. Mở Chỉnh sửa hồ sơ.
+2. Chọn một file ảnh có dung lượng lớn hơn mức tối đa cho phép.
+3. Thử lưu.",Hệ thống báo lỗi hoặc không chấp nhận tải lên; đường dẫn ảnh trên hồ sơ không đổi (hoặc không tạo file lưu trữ mới không hợp lệ).,Đã cấu hình giới hạn dung lượng tải lên theo quy định hệ thống. | Loại: Tiêu cực,Pending,
+TC-PFP-04,Từ chối file không phải ảnh hoặc định dạng không được hỗ trợ.,"1. Mở Chỉnh sửa hồ sơ.
+2. Chọn file không phải ảnh hoặc loại không nằm trong danh sách cho phép.
+3. Lưu.",Không lưu đường dẫn ảnh hợp lệ; hệ thống có thể ghi nhận từ chối theo quy tắc kiểm tra loại file.,— | Loại: Tiêu cực,Pending,
+TC-PFP-05,Chỉ cập nhật họ tên / số điện thoại / địa chỉ mà không chọn ảnh mới.,"1. Mở Chỉnh sửa hồ sơ.
+2. Sửa các trường thông tin chữ; không thay đổi ô chọn ảnh.
+3. Lưu.",Các trường thông tin được cập nhật; ảnh đại diện hiện tại giữ nguyên.,Người dùng đã tồn tại trên hệ thống. | Loại: Hồi quy,Pending,
+TC-PFP-06,Tải ảnh mới thay thế ảnh đại diện cũ.,"1. Người dùng đã có ảnh đại diện.
+2. Chọn ảnh mới và lưu.",Ảnh mới được lưu; ảnh cũ được xử lý theo quy tắc (ví dụ thay thế); hồ sơ hiển thị ảnh mới.,Đã có ảnh đại diện trước đó. | Loại: Tích cực,Pending,
+TC-PFP-07,"Khi trong hệ thống lưu sẵn đường dẫn ảnh không hợp lệ (ví dụ định dạng đường dẫn máy trạm), giao diện không hiển thị sai.","1. (Thiết lập kiểm thử) Gán giá trị đường dẫn ảnh không hợp lệ cho hồ sơ.
+2. Đăng nhập và tải lại trang hồ sơ / đầu trang.","Hệ thống bỏ qua đường dẫn không hợp lệ; hiển thị chữ cái đầu hoặc trạng thái mặc định, không hiện chuỗi đường dẫn lỗi.",Môi trường cho phép thiết lập dữ liệu thử. | Loại: Biên / an toàn,Pending,
+TC-PFP-08,Trình duyệt mở được ảnh đại diện đã lưu qua đường dẫn công khai hợp lệ.,"1. Sau khi tải ảnh thành công, ghi nhận đường dẫn hiển thị ảnh.
+2. Mở đường dẫn đó trên trình duyệt (cùng ứng dụng).",Trình duyệt nhận được nội dung ảnh; loại nội dung phù hợp với ảnh.,File ảnh tồn tại trên máy chủ theo cấu hình lưu trữ. | Loại: Tích cực,Pending,
+TC-PFP-09,"Sau khi đổi ảnh, phiên làm việc hiển thị ảnh mới không cần đăng nhập lại.","1. Lưu ảnh đại diện mới.
+2. Chuyển sang trang hồ sơ hoặc khu vực hiển thị avatar mà không đăng xuất.",Thông tin người dùng trong phiên phản ánh ảnh và thời gian cập nhật mới.,Đang đăng nhập. | Loại: Tích cực,Pending,
+Function: Chỉnh sửa thông tin cá nhân,,,,,,
+TC-EP-01,"Kiểm tra ràng buộc họ tên (bắt buộc, ký tự hợp lệ).","1. Mở Chỉnh sửa hồ sơ.
+2. Xóa họ tên hoặc nhập ký tự không cho phép.
+3. Lưu.",Hệ thống báo lỗi xác thực; không lưu dữ liệu sai.,— | Loại: Tiêu cực,Pending,
+TC-EP-02,"Kiểm tra định dạng số điện thoại (10 số, bắt đầu bằng 0).","1. Nhập số điện thoại không đúng quy tắc.
+2. Lưu.",Thông báo lỗi định dạng số điện thoại.,— | Loại: Tiêu cực,Pending,
+TC-EP-03,Giới hạn độ dài địa chỉ.,"1. Nhập địa chỉ vượt quá giới hạn ký tự cho phép.
+2. Lưu.",Hệ thống báo lỗi; không lưu vượt quá.,— | Loại: Tiêu cực,Pending,
+TC-EP-04,"Email chỉ đọc, không đổi được qua biểu mẫu (nếu thiết kế như vậy).","1. Mở Chỉnh sửa hồ sơ.
+2. Thử thay đổi email (nếu ô bị khóa hoặc không gửi được).",Email trong cơ sở dữ liệu không đổi theo thao tác không được phép.,— | Loại: Tích cực,Pending,
+Function: Lễ tân: giao diện hồ sơ,,,,,,
+TC-RS-01,"Giao diện chỉnh sửa hồ sơ của Lễ tân thống nhất với Bác sĩ (menu, thẻ nội dung, nút chọn ảnh).","1. Đăng nhập vai trò Lễ tân.
+2. Mở Chỉnh sửa hồ sơ.",Hiển thị bố cục thương hiệu thống nhất; đường dẫn điều hướng rõ ràng; có điều khiển chọn ảnh thân thiện (không chỉ ô tải file thô).,Tài khoản lễ tân hoạt động. | Loại: Giao diện / hồi quy,Pending,
+TC-RS-02,"Khi hệ thống yêu cầu bổ sung số điện thoại, lễ tân thấy thông báo và phải nhập đủ trước khi tiếp tục.","1. Phiên làm việc đang trong trạng thái cần bổ sung số điện thoại (theo luồng nghiệp vụ).
+2. Mở trang chỉnh sửa hồ sơ với tham số yêu cầu số điện thoại (nếu có).
+3. Nhập số hợp lệ và lưu.","Có thông báo/banner hướng dẫn; sau khi lưu thành công, trạng thái chờ số điện thoại được xử lý và chuyển trang theo quy tắc.",Luồng bắt buộc số điện thoại được bật trong phiên. | Loại: Nghiệp vụ,Pending,
+Function: Chủ phòng khám / Quản trị: thanh điều hướng,,,,,,
+TC-OW-01,Khu vực chủ phòng khám / quản trị hiển thị ảnh đại diện đã cập nhật trên thanh điều hướng.,"1. Đăng nhập vai trò chủ phòng khám hoặc quản trị tại các màn hình có thanh đầu trang.
+2. Cập nhật ảnh hồ sơ trong phần quản lý tài khoản.
+3. Quay lại trang có thanh điều hướng.","Vòng tròn avatar hiển thị ảnh người dùng đã tải, không cố định ảnh mặc định ngoài thiết kế.",Đã đặt ảnh đại diện cho tài khoản. | Loại: Tích cực,Pending,
+TC-OW-02,"Khi chưa có ảnh đại diện, thanh điều hướng hiển thị chữ cái đầu tên.","1. Tài khoản không có ảnh đại diện trong hồ sơ.
+2. Mở trang có thanh điều hướng.",Hiển thị avatar dạng chữ cái đầu (hoặc ký hiệu mặc định an toàn).,Hồ sơ không có ảnh. | Loại: Tích cực,Pending,
+Function: Đổi mật khẩu,,,,,,
+TC-PW-01,Đổi mật khẩu thành công khi nhập đúng mật khẩu hiện tại và mật khẩu mới đạt quy tắc.,"1. Vào Hồ sơ > Đổi mật khẩu.
+2. Nhập đúng mật khẩu hiện tại.
+3. Mật khẩu mới và xác nhận giống nhau, có chữ hoa và số, độ dài trong khoảng cho phép (ví dụ dạng hợp lệ: mật khẩu có chữ hoa và số).
+4. Gửi biểu mẫu.",Hệ thống xác nhận đổi thành công; đăng nhập lại bằng mật khẩu mới được.,Tài khoản đăng nhập bằng mật khẩu cục bộ (không phải tài khoản chỉ đăng nhập mạng xã hội). | Loại: Tích cực,Pending,
+TC-PW-02,Từ chối mật khẩu mới không có chữ in hoa.,"1. Nhập mật khẩu mới toàn chữ thường và số, thiếu chữ hoa.
+2. Gửi.","Báo lỗi theo quy tắc: độ dài cho phép, có ít nhất một chữ hoa và một chữ số.",— | Loại: Tiêu cực,Pending,
+TC-PW-03,Từ chối khi mật khẩu hiện tại nhập sai.,"1. Nhập sai mật khẩu hiện tại.
+2. Nhập mật khẩu mới hợp lệ và gửi.",Thông báo mật khẩu hiện tại không đúng.,Biết mật khẩu thật để đối chiếu. | Loại: Tiêu cực,Pending,
+TC-PW-04,Từ chối khi mật khẩu mới và xác nhận không khớp.,"1. Hai ô mật khẩu mới và xác nhận khác nhau.
+2. Gửi.",Báo lỗi hai mật khẩu không trùng.,— | Loại: Tiêu cực,Pending,
+TC-PW-05,Tài khoản chỉ đăng nhập qua nhà cung cấp bên ngoài không đổi mật khẩu cục bộ.,"1. Đăng nhập bằng tài khoản liên kết bên ngoài.
+2. Thử mở đổi mật khẩu (nếu có).",Không cho phép hoặc thông báo không áp dụng đổi mật khẩu cục bộ.,Tài khoản được đánh dấu đăng nhập qua nhà cung cấp bên ngoài. | Loại: Tiêu cực,Pending,
+Function: Đồng bộ dữ liệu ảnh trên hồ sơ người dùng,,,,,,
+TC-DB-01,"Sau khi đổi ảnh, bản ghi người dùng trong cơ sở dữ liệu lưu đúng đường dẫn ảnh.","1. Thực hiện đổi ảnh đại diện thành công trên giao diện.
+2. Kiểm tra trên cơ sở dữ liệu giá trị đường dẫn ảnh của người dùng.",Cột đường dẫn ảnh khớp với đường dẫn lưu trữ hợp lệ trên hệ thống.,Quyền truy vấn cơ sở dữ liệu kiểm thử. | Loại: Tích hợp,Pending,
+Function: Phân quyền theo vai trò,,,,,,
+TC-AC-01,Người dùng sai vai trò không truy cập được khu vực dành cho Bác sĩ.,"1. Đăng nhập vai trò Khách hàng.
+2. Thử mở trang bảng điều khiển hoặc đường dẫn dành cho bác sĩ bằng tay (nhập địa chỉ trực tiếp).",Hệ thống từ chối hoặc chuyển về trang đăng nhập / thông báo không có quyền theo thiết kế.,— | Loại: An toàn,Pending,
+TC-AC-02,Bác sĩ truy cập bình thường các màn hình thuộc phần dành cho bác sĩ.,"1. Đăng nhập tài khoản Bác sĩ thú y.
+2. Mở các trang nghiệp vụ bác sĩ.","Trang tải thành công, hiển thị nội dung đúng vai trò.",Tài khoản có vai trò bác sĩ. | Loại: Tích cực,Pending,
+Function: Quy trình tài liệu kiểm thử,,,,,,
+TC-REG-01,Nhập danh sách test case từ bảng tính vào mẫu tài liệu kiểm thử hệ thống.,"1. Mở file danh sách test case dạng bảng.
+2. Sao chép các dòng vào đúng sheet quy trình trong mẫu tài liệu kiểm thử.",Dữ liệu khớp phạm vi dự án; cột và số lượng test case nhất quán.,Có file mẫu tài liệu kiểm thử hệ thống. | Loại: Quy trình,Pending,
+"Function: Khám bệnh, xét nghiệm & hàng đợi bác sĩ",,,,,,
+TC-EX-01,Mở màn hình khám khi không có mã lịch hẹn hoặc mã không hợp lệ.,"1. Đăng nhập bác sĩ.
+2. Thử mở màn khám mà không chọn mã lịch, hoặc nhập mã không phải số.",Hệ thống không mở form khám; quay về danh sách hàng đợi bác sĩ.,Đang đăng nhập bác sĩ. | Loại: Tiêu cực,Pending,
+TC-EX-02,Mở màn khám với mã lịch không tồn tại.,"1. Đăng nhập bác sĩ.
+2. Mở màn khám với mã lịch không có trong hệ thống.",Thông báo không tìm thấy lịch; quay về hàng đợi với thông báo lỗi phù hợp.,Đang đăng nhập bác sĩ. | Loại: Tiêu cực,Pending,
+TC-EX-03,Tài khoản không gắn với hồ sơ bác sĩ không mở được màn khám.,"1. Đăng nhập tài khoản không được gán vai trò bác sĩ trong dữ liệu nội bộ.
+2. Thử mở màn khám cho một lịch hợp lệ.",Từ chối truy cập; quay về hàng đợi với thông báo không được phép.,Tài khoản không liên kết bác sĩ. | Loại: An toàn,Pending,
+TC-EX-04,Lịch không ở trạng thái cho phép bắt đầu khám (chưa check-in hoặc không đúng bước).,"1. Chọn lịch không ở trạng thái “đã check-in” hoặc “đang khám” theo quy định.
+2. Thử mở màn khám.",Không mở form; thông báo trạng thái không hợp lệ; quay về hàng đợi.,Có lịch ở trạng thái không phù hợp. | Loại: Tiêu cực,Pending,
+TC-EX-05,Lịch đã được bác sĩ khác tiếp nhận khám.,"1. Bác sĩ A đã tiếp nhận ca khám.
+2. Đăng nhập bác sĩ B và thử mở cùng lịch đó.",Không cho mở; thông báo ca đã bị khóa / thuộc bác sĩ khác.,Hai tài khoản bác sĩ và một lịch đã được nhận. | Loại: Tiêu cực,Pending,
+TC-EX-06,Bác sĩ đang có một ca khám chưa kết thúc thì mở thêm ca khác.,"1. Bác sĩ đang có lịch ở trạng thái đang khám.
+2. Thử mở màn khám cho lịch khác đủ điều kiện.",Hệ thống báo bận; không mở màn hình khám thứ hai.,Hai lịch hợp lệ; một ca đang mở. | Loại: Tiêu cực,Pending,
+TC-EX-07,Mở màn khám hợp lệ: hiển thị đầy đủ thông tin lượt khám.,"1. Có lịch đúng trạng thái và đúng bác sĩ.
+2. Mở màn khám từ hàng đợi hoặc đường dẫn hợp lệ.","Form khám hiển thị: thông tin lượt khám, dịch vụ, đơn thuốc, khu vực xét nghiệm (nếu có).",Lịch ở trạng thái cho phép và thuộc bác sĩ đang đăng nhập. | Loại: Tích cực,Pending,
+TC-EX-10,Lưu nháp thông tin khám chưa hoàn tất lượt khám.,"1. Trên màn khám, điền hoặc sửa chẩn đoán, dịch vụ, đơn thuốc.
+2. Chọn thao tác lưu tạm (không hoàn tất lượt khám).",Dữ liệu được lưu; vẫn ở màn hình khám hoặc quay lại cùng lượt khám để tiếp tục.,Đang ở màn khám hợp lệ. | Loại: Tích cực,Pending,
+TC-EX-11,Hoàn tất lượt khám khi đủ điều kiện nghiệp vụ.,"1. Nhập đủ chẩn đoán, ít nhất một dịch vụ, thông tin đơn thuốc hợp lệ (nếu có).
+2. Chọn hoàn tất lượt khám.",Lượt khám kết thúc; lịch chuyển trạng thái chờ thanh toán (hoặc tương đương); hóa đơn/phí phát sinh nếu có quy tắc; lễ tân có thể nhận thông báo; quay về hàng đợi với xác nhận hoàn tất.,Dữ liệu nhập đủ theo quy tắc. | Loại: Tích cực / E2E,Pending,
+TC-EX-12,Gửi biểu mẫu gắn sai lịch với bác sĩ đang đăng nhập.,"1. Ở màn khám, can thiệp gửi kèm mã lịch của ca không thuộc bác sĩ hiện tại (kiểm thử an toàn).",Hệ thống từ chối; quay về hàng đợi.,Đăng nhập bác sĩ. | Loại: An toàn,Pending,
+TC-EX-20,Không cho hoàn tất khi chưa nhập chẩn đoán.,"1. Để trống chẩn đoán.
+2. Bấm hoàn tất lượt khám.",Hiển thị lỗi; không gửi hoàn tất.,Đang ở màn khám. | Loại: Tiêu cực,Pending,
+TC-EX-21,Không cho hoàn tất khi chưa có dịch vụ nào.,"1. Xóa hết dịch vụ đã chọn.
+2. Bấm hoàn tất.",Thông báo cần ít nhất một dịch vụ.,Đang ở màn khám. | Loại: Tiêu cực,Pending,
+TC-EX-22,Đơn thuốc: liều lượng hoặc tần suất không hợp lệ.,"1. Nhập tên thuốc nhưng liều không phải số hoặc thiếu tần suất.
+2. Hoàn tất.",Cảnh báo trên form; không cho hoàn tất.,Đang ở màn khám. | Loại: Tiêu cực,Pending,
+TC-EX-23,Cảnh báo khi còn yêu cầu xét nghiệm chưa xong mà hoàn tất lượt khám.,"1. Có yêu cầu xét nghiệm đang chờ trên lượt khám.
+2. Bấm hoàn tất.",Hiện hộp thoại cảnh báo; có thể cho phép hoàn tất bất chấp (nếu nghiệp vụ cho phép) hoặc yêu cầu xử lý trước.,Có xét nghiệm đang chờ. | Loại: Biên,Pending,
+TC-EX-30,Bắt đầu khám từ hàng đợi (thao tác nhanh trên danh sách).,"1. Tại hàng đợi bác sĩ, chọn bắt đầu khám cho lịch hợp lệ.
+2. Thử lại với các trường hợp bận, đã bị khóa, hoặc thuộc bác sĩ khác.","Thành công khi hợp lệ; thông báo rõ khi thất bại (bận, khóa, không được phép).",Có dữ liệu hàng đợi. | Loại: Tích hợp,Pending,
+TC-EX-31,Tạo yêu cầu xét nghiệm từ màn hình khám.,"1. Trên màn khám, điền biểu mẫu gửi xét nghiệm và xác nhận.
+2. Quay lại màn khám.",Yêu cầu gắn với lượt khám; hiển thị trong phần xét nghiệm của màn khám.,Đang mở màn khám. | Loại: Tích cực,Pending,
+TC-EX-32,Xem kết quả xét nghiệm từ màn khám (cửa sổ xem nhanh).,"1. Mở lượt khám đã có kết quả xét nghiệm.
+2. Dùng chức năng xem kết quả (nút hoặc liên kết trên màn hình).","Hiển thị nội dung kết quả đầy đủ, dễ đọc.",Đã có kết quả xét nghiệm. | Loại: Tích cực,Pending,

@@ -110,8 +110,37 @@ public class User {
         return profilePictureUrl;
     }
 
+    /**
+     * Stores a web-relative path (e.g. {@code /uploads/avatars/vet-1.jpg}).
+     * Rejects Windows-style absolute paths; normalizes backslashes to slashes.
+     */
     public void setProfilePictureUrl(String profilePictureUrl) {
-        this.profilePictureUrl = profilePictureUrl;
+        this.profilePictureUrl = normalizeProfilePictureUrl(profilePictureUrl);
+    }
+
+    private static String normalizeProfilePictureUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        String s = url.trim();
+        if (s.isEmpty()) {
+            return null;
+        }
+        // Reject Windows file paths pasted into DB (e.g. Admin\AppData\Local\... or C:\...)
+        if (s.indexOf('\\') >= 0 && !s.startsWith("/") && !s.contains("://")) {
+            return null;
+        }
+        s = s.replace('\\', '/');
+        if (s.length() >= 2 && Character.isLetter(s.charAt(0)) && s.charAt(1) == ':') {
+            return null;
+        }
+        if (s.startsWith("http://") || s.startsWith("https://")) {
+            return s;
+        }
+        if (!s.startsWith("/")) {
+            s = "/" + s;
+        }
+        return s;
     }
 
     public boolean isGoogleUser() {

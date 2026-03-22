@@ -1,5 +1,4 @@
-
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <!DOCTYPE html>
 <html class="light" lang="en">
 <head>
@@ -93,15 +92,38 @@
                 String errorMsg = (String) request.getAttribute("error");
                 String errParam = request.getParameter("error");
                 if (errParam != null && !errParam.isEmpty()) {
-                    if ("google_denied".equals(errParam)) errorMsg = "Google sign-in was cancelled.";
-                    else if ("session_expired".equals(errParam)) errorMsg = "Session expired. Please try again.";
-                    else if ("invalid_state".equals(errParam)) errorMsg = "Invalid state. Please try again.";
-                    else if ("token_exchange_failed".equals(errParam)) errorMsg = "Google sign-in failed. Please try again.";
-                    else if ("no_email".equals(errParam)) errorMsg = "Could not get email from Google.";
-                    else if ("create_failed".equals(errParam)) errorMsg = "Could not create account. Email may already exist.";
-                    else if ("account_inactive".equals(errParam)) errorMsg = "Your account is inactive.";
-                    else if (errParam != null && !errParam.isEmpty()) { try { errorMsg = java.net.URLDecoder.decode(errParam, "UTF-8"); } catch (Exception e) { errorMsg = errParam; } }
-                    else if (errorMsg == null) errorMsg = "An error occurred. Please try again.";
+                    switch (errParam) {
+                        case "google_denied":
+                            errorMsg = "Google sign-in was cancelled.";
+                            break;
+                        case "session_expired":
+                            errorMsg = "Session expired. Please try again.";
+                            break;
+                        case "invalid_state":
+                            errorMsg = "Invalid state. Please try again.";
+                            break;
+                        case "token_exchange_failed":
+                            errorMsg = "Google sign-in failed. Please try again.";
+                            break;
+                        case "no_email":
+                            errorMsg = "Could not get email from Google.";
+                            break;
+                        case "create_failed":
+                            errorMsg = "Could not create account. Email may already exist.";
+                            break;
+                        case "account_inactive":
+                            errorMsg = "Your account is inactive.";
+                            break;
+                        default:
+                            try {
+                                errorMsg = java.net.URLDecoder.decode(errParam, "UTF-8");
+                            } catch (Exception e) {
+                                errorMsg = errParam;
+                            }
+                            if (errorMsg == null || errorMsg.isEmpty()) {
+                                errorMsg = "An error occurred. Please try again.";
+                            }
+                    }
                 }
                 if (errorMsg != null && !errorMsg.isEmpty()) {
             %>

@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import model.Role;
 import model.User;
 
@@ -20,6 +22,8 @@ import model.User;
  * JDBC implementation of {@link UserDAO} for SQL Server.
  */
 public class UserJdbcDAO extends BaseDAO implements UserDAO {
+
+    private static final Logger LOG = Logger.getLogger(UserJdbcDAO.class.getName());
 
     /**
      * Last SQL error message when createCustomerUser fails (for UI).
@@ -217,9 +221,15 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
             ps.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
             ps.setInt(6, user.getUserId());
 
-            return ps.executeUpdate() > 0;
+            int rows = ps.executeUpdate();
+            if (rows == 0) {
+                LOG.warning("[PFP] updateUser: 0 rows affected user_id=" + user.getUserId()
+                        + " profile_picture_url=" + user.getProfilePictureUrl());
+            }
+            return rows > 0;
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            LOG.log(Level.WARNING, "[PFP] updateUser SQL error user_id=" + user.getUserId()
+                    + " profile_picture_url=" + user.getProfilePictureUrl(), ex);
         }
         return false;
     }
@@ -246,7 +256,7 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
 
         StringBuilder sql = new StringBuilder("""
         SELECT u.user_id, u.email, u.password, u.status, u.created_at, u.updated_at,
-               u.full_name, u.phone, u.address,
+               u.full_name, u.phone, u.address, u.profile_picture_url,
                r.role_id, r.role_name
         FROM Users u
         JOIN Roles r ON u.role_id = r.role_id
@@ -432,6 +442,17 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         return false;
     }
 
+    private String resolveProfilePictureUrl(ResultSet rs) throws SQLException {
+        String pfp = null;
+        if (hasColumn(rs, "profile_picture_url")) {
+            pfp = rs.getString("profile_picture_url");
+        }
+        if (pfp == null || pfp.trim().isEmpty()) {
+            return null;
+        }
+        return pfp.trim();
+    }
+
     private User mapRowToUser(ResultSet rs) throws SQLException {
         User user = new User();
         user.setUserId(rs.getInt("user_id"));
@@ -451,17 +472,13 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         user.setFullName(rs.getString("full_name"));
         user.setPhone(rs.getString("phone"));
         user.setAddress(rs.getString("address"));
-        try {
-            if (hasColumn(rs, "profile_picture_url")) {
-                user.setProfilePictureUrl(rs.getString("profile_picture_url"));
-            }
-        } catch (SQLException ignored) {
-        }
+        user.setProfilePictureUrl(resolveProfilePictureUrl(rs));
         try {
             if (hasColumn(rs, "is_google_user")) {
                 user.setGoogleUser(rs.getBoolean("is_google_user"));
             }
         } catch (SQLException ignored) {
+            // optional column
         }
 
         Role role = new Role();

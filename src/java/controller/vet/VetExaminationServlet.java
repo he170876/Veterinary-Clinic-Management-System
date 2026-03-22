@@ -36,7 +36,7 @@ import java.util.List;
  *       LabResults để hiển thị trên màn hình.</li>
  *   <li><b>POST /vet/examination</b> – lưu chẩn đoán, treatment, ghi lại các dịch vụ đã dùng và toa thuốc.
  *       Khi action = "complete" thì đánh dấu Visit/Appointment là đã khám xong và sinh Invoice từ
- *       các dịch vụ trong MedicalRecordServices.</li>
+ *       các dịch vụ trong MedicalRecordServices. Không cho complete nếu còn LabTestRequest Pending.</li>
  * </ul>
  */
 @WebServlet(name = "VetExaminationServlet", urlPatterns = {"/vet/examination"})
@@ -68,7 +68,7 @@ public class VetExaminationServlet extends HttpServlet {
         User user = (User) session.getAttribute("currentUser");
         // Load latest notifications (top 3) for dropdown
         NotificationDAO ndao = new NotificationDAO();
-        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 3));
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
         request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         AppointmentDAO appDao = new AppointmentDAO();
         Appointment ap = appDao.getAppointmentDetail(appointmentId);
@@ -160,6 +160,10 @@ public class VetExaminationServlet extends HttpServlet {
         request.setAttribute("labRequests", labRequests);
         request.setAttribute("clinicServices", serviceService.getAllServices());
         request.setAttribute("labTests", labDao.getAllLabTests());
+        if ("pendingLab".equals(request.getParameter("error"))) {
+            request.setAttribute("examCompleteBlocked",
+                    "Cannot complete examination while lab requests are still pending. Complete them in the lab queue first.");
+        }
         request.getRequestDispatcher("/WEB-INF/views/vet/examination.jsp").forward(request, response);
     }
 
@@ -263,14 +267,15 @@ public class VetExaminationServlet extends HttpServlet {
 //sau khi hoàn thành examation sẽ xóa cái recordservices đi và tính số tiền 
         String action = request.getParameter("action");
         if ("complete".equals(action) && visit != null) {
+            LabTestRequestDAO labDao = new LabTestRequestDAO();
+            if (labDao.countPendingByVisitId(visit.getVisitId()) > 0) {
+                response.sendRedirect(request.getContextPath() + "/vet/examination?id=" + appointmentId + "&error=pendingLab");
+                return;
+            }
             visitDao.completeVisit(visit.getVisitId());
             // After vet completes examination, receptionist must confirm payment.
             // UI/flow expects "Waiting-for-Payment" before it becomes "Done".
             appDao.updateAppointmentStatus(appointmentId, "Waiting-for-Payment");
-
-            // Auto-cancel all pending lab requests belonging to this visit
-            LabTestRequestDAO labDao = new LabTestRequestDAO();
-            labDao.cancelPendingByVisitId(visit.getVisitId());
             // Record amount spent (from medical record services)
             if (record != null && visit != null) {
                 List<RecordServiceLine> lines = recordDao.getServicesForRecord(record.getRecordId());

@@ -1,4 +1,4 @@
-﻿USE [master]
+USE [master]
 GO
 IF DB_ID(N'VetClinicManagement1') IS NOT NULL
 BEGIN
@@ -459,7 +459,6 @@ CREATE TABLE [dbo].[Users](
 	[full_name] [nvarchar](100) NULL,
 	[phone] [nvarchar](20) NULL,
 	[address] [nvarchar](255) NULL,
-	[photoUrl] [nvarchar](500) NULL,
 	[isDeleted] [bit] NOT NULL,
 	[profile_picture_url] [nvarchar](500) NULL,
 	[is_google_user] [bit] NOT NULL,

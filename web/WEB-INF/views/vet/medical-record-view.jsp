@@ -77,21 +77,22 @@
 <div class="flex min-h-screen">
     <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center justify-between px-8 shrink-0">
-            <div class="flex items-center gap-3">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Medical Record Detail</h2>
-                <span class="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-bold">#<%= recordCode %></span>
+        <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center justify-between px-8 shrink-0 gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">Medical Record Detail</h2>
+                <span class="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-bold shrink-0">#<%= recordCode %></span>
             </div>
-            <div class="flex items-center gap-3">
-                <a class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            <div class="flex items-center gap-3 flex-wrap justify-end">
+                <a class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
                    href="<%= ctx %>/vet/records">
                     <span class="material-symbols-outlined text-sm">arrow_back</span>
                     Back to List
                 </a>
-                <button class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary/90 shadow-sm transition-colors" type="button">
+                <button class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary/90 shadow-sm transition-colors shrink-0" type="button">
                     <span class="material-symbols-outlined text-sm">print</span>
                     Print Record
                 </button>
+                <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
             </div>
         </header>
         <div class="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-slate-900/50">
@@ -247,6 +248,7 @@
         </div>
     </main>
 </div>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
 </body>
 </html>
 

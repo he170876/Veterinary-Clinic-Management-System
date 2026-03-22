@@ -1,0 +1,64 @@
+<%
+    model.User custHdrUser = (model.User) request.getAttribute("user");
+    if (custHdrUser == null && session != null) {
+        custHdrUser = (model.User) session.getAttribute("currentUser");
+    }
+    String custHdrCtx = request.getContextPath();
+    String custHdrName = "";
+    String custHdrRole = "Customer";
+    if (custHdrUser != null) {
+        custHdrName = (custHdrUser.getFullName() != null && !custHdrUser.getFullName().isEmpty())
+                ? custHdrUser.getFullName()
+                : (custHdrUser.getEmail() != null ? custHdrUser.getEmail() : "");
+        if (custHdrUser.getRole() != null && custHdrUser.getRole().getRoleName() != null) {
+            custHdrRole = custHdrUser.getRole().getRoleName();
+        }
+    }
+%>
+<div class="flex items-center gap-3 sm:gap-4 shrink-0">
+    <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
+    <div class="h-8 w-px bg-slate-200 dark:bg-slate-600 shrink-0" aria-hidden="true"></div>
+    <div class="hidden sm:flex flex-col items-end justify-center text-right min-w-0 max-w-[180px] md:max-w-[260px]">
+        <span class="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight truncate w-full"><%= custHdrName %></span>
+        <span class="text-xs font-medium text-slate-500 dark:text-slate-400 leading-tight mt-0.5 truncate w-full"><%= custHdrRole %></span>
+    </div>
+    <div class="relative shrink-0">
+        <button type="button"
+                id="customer-header-profile-toggle"
+                class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden hover:brightness-95 transition-colors">
+            <% if (custHdrUser != null && custHdrUser.getProfilePictureUrl() != null && !custHdrUser.getProfilePictureUrl().isEmpty()) { %>
+            <img alt="" class="w-full h-full object-cover" src="<%= custHdrCtx %><%= custHdrUser.getProfilePictureUrl() %>"/>
+            <% } else { %>
+            <%= (custHdrName != null && !custHdrName.isEmpty()) ? String.valueOf(Character.toUpperCase(custHdrName.charAt(0))) : "?" %>
+            <% } %>
+        </button>
+        <div id="customer-header-profile-menu"
+             class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 z-50"
+             style="display:none;">
+            <a href="<%= custHdrCtx %>/customer/profile"
+               class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-t-xl flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-primary">person</span>
+                <span>My Profile</span>
+            </a>
+            <a href="<%= custHdrCtx %>/logout"
+               class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-xl flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-primary">logout</span>
+                <span>Sign out</span>
+            </a>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var t = document.getElementById('customer-header-profile-toggle');
+    var m = document.getElementById('customer-header-profile-menu');
+    if (!t || !m) return;
+    t.addEventListener('click', function(e) {
+        e.stopPropagation();
+        m.style.display = (m.style.display === 'none' || m.style.display === '') ? 'block' : 'none';
+    });
+    document.addEventListener('click', function(e) {
+        if (!m.contains(e.target) && !t.contains(e.target)) m.style.display = 'none';
+    });
+})();
+</script>

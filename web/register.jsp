@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%
     String fullName = (String) request.getAttribute("fullName");
     String email = (String) request.getAttribute("email");
@@ -184,7 +184,7 @@
                 </div>
 
                 <!-- Submit Button -->
-                <button class="w-full h-12 bg-primary hover:bg-primary-dark": "#d6362b text-white font-bold rounded-lg transition-all shadow-lg shadow-primary/20 mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
+                <button class="w-full h-12 bg-primary hover:bg-[#d6362b] text-white font-bold rounded-lg transition-all shadow-lg shadow-primary/20 mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
                         type="submit">
                     Create Account
                     <span class="material-symbols-outlined">arrow_forward</span>
@@ -213,7 +213,7 @@
 
             <p class="text-center text-sm font-medium text-gray-500">
                 Already have an account?
-                <a class="text-primary font-bold hover:text-primary-dark": "#d6362b ml-1" href="<%= request.getContextPath() %>/login">Sign in</a>
+                <a class="text-primary font-bold hover:text-[#d6362b] ml-1" href="<%= request.getContextPath() %>/login">Sign in</a>
             </p>
         </div>
 

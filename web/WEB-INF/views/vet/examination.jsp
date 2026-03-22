@@ -110,40 +110,7 @@
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
 <input class="w-full pl-10 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20" placeholder="Search patient or owner..." type="text"/>
 </div>
-<div class="flex items-center gap-3">
-<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-<div class="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
-<div class="text-right hidden sm:block">
-<p class="text-xs font-bold text-slate-900 dark:text-white leading-none"><%= user.getFullName() %></p>
-<p class="text-[10px] text-slate-500"><%= roleTitle %></p>
-</div>
-<div class="relative">
-    <button type="button"
-            id="vet-profile-toggle"
-            class="size-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-primary font-bold hover:brightness-95 transition-colors">
-        <% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %>
-        <img alt="Doctor Profile" class="w-full h-full object-cover" src="<%= ctx %><%= user.getProfilePictureUrl() %>"/>
-        <% } else { %>
-        <%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %>
-        <% } %>
-    </button>
-    <div id="vet-profile-menu"
-         class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 z-50"
-         style="display:none;">
-        <a href="<%= ctx %>/vet/profile"
-           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-t-xl flex items-center gap-2">
-            <span class="material-symbols-outlined text-base text-primary">person</span>
-            <span>My Profile</span>
-        </a>
-        <a href="<%= ctx %>/logout"
-           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-xl flex items-center gap-2">
-            <span class="material-symbols-outlined text-base text-primary">logout</span>
-            <span>Sign out</span>
-        </a>
-    </div>
-</div>
-</div>
-</div>
+<%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
 </div>
 </header>
 <form id="examination-form" action="<%= ctx %>/vet/examination" method="post">
@@ -151,6 +118,13 @@
 <input type="hidden" name="serviceIds" id="serviceIds" value=""/>
 <div class="flex-1 overflow-y-auto px-8 py-8">
 <div class="max-w-6xl mx-auto space-y-6">
+<% String examCompleteBlocked = (String) request.getAttribute("examCompleteBlocked");
+   if (examCompleteBlocked != null && !examCompleteBlocked.isEmpty()) { %>
+<div class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 font-semibold flex items-start gap-2">
+<span class="material-symbols-outlined shrink-0">warning</span>
+<span><%= examCompleteBlocked.replace("&", "&amp;").replace("<", "&lt;") %></span>
+</div>
+<% } %>
 <div class="flex items-center justify-between">
 <div>
 <div class="flex items-center gap-2 text-sm text-slate-400 mb-1">
@@ -319,7 +293,7 @@
                                 Complete Examination
                             </button>
 <p id="complete-error" class="hidden text-center text-xs text-red-500 font-semibold mt-1"></p>
-<p class="text-center text-[10px] text-slate-400 italic">Completing will finalize the medical record and generate billing charges.</p>
+<p class="text-center text-[10px] text-slate-400 italic">Completing will finalize the medical record and generate billing charges. All pending lab requests for this visit must be completed first.</p>
 </div>
     </div>
     <div class="bg-primary/5 rounded-xl p-6 border border-primary/10">
@@ -335,7 +309,7 @@
     int pendingLabCount = 0;
     for (LabTestRequest _lr : labRequests) {
         if (visit != null && _lr.getVisitId() == visit.getVisitId()
-                && !"Completed".equalsIgnoreCase(_lr.getStatus() != null ? _lr.getStatus() : "")) {
+                && "Pending".equalsIgnoreCase(_lr.getStatus() != null ? _lr.getStatus() : "")) {
             pendingLabCount++;
         }
     }
@@ -414,15 +388,12 @@
 <% if (showLabViewer) {
        String fullNote = labResultDetail.getResultNote() != null ? labResultDetail.getResultNote() : "";
        String clinicalNote = fullNote;
-       String techNote = "";
        String marker = "[Tech notes]";
        int markerIdx = fullNote.indexOf(marker);
        if (markerIdx >= 0) {
            clinicalNote = fullNote.substring(0, markerIdx).trim();
-           techNote = fullNote.substring(markerIdx + marker.length()).trim();
        }
        String resultTime = labResultDetail.getResultDate() != null ? labResultDetail.getResultDate().format(labResultFmt) : "";
-       String resultValue = labResultDetail.getResultValue() != null ? labResultDetail.getResultValue() : "-";
 %>
 <!-- Lab Result Viewer Modal (read-only) -->
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
@@ -446,73 +417,34 @@
                 <span class="material-symbols-outlined">close</span>
             </a>
         </div>
-        <div class="p-8 grid grid-cols-12 gap-8 max-h-[70vh] overflow-y-auto">
-            <div class="col-span-12 lg:col-span-5 space-y-8">
-                <section>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">1. Test Summary</h3>
-                    <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 space-y-4">
-                        <div>
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider mb-1">Examination Procedure</p>
-                            <p class="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                <%= labResultDetail.getTestName() != null ? labResultDetail.getTestName() : "Lab Test" %>
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-[9px] text-slate-400 uppercase tracking-wider mb-1">Requesting Veterinarian</p>
-                            <p class="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                <%= labResultDetail.getVeterinarianName() != null ? labResultDetail.getVeterinarianName() : user.getFullName() %>
-                            </p>
-                        </div>
-                    </div>
-                </section>
-                <section>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">2. Quantitative Findings</h3>
-                    <div class="border border-slate-100 dark:border-slate-800/50">
-                        <table class="w-full text-xs">
-                            <thead>
-                            <tr class="bg-slate-50 dark:bg-slate-900/80">
-                                <th class="px-3 py-2 text-left font-bold text-slate-400 uppercase text-[9px]">Parameter</th>
-                                <th class="px-3 py-2 text-right font-bold text-slate-400 uppercase text-[9px]">Value</th>
-                            </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr>
-                                <td class="px-3 py-3 text-slate-600 dark:text-slate-400">Primary Result</td>
-                                <td class="px-3 py-3 text-right font-bold text-primary">
-                                    <%= resultValue %>
-                                </td>
-                            </tr>
-                            <% if (!resultTime.isEmpty()) { %>
-                            <tr>
-                                <td class="px-3 py-3 text-slate-600 dark:text-slate-400">Reported At</td>
-                                <td class="px-3 py-3 text-right font-bold text-slate-800 dark:text-slate-200">
-                                    <%= resultTime %>
-                                </td>
-                            </tr>
-                            <% } %>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+        <div class="p-8 max-h-[70vh] overflow-y-auto space-y-6">
+            <div class="flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <span><span class="font-bold text-slate-700 dark:text-slate-200">Test:</span> <%= labResultDetail.getTestName() != null ? labResultDetail.getTestName() : "Lab Test" %></span>
+                <span><span class="font-bold text-slate-700 dark:text-slate-200">Vet:</span> <%= labResultDetail.getVeterinarianName() != null ? labResultDetail.getVeterinarianName() : "—" %></span>
+                <% if (!resultTime.isEmpty()) { %>
+                <span><span class="font-bold text-slate-700 dark:text-slate-200">Reported:</span> <%= resultTime %></span>
+                <% } %>
             </div>
-            <div class="col-span-12 lg:col-span-7 space-y-8">
-                <section>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">3. Clinical Observations</h3>
-                    <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 min-h-[140px]">
-                        <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-                            <%= !clinicalNote.isEmpty() ? clinicalNote : "No detailed clinical observations recorded for this result." %>
-                        </p>
-                    </div>
-                </section>
-                <section>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">4. Technician Notes</h3>
-                    <div class="p-4 bg-slate-100/50 dark:bg-slate-900/30 border-l-2 border-slate-300 dark:border-slate-700">
-                        <p class="text-[11px] italic text-slate-500 dark:text-slate-400">
-                            <%= !techNote.isEmpty() ? techNote : "No separate technician notes were captured for this result." %>
-                        </p>
-                    </div>
-                </section>
-            </div>
+            <%
+                String resultImg = labResultDetail.getResultFileUrl();
+                boolean hasImg = resultImg != null && !resultImg.trim().isEmpty();
+            %>
+            <% if (hasImg) { %>
+            <section>
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Result image</h3>
+                <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-900/50 flex justify-center p-4">
+                    <img src="<%= ctx %><%= resultImg %>" alt="Lab result" class="max-w-full max-h-[420px] object-contain rounded-lg"/>
+                </div>
+            </section>
+            <% } %>
+            <section>
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Text note</h3>
+                <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-xl min-h-[100px]">
+                    <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                        <%= !clinicalNote.isEmpty() ? clinicalNote : "—" %>
+                    </p>
+                </div>
+            </section>
         </div>
         <div class="px-8 py-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end">
             <a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>"
@@ -902,43 +834,10 @@
     })();
 </script>
 
-<!-- Pending Lab Requests Warning Modal -->
-<div id="pending-lab-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-start gap-4">
-            <div class="shrink-0 size-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <span class="material-symbols-outlined text-amber-500 text-xl">warning</span>
-            </div>
-            <div>
-                <h3 class="text-base font-bold text-slate-900 dark:text-white">Pending Lab Requests</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    There <span id="pending-lab-word">are</span>
-                    <span class="font-bold text-amber-600" id="pending-lab-count"><%= pendingLabCount %></span>
-                    pending lab request<span id="pending-lab-plural">s</span> that have not been completed yet.
-                    These requests will remain open but the examination record will be finalized.
-                </p>
-            </div>
-        </div>
-        <div class="p-5 bg-slate-50/60 dark:bg-slate-900/50 flex items-center justify-end gap-3">
-            <button type="button" id="pending-lab-cancel"
-                    class="px-5 py-2 rounded-lg text-slate-600 dark:text-slate-400 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                Go Back
-            </button>
-            <button type="button" id="pending-lab-confirm"
-                    class="px-6 py-2.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm hover:brightness-110 transition-all shadow-md">
-                Complete Anyway
-            </button>
-        </div>
-    </div>
-</div>
-
 <script>
 (function () {
     const PENDING_LAB_COUNT = <%= pendingLabCount %>;
     const completeBtn   = document.getElementById('complete-exam-btn');
-    const modal         = document.getElementById('pending-lab-modal');
-    const cancelBtn     = document.getElementById('pending-lab-cancel');
-    const confirmBtn    = document.getElementById('pending-lab-confirm');
     const examForm      = document.getElementById('examination-form');
     const completeError = document.getElementById('complete-error');
 
@@ -1032,26 +931,8 @@
         return valid;
     }
 
-    /* ── modal ── */
-    function showCompleteModal() {
-        if (!modal) return;
-        var word   = document.getElementById('pending-lab-word');
-        var plural = document.getElementById('pending-lab-plural');
-        if (word)   word.textContent   = PENDING_LAB_COUNT === 1 ? 'is' : 'are';
-        if (plural) plural.textContent = PENDING_LAB_COUNT === 1 ? ''   : 's';
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-
-    function hideModal() {
-        if (!modal) return;
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-
     /* ── actual submit ── */
     function doComplete() {
-        hideModal();
         if (!runValidations()) return;
 
         var serviceIdsInput = document.getElementById('serviceIds');
@@ -1078,19 +959,10 @@
         completeBtn.addEventListener('click', function () {
             if (!runValidations()) return;
             if (PENDING_LAB_COUNT > 0) {
-                showCompleteModal();
-            } else {
-                doComplete();
+                showBanner('Cannot complete examination while lab requests are still pending. Complete them in the lab queue first.');
+                return;
             }
-        });
-    }
-
-    if (cancelBtn)  cancelBtn.addEventListener('click', hideModal);
-    if (confirmBtn) confirmBtn.addEventListener('click', doComplete);
-
-    if (modal) {
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) hideModal();
+            doComplete();
         });
     }
 
@@ -1106,22 +978,9 @@
         });
     }
 
-    // Profile dropdown toggle (header)
-    var vetToggle = document.getElementById('vet-profile-toggle');
-    var vetMenu = document.getElementById('vet-profile-menu');
-    if (vetToggle && vetMenu) {
-        vetToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            vetMenu.style.display = (vetMenu.style.display === 'none' || vetMenu.style.display === '') ? 'block' : 'none';
-        });
-        document.addEventListener('click', function(e) {
-            if (!vetMenu.contains(e.target) && !vetToggle.contains(e.target)) {
-                vetMenu.style.display = 'none';
-            }
-        });
-    }
 })();
 </script>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
 
 </body>
 </html>

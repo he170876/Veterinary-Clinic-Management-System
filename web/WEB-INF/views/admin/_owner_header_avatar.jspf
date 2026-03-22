@@ -1,0 +1,25 @@
+<%-- Avatar góc header (owner / clinic owner). Dùng session currentUser + profile_picture_url. --%>
+<%
+    model.User __ou = (model.User) session.getAttribute("currentUser");
+    String __ctx = request.getContextPath();
+    String __pfp = (__ou != null) ? __ou.getProfilePictureUrl() : null;
+    boolean __hasPfp = __pfp != null && !__pfp.isEmpty();
+    String __bust = "";
+    if (__hasPfp && __ou != null && __ou.getUpdatedAt() != null) {
+        __bust = "?v=" + __ou.getUpdatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+    String __dn = "";
+    if (__ou != null) {
+        String __fn = __ou.getFullName();
+        String __em = __ou.getEmail();
+        __dn = (__fn != null && !__fn.isEmpty()) ? __fn : (__em != null ? __em : "?");
+    } else {
+        __dn = "?";
+    }
+    String __ini = __dn.length() > 0 ? __dn.substring(0, 1).toUpperCase() : "?";
+%>
+<% if (__hasPfp) { %>
+<img src="<%= __ctx %><%= __pfp %><%= __bust %>" alt="" class="size-8 rounded-full object-cover border border-white dark:border-gray-700 shadow-sm"/>
+<% } else { %>
+<span class="size-8 rounded-full bg-primary/15 border border-white dark:border-gray-700 shadow-sm flex items-center justify-center text-primary text-xs font-bold"><%= __ini %></span>
+<% } %>

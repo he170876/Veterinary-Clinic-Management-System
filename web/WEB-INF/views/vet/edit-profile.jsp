@@ -53,11 +53,12 @@
     <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
     <main class="flex-1 flex flex-col overflow-y-auto">
         <header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8">
-            <div class="flex items-center gap-2 text-slate-500 text-sm">
+            <div class="flex items-center gap-2 text-slate-500 text-sm min-w-0">
                 <a class="hover:text-primary" href="<%= ctx %>/vet/profile">My Profile</a>
-                <span class="material-symbols-outlined text-xs">chevron_right</span>
-                <span class="text-slate-900 dark:text-slate-100 font-medium">Edit Profile</span>
+                <span class="material-symbols-outlined text-xs shrink-0">chevron_right</span>
+                <span class="text-slate-900 dark:text-slate-100 font-medium truncate">Edit Profile</span>
             </div>
+            <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
         </header>
         <div class="p-8 max-w-4xl mx-auto w-full">
             <% if (err != null && !err.isEmpty()) { %>
@@ -86,18 +87,12 @@
                             </div>
                             <label class="absolute bottom-0 right-0 flex items-center justify-center size-9 rounded-full bg-primary text-white cursor-pointer shadow-lg hover:bg-primary/90 transition-colors" title="Change photo">
                                 <span class="material-symbols-outlined text-lg">photo_camera</span>
-                                <input type="file" name="profilePicture" id="profilePictureInput" accept="image/jpeg,image/png,image/gif" class="hidden"/>
+                                <input type="file" name="profilePicture" id="profilePictureInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden"/>
                             </label>
                         </div>
                         <div class="flex-1 space-y-1">
                             <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Profile Photo</h2>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">JPG, PNG or GIF. Max 2 MB.</p>
-                            <% if (hasProfilePic) { %>
-                            <label class="inline-flex items-center gap-2 text-xs text-slate-500 hover:text-red-600 cursor-pointer mt-1">
-                                <input type="checkbox" name="removePhoto" value="1" class="rounded border-slate-300 text-primary focus:ring-primary"/>
-                                <span>Remove current photo</span>
-                            </label>
-                            <% } %>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">JPG, PNG, GIF or WebP. Max 2 MB.</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -145,30 +140,45 @@
     var input = document.getElementById('profilePictureInput');
     var preview = document.getElementById('profilePhotoPreview');
     if (!input || !preview) return;
+    function isImageFile(file) {
+        if (!file) return false;
+        var t = (file.type || '').toLowerCase();
+        if (t.indexOf('image/') === 0) return true;
+        var n = (file.name || '').toLowerCase();
+        return /\.(jpe?g|png|gif|webp|bmp)$/i.test(n);
+    }
     input.addEventListener('change', function() {
         var file = this.files && this.files[0];
-        if (!file || !file.type.match(/^image\/(jpeg|png|gif)$/)) return;
+        if (!file) return;
+        if (!isImageFile(file)) {
+            alert('Please choose an image file (JPG, PNG, GIF, or WebP).');
+            this.value = '';
+            return;
+        }
         var img = preview.querySelector('#profilePhotoImg');
         var initial = preview.querySelector('#profilePhotoInitial');
         var reader = new FileReader();
         reader.onload = function(e) {
+            var url = e.target.result;
             if (img) {
-                img.src = e.target.result;
+                img.src = url;
+                img.style.display = '';
             } else {
                 img = document.createElement('img');
                 img.id = 'profilePhotoImg';
-                img.alt = 'Profile';
+                img.alt = '';
                 img.className = 'w-full h-full object-cover';
-                img.src = e.target.result;
+                img.src = url;
                 if (initial) initial.remove();
                 preview.appendChild(img);
             }
-            if (initial) initial.style.display = 'none';
+            if (initial && initial.parentNode) initial.style.display = 'none';
         };
         reader.readAsDataURL(file);
     });
 })();
 </script>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
 </body>
 </html>
 

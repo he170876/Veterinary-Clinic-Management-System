@@ -170,19 +170,13 @@
                                 </div>
                                 <label class="absolute bottom-0 right-0 flex items-center justify-center size-10 rounded-full bg-primary text-white cursor-pointer shadow-lg hover:bg-primary/90 transition-colors" title="Change photo">
                                     <span class="material-symbols-outlined text-xl">photo_camera</span>
-                                    <input type="file" name="profilePicture" id="profilePictureInput" accept="image/jpeg,image/png,image/gif" class="hidden"/>
+                                    <input type="file" name="profilePicture" id="profilePictureInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden"/>
                                 </label>
                             </div>
 
                             <div class="flex-1 space-y-2">
                                 <h3 class="text-xl font-bold text-[#181111] dark:text-white">Profile Photo</h3>
-                                <p class="text-[#896461] text-sm">JPG, PNG or GIF. Max 2 MB.</p>
-                                <% if (hasProfilePic) { %>
-                                <label class="inline-flex items-center gap-2 text-sm text-[#896461] hover:text-red-600 cursor-pointer mt-2">
-                                    <input type="checkbox" name="removePhoto" value="1" class="rounded border-[#e6dcdb] text-primary focus:ring-primary"/>
-                                    <span>Remove current photo</span>
-                                </label>
-                                <% } %>
+                                <p class="text-[#896461] text-sm">JPG, PNG, GIF or WebP. Max 2 MB.</p>
                             </div>
                         </div>
 
@@ -289,25 +283,39 @@
         var input = document.getElementById('profilePictureInput');
         var preview = document.getElementById('profilePhotoPreview');
         if (!input || !preview) return;
+        function isImageFile(file) {
+            if (!file) return false;
+            var t = (file.type || '').toLowerCase();
+            if (t.indexOf('image/') === 0) return true;
+            var n = (file.name || '').toLowerCase();
+            return /\.(jpe?g|png|gif|webp|bmp)$/i.test(n);
+        }
         input.addEventListener('change', function () {
             var file = this.files && this.files[0];
-            if (!file || !file.type.match(/^image\\/(jpeg|png|gif)$/)) return;
+            if (!file) return;
+            if (!isImageFile(file)) {
+                alert('Vui lòng chọn file ảnh (JPG, PNG, GIF hoặc WebP).');
+                this.value = '';
+                return;
+            }
             var img = preview.querySelector('#profilePhotoImg');
             var initial = preview.querySelector('#profilePhotoInitial');
             var reader = new FileReader();
             reader.onload = function (e) {
+                var url = e.target.result;
                 if (img) {
-                    img.src = e.target.result;
+                    img.src = url;
+                    img.style.display = '';
                 } else {
                     img = document.createElement('img');
                     img.id = 'profilePhotoImg';
                     img.alt = 'Profile';
                     img.className = 'w-full h-full object-cover';
-                    img.src = e.target.result;
+                    img.src = url;
                     if (initial) initial.remove();
                     preview.appendChild(img);
                 }
-                if (initial) initial.style.display = 'none';
+                if (initial && initial.parentNode) initial.style.display = 'none';
             };
             reader.readAsDataURL(file);
         });

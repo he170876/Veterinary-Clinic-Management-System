@@ -47,11 +47,11 @@
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
 <div class="flex min-h-screen overflow-hidden">
     <%
-        request.setAttribute("labSidebarActive", "queue");
+        request.setAttribute("labSidebarActive", "profile");
     %>
     <%@ include file="/WEB-INF/views/lab/_lab-sidebar.jspf" %>
 
-    <main class="flex-1 flex flex-col min-w-0">
+    <main class="flex-1 flex flex-col min-w-0 ml-64">
         <header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8">
             <div class="flex items-center gap-2 text-slate-500 text-sm">
                 <a class="hover:text-primary" href="<%= ctx %>/lab/labqueue">Lab Queue</a>

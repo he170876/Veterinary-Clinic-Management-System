@@ -1,5 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.User" %>
+<%!
+    String esc(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+%>
 <%
     User user = (User) request.getAttribute("user");
     if (user == null) user = (User) session.getAttribute("currentUser");
@@ -11,160 +17,177 @@
     String displayName = (user.getFullName() != null && !user.getFullName().isEmpty()) ? user.getFullName() : user.getEmail();
     String profilePicUrl = user.getProfilePictureUrl();
     boolean hasProfilePic = profilePicUrl != null && !profilePicUrl.isEmpty();
+    String profilePicCacheBust = "";
+    if (hasProfilePic && user.getUpdatedAt() != null) {
+        profilePicCacheBust = "?v=" + user.getUpdatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
     String err = request.getParameter("error");
     boolean requiredPhone = "phone".equals(request.getParameter("required"));
 %>
-
 <!DOCTYPE html>
 <html class="light" lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Receptionist - Edit Profile - Anipats</title>
+    <title>Receptionist Edit Profile - Anipats</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff7b00",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#23190f",
+                    },
+                    fontFamily: { "display": ["Manrope", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
     <style>
         body { font-family: 'Manrope', sans-serif; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
-<div class="min-h-screen">
-    <header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8">
-        <div class="flex items-center gap-2 text-slate-500 text-sm">
-            <span class="material-symbols-outlined text-xs">chevron_right</span>
-            <span class="text-slate-900 dark:text-slate-100 font-medium">Edit Profile</span>
-        </div>
-        <div class="flex items-center gap-4">
-            <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-            <div class="relative">
-                <button type="button"
-                        id="receptionist-profile-toggle"
-                        class="w-10 h-10 rounded-full overflow-hidden focus:outline-none">
-                    <% if (hasProfilePic) { %>
-                    <img alt="Profile" class="w-full h-full object-cover" src="<%= ctx %><%= profilePicUrl %>"/>
-                    <% } else { %>
-                    <span class="material-symbols-outlined text-primary bg-primary/10 w-full h-full flex items-center justify-center">
-                        person
-                    </span>
-                    <% } %>
-                </button>
-                <div id="receptionist-profile-menu"
-                     class="absolute right-0 mt-2 w-44 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
-                     style="display:none;">
-                    <a href="<%= ctx %>/Receptionist/profile"
-                       class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-xl flex items-center gap-2">
-                        <span class="material-symbols-outlined text-base text-primary">person</span>
-                        <span>My Profile</span>
-                    </a>
-                    <a href="<%= ctx %>/logout"
-                       class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-b-xl flex items-center gap-2">
-                        <span class="material-symbols-outlined text-base text-primary">logout</span>
-                        <span>Sign out</span>
-                    </a>
-                </div>
+<div class="flex min-h-screen overflow-hidden">
+    <%@ include file="/WEB-INF/views/Receptionist/_sidebar.jspf" %>
+    <main class="flex-1 flex flex-col overflow-y-auto">
+        <header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8">
+            <div class="flex items-center gap-2 text-slate-500 text-sm">
+                <a class="hover:text-primary" href="<%= ctx %>/Receptionist/profile">My Profile</a>
+                <span class="material-symbols-outlined text-xs">chevron_right</span>
+                <span class="text-slate-900 dark:text-slate-100 font-medium">Edit Profile</span>
             </div>
-        </div>
-    </header>
-
-    <main class="max-w-3xl mx-auto p-8">
-        <div class="flex items-center gap-2 mb-6">
-            <a class="text-slate-500 hover:text-primary transition-colors text-sm font-semibold" href="<%= ctx %>/Receptionist/profile">My Profile</a>
-            <span class="material-symbols-outlined text-slate-400 text-base leading-none">chevron_right</span>
-            <span class="text-primary text-sm font-bold">Edit Profile</span>
-        </div>
-
-        <% if (err != null && !err.isEmpty()) { %>
-        <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm font-medium">
-            <%= java.net.URLDecoder.decode(err, "UTF-8") %>
-        </div>
-        <% } %>
-
-        <form method="post"
-              action="<%= ctx %>/Receptionist/edit-profile"
-              enctype="multipart/form-data"
-              class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <div class="flex flex-col md:flex-row md:items-center md:gap-6 gap-4 mb-6">
-                <div class="relative w-28 h-28 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-sm bg-primary/10 flex items-center justify-center">
-                    <% if (hasProfilePic) { %>
-                    <img id="profilePhotoPreview"
-                         src="<%= ctx %><%= profilePicUrl %>"
-                         alt="Profile"
-                         class="w-full h-full object-cover"/>
-                    <% } else { %>
-                    <span id="profilePhotoInitial" class="material-symbols-outlined text-primary text-5xl">person</span>
-                    <% } %>
-                </div>
-                <div class="flex-1">
-                    <div class="mb-4">
-                        <label class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 block">Profile Picture</label>
-                        <input type="file" name="profilePicture" accept="image/jpeg,image/png,image/gif" class="block w-full text-sm text-slate-700 dark:text-slate-200"/>
+        </header>
+        <div class="p-8 max-w-4xl mx-auto w-full">
+            <% if (requiredPhone) { %>
+            <div class="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100 text-sm">
+                Phone number is required to continue using the system.
+            </div>
+            <% } %>
+            <% if (err != null && !err.isEmpty()) { %>
+            <div class="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-sm">
+                <%= java.net.URLDecoder.decode(err, "UTF-8") %>
+            </div>
+            <% } %>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <h1 class="text-lg font-bold text-slate-900 dark:text-slate-100">Edit Profile</h1>
+                    <div class="flex items-center gap-2">
+                        <div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                            <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "R" %>
+                        </div>
                     </div>
-                    <% if (hasProfilePic) { %>
-                    <label class="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                        <input type="checkbox" name="removePhoto" value="1" class="rounded border-slate-300"/>
-                        Remove current photo
-                    </label>
-                    <% } %>
                 </div>
+                <form method="post" action="<%= ctx %>/Receptionist/edit-profile" enctype="multipart/form-data" class="p-6 space-y-6">
+                    <div class="flex flex-col md:flex-row md:items-center gap-6 mb-4">
+                        <div class="relative group">
+                            <div id="profilePhotoPreview" class="w-24 h-24 rounded-full ring-4 ring-background-light dark:ring-slate-900 overflow-hidden flex items-center justify-center bg-primary/10 text-primary font-bold text-3xl shrink-0">
+                                <% if (hasProfilePic) { %>
+                                <img src="<%= ctx %><%= esc(profilePicUrl) %><%= profilePicCacheBust %>" alt="" class="w-full h-full object-cover" id="profilePhotoImg"/>
+                                <% } else { %>
+                                <span id="profilePhotoInitial"><%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "R" %></span>
+                                <% } %>
+                            </div>
+                            <label class="absolute bottom-0 right-0 flex items-center justify-center size-9 rounded-full bg-primary text-white cursor-pointer shadow-lg hover:bg-primary/90 transition-colors" title="Change photo">
+                                <span class="material-symbols-outlined text-lg">photo_camera</span>
+                                <input type="file" name="profilePicture" id="profilePictureInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden"/>
+                            </label>
+                        </div>
+                        <div class="flex-1 space-y-1">
+                            <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Profile Photo</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">JPG, PNG, GIF or WebP. Max 2 MB.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-200">Full Name</label>
+                            <input name="fullName" type="text" required minlength="1" maxlength="30"
+                                   value="<%= esc(user.getFullName() != null ? user.getFullName() : "") %>"
+                                   class="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm focus:ring-primary focus:border-primary"/>
+                            <p class="text-[11px] text-slate-400">1-30 characters, letters and spaces only.</p>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-200">Phone Number<% if (requiredPhone) { %> <span class="text-red-500">*</span><% } %></label>
+                            <input name="phone" type="tel" pattern="0[0-9]{9}" placeholder="0123456789"
+                                   value="<%= esc(user.getPhone() != null ? user.getPhone() : "") %>"
+                                   <%= requiredPhone ? "required" : "" %>
+                                   class="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm focus:ring-primary focus:border-primary"/>
+                            <p class="text-[11px] text-slate-400">10 digits, must start with 0.</p>
+                        </div>
+                        <div class="md:col-span-2 space-y-1">
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-200">Email (read-only)</label>
+                            <input type="email" value="<%= esc(user.getEmail() != null ? user.getEmail() : "") %>" readonly
+                                   class="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 text-sm text-slate-500 cursor-not-allowed"/>
+                        </div>
+                        <div class="md:col-span-2 space-y-1">
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-200">Address</label>
+                            <textarea name="address" rows="3"
+                                      class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:ring-primary focus:border-primary"><%= esc(user.getAddress() != null ? user.getAddress() : "") %></textarea>
+                            <p class="text-[11px] text-slate-400">Optional. Max 500 characters.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <a href="<%= ctx %>/Receptionist/profile<%= requiredPhone ? "?required=phone" : "" %>" class="px-5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+                            Cancel
+                        </a>
+                        <button type="submit" class="px-7 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 shadow-lg shadow-primary/20">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">Full Name <span class="text-red-500">*</span></label>
-                    <input name="fullName"
-                           class="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-primary focus:border-primary"
-                           value="<%= user.getFullName() != null ? user.getFullName() : "" %>"
-                           required/>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        Phone <%= requiredPhone ? "<span class=\"text-red-500\">*</span>" : "" %>
-                    </label>
-                    <input name="phone"
-                           class="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-primary focus:border-primary"
-                           value="<%= user.getPhone() != null ? user.getPhone() : "" %>"
-                           <%= requiredPhone ? "required" : "" %>/>
-                </div>
-                <div class="flex flex-col gap-2 md:col-span-2">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">Address</label>
-                    <textarea name="address"
-                              rows="3"
-                              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-primary focus:border-primary"><%= user.getAddress() != null ? user.getAddress() : "" %></textarea>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                <a href="<%= ctx %>/Receptionist/profile"
-                   class="px-5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors inline-flex items-center justify-center">
-                    Cancel
-                </a>
-                <button type="submit"
-                        class="px-6 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors inline-flex items-center justify-center">
-                    Save Changes
-                </button>
-            </div>
-        </form>
+        </div>
     </main>
 </div>
-
 <script>
-    (function() {
-        var toggle = document.getElementById('receptionist-profile-toggle');
-        var menu = document.getElementById('receptionist-profile-menu');
-        if (!toggle || !menu) return;
-        toggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
-        });
-        document.addEventListener('click', function(e) {
-            if (!menu.contains(e.target) && !toggle.contains(e.target)) {
-                menu.style.display = 'none';
+(function() {
+    var input = document.getElementById('profilePictureInput');
+    var preview = document.getElementById('profilePhotoPreview');
+    if (!input || !preview) return;
+    function isImageFile(file) {
+        if (!file) return false;
+        var t = (file.type || '').toLowerCase();
+        if (t.indexOf('image/') === 0) return true;
+        var n = (file.name || '').toLowerCase();
+        return /\.(jpe?g|png|gif|webp|bmp)$/i.test(n);
+    }
+    input.addEventListener('change', function() {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        if (!isImageFile(file)) {
+            alert('Please choose an image file (JPG, PNG, GIF, or WebP).');
+            this.value = '';
+            return;
+        }
+        var img = preview.querySelector('#profilePhotoImg');
+        var initial = preview.querySelector('#profilePhotoInitial');
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var url = e.target.result;
+            if (img) {
+                img.src = url;
+                img.style.display = '';
+            } else {
+                img = document.createElement('img');
+                img.id = 'profilePhotoImg';
+                img.alt = '';
+                img.className = 'w-full h-full object-cover';
+                img.src = url;
+                if (initial) initial.remove();
+                preview.appendChild(img);
             }
-        });
-    })();
+            if (initial && initial.parentNode) initial.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    });
+})();
 </script>
 </body>
 </html>
-

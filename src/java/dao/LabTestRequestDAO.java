@@ -432,18 +432,19 @@ public class LabTestRequestDAO extends DBContext {
         return 0;
     }
 
-    /** Insert LabTestResults and set LabTestRequests.status = 'Completed'. */
-    public boolean saveResult(int requestId, String resultValue, String resultNote, int labStaffId) {
+    /** Insert LabTestResults and set LabTestRequests.status = 'Completed'. {@code resultFile} = relative URL (e.g. /uploads/lab-results/...). */
+    public boolean saveResult(int requestId, String resultValue, String resultNote, String resultFile, int labStaffId) {
         Connection con = null;
         try {
             con = getConnection();
             con.setAutoCommit(false);
-            String insertResult = "INSERT INTO LabTestResults (request_id, result_value, result_note, result_date, lab_staff_id) VALUES (?, ?, ?, GETDATE(), ?)";
+            String insertResult = "INSERT INTO LabTestResults (request_id, result_value, result_note, result_file, result_date, lab_staff_id) VALUES (?, ?, ?, ?, GETDATE(), ?)";
             try (PreparedStatement ps = con.prepareStatement(insertResult)) {
                 ps.setInt(1, requestId);
                 ps.setString(2, resultValue);
                 ps.setString(3, resultNote);
-                ps.setInt(4, labStaffId);
+                ps.setString(4, resultFile != null ? resultFile : "");
+                ps.setInt(5, labStaffId);
                 ps.executeUpdate();
             }
             String updateStatus = "UPDATE LabTestRequests SET status = 'Completed' WHERE request_id = ?";
@@ -467,6 +468,21 @@ public class LabTestRequestDAO extends DBContext {
             }
         }
         return false;
+    }
+
+    /** Number of lab requests still in Pending status for this visit (blocks completing examination). */
+    public int countPendingByVisitId(int visitId) {
+        if (visitId <= 0) return 0;
+        String sql = "SELECT COUNT(*) FROM LabTestRequests WHERE visit_id = ? AND status = 'Pending'";
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, visitId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     /** Count pending lab requests for a veterinarian. */
@@ -546,7 +562,7 @@ public class LabTestRequestDAO extends DBContext {
         return list;
     }
 
-    /** Cancel all pending lab requests for a given visit (used when examination is completed). */
+    /** Set all pending lab requests for a visit to Cancelled (optional cleanup; vet cannot complete exam while Pending). */
     public int cancelPendingByVisitId(int visitId) {
         if (visitId <= 0) return 0;
         String sql = "UPDATE LabTestRequests SET status = 'Cancelled' WHERE visit_id = ? AND status = 'Pending'";
@@ -570,6 +586,7 @@ public class LabTestRequestDAO extends DBContext {
                    tech_u.full_name     AS technician_name,
                    res.result_value,
                    res.result_note,
+                   res.result_file,
                    res.result_date
             FROM LabTestRequests req
             JOIN Visits v ON req.visit_id = v.visit_id
@@ -596,6 +613,7 @@ public class LabTestRequestDAO extends DBContext {
                     d.setTechnicianName(rs.getString("technician_name"));
                     d.setResultValue(rs.getString("result_value"));
                     d.setResultNote(rs.getString("result_note"));
+                    d.setResultFileUrl(rs.getString("result_file"));
                     Timestamp t = rs.getTimestamp("result_date");
                     if (t != null) d.setResultDate(t.toLocalDateTime());
                     return d;

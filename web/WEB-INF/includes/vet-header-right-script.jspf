@@ -1,0 +1,16 @@
+<script>
+(function() {
+    var toggle = document.getElementById('vet-profile-toggle');
+    var menu = document.getElementById('vet-profile-menu');
+    if (!toggle || !menu) return;
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+    });
+    document.addEventListener('click', function(e) {
+        if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+})();
+</script>

@@ -1,5 +1,6 @@
 package controller.vet;
 
+import dao.NotificationDAO;
 import dao.UserDAO;
 import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
@@ -11,21 +12,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import model.User;
+import utils.ProfilePictureUploadUtil;
 import utils.ValidationUtil;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Locale;
 
 /**
  * Vet edit profile: reuse same validations as customer edit-profile.
  */
-@MultipartConfig(fileSizeThreshold = 0, maxFileSize = 2 * 1024 * 1024, maxRequestSize = 3 * 1024 * 1024)
+@MultipartConfig(fileSizeThreshold = 512 * 1024, maxFileSize = 2 * 1024 * 1024, maxRequestSize = 6 * 1024 * 1024)
 @WebServlet(name = "VetEditProfileServlet", urlPatterns = {"/vet/edit-profile"})
 public class VetEditProfileServlet extends HttpServlet {
 
@@ -44,8 +43,13 @@ public class VetEditProfileServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
-        User user = (User) session.getAttribute("currentUser");
+        User sessionUser = (User) session.getAttribute("currentUser");
+        User user = userDAO.findById(sessionUser.getUserId()).orElse(sessionUser);
+        session.setAttribute("currentUser", user);
         request.setAttribute("user", user);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.getRequestDispatcher("/WEB-INF/views/vet/edit-profile.jsp").forward(request, response);
     }
 
@@ -63,10 +67,7 @@ public class VetEditProfileServlet extends HttpServlet {
 
         User user = (User) session.getAttribute("currentUser");
 
-        Part profilePart = null;
-        try {
-            profilePart = request.getPart("profilePicture");
-        } catch (Exception ignored) {}
+        Part profilePart = ProfilePictureUploadUtil.findPart(request, "profilePicture");
 
         String fullName = ValidationUtil.normalizeFullName(request.getParameter("fullName"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
@@ -98,40 +99,21 @@ public class VetEditProfileServlet extends HttpServlet {
         user.setPhone(phone != null && phone.isEmpty() ? null : phone);
         user.setAddress(address != null && address.isEmpty() ? null : address);
 
-        if ("1".equals(ValidationUtil.trim(request.getParameter("removePhoto")))) {
-            deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
-            user.setProfilePictureUrl(null);
-        } else if (profilePart != null && profilePart.getSize() > 0) {
-            String submittedFileName = profilePart.getSubmittedFileName();
-            if (submittedFileName != null && !submittedFileName.isEmpty()) {
-                String contentType = profilePart.getContentType();
-                if (contentType != null && (contentType.toLowerCase(Locale.ROOT).startsWith("image/jpeg")
-                        || contentType.toLowerCase(Locale.ROOT).startsWith("image/png")
-                        || contentType.toLowerCase(Locale.ROOT).startsWith("image/gif"))) {
-                    String ext = contentType.toLowerCase(Locale.ROOT).contains("png") ? "png"
-                            : contentType.toLowerCase(Locale.ROOT).contains("gif") ? "gif" : "jpg";
-                    String fileName = "vet-" + user.getUserId() + "." + ext;
-                    String relativePath = "/uploads/avatars/" + fileName;
-                    Path baseDir = Paths.get(request.getServletContext().getRealPath("/"));
-                    Path uploadDir = baseDir.resolve("uploads").resolve("avatars");
-                    try {
-                        Files.createDirectories(uploadDir);
-                        Path targetFile = uploadDir.resolve(fileName);
-                        try (InputStream in = profilePart.getInputStream()) {
-                            Files.copy(in, targetFile.toAbsolutePath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        }
-                        deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
-                        user.setProfilePictureUrl(relativePath);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+        boolean hadNonEmptyProfilePicture = ProfilePictureUploadUtil.hasNonEmptyFilePayload(profilePart, request);
+        String savedAvatarPath = null;
+        if (hadNonEmptyProfilePicture) {
+            savedAvatarPath = ProfilePictureUploadUtil.trySaveAvatarPart(request, profilePart, user.getUserId(), "vet-");
+            if (savedAvatarPath != null) {
+                deleteProfilePictureIfExists(request, user.getProfilePictureUrl());
+                user.setProfilePictureUrl(savedAvatarPath);
             }
         }
 
         boolean ok = userDAO.updateUser(user);
+        ProfilePictureUploadUtil.logEditProfilePostSummary(request, "VetEditProfileServlet", user.getUserId(),
+                profilePart, hadNonEmptyProfilePicture, savedAvatarPath, user.getProfilePictureUrl(), ok);
         if (ok) {
-            session.setAttribute("currentUser", user);
+            userDAO.findById(user.getUserId()).ifPresent(u -> session.setAttribute("currentUser", u));
             response.sendRedirect(ctx + "/vet/profile?updated=1");
         } else {
             response.sendRedirect(ctx + "/vet/edit-profile?error=" + URLEncoder.encode("Could not save. Please try again.", StandardCharsets.UTF_8));
@@ -140,8 +122,9 @@ public class VetEditProfileServlet extends HttpServlet {
 
     private void deleteProfilePictureIfExists(HttpServletRequest request, String profilePictureUrl) {
         if (profilePictureUrl == null || profilePictureUrl.isEmpty()) return;
+        Path base = ProfilePictureUploadUtil.webappRootDirectory(request);
+        if (base == null) return;
         try {
-            Path base = Paths.get(request.getServletContext().getRealPath("/"));
             Path file = base.resolve(profilePictureUrl.replaceFirst("^/", "").replace("/", java.io.File.separator));
             if (Files.exists(file)) Files.delete(file);
         } catch (IOException ignored) { }

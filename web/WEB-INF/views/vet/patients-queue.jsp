@@ -66,23 +66,7 @@
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
                             <input class="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/50" placeholder="Search patients..." type="text" id="searchQueue"/>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-                            <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
-                            <div class="flex items-center gap-3">
-                                <div class="text-right hidden sm:block">
-                                    <p class="text-sm font-semibold leading-none"><%= user.getFullName() %></p>
-                                    <p class="text-xs text-slate-500"><%= roleTitle %></p>
-                                </div>
-                                <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden">
-                                    <% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %>
-                                    <img class="w-full h-full object-cover" src="<%= ctx %><%= user.getProfilePictureUrl() %>" alt="Profile"/>
-                                    <% } else { %>
-                                    <%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %>
-                                    <% } %>
-                                </div>
-                            </div>
-                        </div>
+                        <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
                     </div>
                 </header>
                 <div class="flex-1 overflow-y-auto p-8">
@@ -309,5 +293,6 @@
                 modal.classList.remove('flex');
             }
         </script>
+        <%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
     </body>
 </html>

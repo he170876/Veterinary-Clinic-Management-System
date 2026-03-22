@@ -1,6 +1,7 @@
 package controller.vet;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import dao.CustomerDAO;
 import dao.LabTestRequestDAO;
 import dao.VetMedicalRecordDAO;
@@ -126,6 +127,9 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
         }
 
         request.setAttribute("user", user);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("record", record);
         request.setAttribute("visit", visit);
         request.setAttribute("pet", pet);

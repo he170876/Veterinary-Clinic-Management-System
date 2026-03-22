@@ -12,6 +12,8 @@ public class LabResultDetail {
     private String technicianName;
     private String resultValue;
     private String resultNote;
+    /** Relative web path to uploaded image, e.g. /uploads/lab-results/lab-1-....jpg */
+    private String resultFileUrl;
     private LocalDateTime resultDate;
 
     public int getRequestId() {
@@ -76,6 +78,14 @@ public class LabResultDetail {
 
     public void setResultNote(String resultNote) {
         this.resultNote = resultNote;
+    }
+
+    public String getResultFileUrl() {
+        return resultFileUrl;
+    }
+
+    public void setResultFileUrl(String resultFileUrl) {
+        this.resultFileUrl = resultFileUrl;
     }
 
     public LocalDateTime getResultDate() {

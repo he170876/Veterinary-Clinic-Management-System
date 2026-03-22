@@ -1,5 +1,7 @@
 package controller.lab;
 
+import dao.UserDAO;
+import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,6 +18,13 @@ import java.io.IOException;
 @WebServlet(name = "LabProfileServlet", urlPatterns = {"/lab/profile"})
 public class LabProfileServlet extends HttpServlet {
 
+    private UserDAO userDAO;
+
+    @Override
+    public void init() throws ServletException {
+        this.userDAO = new UserJdbcDAO();
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -25,9 +34,11 @@ public class LabProfileServlet extends HttpServlet {
             return;
         }
 
-        User user = (User) session.getAttribute("currentUser");
-        request.setAttribute("user", user);
+        User sessionUser = (User) session.getAttribute("currentUser");
+        User fresh = userDAO.findById(sessionUser.getUserId()).orElse(sessionUser);
+        session.setAttribute("currentUser", fresh);
+        request.setAttribute("user", fresh);
+
         request.getRequestDispatcher("/WEB-INF/views/lab/profile.jsp").forward(request, response);
     }
 }
-

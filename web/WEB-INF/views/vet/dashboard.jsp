@@ -67,34 +67,7 @@
 <span class="material-symbols-outlined text-primary">stethoscope</span>
 <h2 class="text-lg font-bold">Welcome, <%= user.getFullName() %></h2>
 </div>
-<div class="flex items-center gap-4">
-<%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-<div class="relative">
-    <button type="button"
-            id="vet-profile-toggle"
-            class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden hover:brightness-95 transition-colors">
-        <% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %>
-        <img alt="Doctor Profile" class="w-full h-full object-cover" src="<%= ctx %><%= user.getProfilePictureUrl() %>"/>
-        <% } else { %>
-        <%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %>
-        <% } %>
-    </button>
-    <div id="vet-profile-menu"
-         class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 z-50"
-         style="display:none;">
-        <a href="<%= ctx %>/vet/profile"
-           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-t-xl flex items-center gap-2">
-            <span class="material-symbols-outlined text-base text-primary">person</span>
-            <span>My Profile</span>
-        </a>
-        <a href="<%= ctx %>/logout"
-           class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-xl flex items-center gap-2">
-            <span class="material-symbols-outlined text-base text-primary">logout</span>
-            <span>Sign out</span>
-        </a>
-    </div>
-</div>
-</div>
+<%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
 </header>
 <!-- Dashboard Grid -->
 <div class="flex-1 overflow-y-auto p-8 space-y-8">
@@ -437,21 +410,6 @@
         });
     }
 </script>
-<script>
-    (function() {
-        var toggle = document.getElementById('vet-profile-toggle');
-        var menu = document.getElementById('vet-profile-menu');
-        if (!toggle || !menu) return;
-        toggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
-        });
-        document.addEventListener('click', function(e) {
-            if (!menu.contains(e.target) && !toggle.contains(e.target)) {
-                menu.style.display = 'none';
-            }
-        });
-    })();
-</script>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
 </body>
 </html>

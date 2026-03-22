@@ -1,5 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.User" %>
+<%!
+    String esc(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+%>
 <%
     User user = (User) request.getAttribute("user");
     if (user == null) {
@@ -11,6 +17,10 @@
     String roleTitle = (user.getRole() != null && user.getRole().getRoleName() != null) ? user.getRole().getRoleName() : "Veterinarian";
     String profilePicUrl = user.getProfilePictureUrl();
     boolean hasProfilePic = (profilePicUrl != null && !profilePicUrl.isEmpty());
+    String profilePicCacheBust = "";
+    if (hasProfilePic && user.getUpdatedAt() != null) {
+        profilePicCacheBust = "?v=" + user.getUpdatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
     boolean isGoogleUser = user.isGoogleUser();
     String pwMsg = request.getParameter("pw");
     String pwErr = request.getParameter("pwError");
@@ -49,11 +59,12 @@
     <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
     <main class="flex-1 flex flex-col min-w-0">
         <header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8">
-            <div class="flex items-center gap-2 text-slate-500 text-sm">
+            <div class="flex items-center gap-2 text-slate-500 text-sm min-w-0">
                 <a class="hover:text-primary" href="<%= ctx %>/vet/dashboard">Dashboard</a>
-                <span class="material-symbols-outlined text-xs">chevron_right</span>
-                <span class="text-slate-900 dark:text-slate-100 font-medium">My Profile</span>
+                <span class="material-symbols-outlined text-xs shrink-0">chevron_right</span>
+                <span class="text-slate-900 dark:text-slate-100 font-medium truncate">My Profile</span>
             </div>
+            <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
         </header>
         <div class="flex-1 overflow-y-auto p-8">
             <div class="max-w-4xl mx-auto space-y-6">
@@ -70,7 +81,7 @@
                 <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-6">
                     <div class="flex items-center gap-4">
                         <% if (hasProfilePic) { %>
-                        <img src="<%= ctx %><%= profilePicUrl %>" alt="<%= displayName %>" class="rounded-full size-20 border-4 border-white dark:border-slate-800 object-cover"/>
+                        <img src="<%= ctx %><%= esc(profilePicUrl) %><%= profilePicCacheBust %>" alt="" class="rounded-full size-20 border-4 border-white dark:border-slate-800 object-cover"/>
                         <% } else { %>
                         <div class="bg-primary/10 rounded-full size-20 border-4 border-white dark:border-slate-800 flex items-center justify-center text-primary font-bold text-3xl">
                             <%= displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?" %>
@@ -185,6 +196,7 @@
 })();
 </script>
 <% } %>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
 </body>
 </html>
 

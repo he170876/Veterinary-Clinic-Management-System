@@ -80,20 +80,12 @@
 <div class="flex min-h-screen">
     <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center justify-between px-8 shrink-0">
-            <div class="flex items-center gap-4">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Medical Records History</h2>
+        <header class="h-16 flex items-center justify-between px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 z-10">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">stethoscope</span>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">Medical Records History</h2>
             </div>
-            <div class="flex items-center gap-3">
-                <button class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" type="button">
-                    <span class="material-symbols-outlined text-sm">filter_list</span>
-                    Filters
-                </button>
-                <button class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary/90 shadow-sm transition-colors" type="button" disabled>
-                    <span class="material-symbols-outlined text-sm">add</span>
-                    New Record
-                </button>
-            </div>
+            <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
         </header>
         <div class="flex-1 overflow-auto p-8">
             <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
@@ -216,6 +208,7 @@
         </div>
     </main>
 </div>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
 </body>
 </html>
 

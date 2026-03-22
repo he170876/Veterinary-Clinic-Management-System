@@ -1,6 +1,7 @@
 package controller.vet;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import dao.VetMedicalRecordDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -63,6 +64,9 @@ public class VetMedicalRecordsServlet extends HttpServlet {
         List<MedicalRecordSummary> records = recordDao.getRecordsPageByVeterinarian(veterinarianId, offset, pageSize, q);
 
         request.setAttribute("user", user);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("records", records);
         request.setAttribute("q", q == null ? "" : q.trim());
         request.setAttribute("page", page);
