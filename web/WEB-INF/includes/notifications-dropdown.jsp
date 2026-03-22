@@ -28,8 +28,11 @@
     Object currentUserObj = session != null ? session.getAttribute("currentUser") : null;
     if (currentUserObj instanceof User) {
         User notifUser = (User) currentUserObj;
-        String roleName = notifUser.getRole() != null ? notifUser.getRole().getRoleName() : null;
-        if (roleName != null && "Receptionist".equalsIgnoreCase(roleName)) {
+        String notifRoleName = notifUser.getRole() != null ? notifUser.getRole().getRoleName() : null;
+        String notifRoleNormalized = notifRoleName != null
+                ? notifRoleName.trim().toLowerCase().replace(" ", "").replace("_", "").replace("-", "")
+                : "";
+        if ("receptionist".equals(notifRoleNormalized) || "frontdesk".equals(notifRoleNormalized)) {
             notifCenterHref = notifCtx + "/Receptionist/ManageAppointmentRequests";
             notifCenterLabel = "View request center";
         }

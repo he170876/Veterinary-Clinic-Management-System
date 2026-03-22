@@ -15,6 +15,13 @@
             ? u.getFullName()
             : (u != null ? u.getEmail() : "Customer");
 
+    String profileBasePath = (String) request.getAttribute("profileBasePath");
+    if (profileBasePath == null || profileBasePath.trim().isEmpty()) {
+        profileBasePath = "/customer";
+    } else if (!profileBasePath.startsWith("/")) {
+        profileBasePath = "/" + profileBasePath;
+    }
+
     String profilePicUrl = u != null ? u.getProfilePictureUrl() : null;
     boolean hasProfilePic = profilePicUrl != null && !profilePicUrl.isEmpty();
 %>
@@ -36,7 +43,7 @@
     <div id="customer-profile-menu"
          class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 z-50"
          style="display:none;">
-        <a href="<%= profileCtx %>/customer/profile"
+        <a href="<%= profileCtx %><%= profileBasePath %>/profile"
            class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-t-xl flex items-center gap-2">
             <span class="material-symbols-outlined text-base text-primary">person</span>
             <span>My Profile</span>

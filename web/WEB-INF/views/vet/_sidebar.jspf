@@ -25,6 +25,7 @@
     boolean onDashboard = currentPath.contains("/vet/dashboard");
     boolean onQueue = currentPath.contains("/vet/queue") || currentPath.contains("/vet/examination");
     boolean onRecords = currentPath.contains("/vet/records") || currentPath.contains("/vet/record");
+    boolean onProfile = currentPath.contains("/vet/profile") || currentPath.contains("/vet/edit-profile");
 %>
 <!-- Unified Vet Sidebar -->
 <aside id="vet-sidebar" class="hidden lg:flex w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col">
@@ -55,6 +56,12 @@
            href="<%= sidebarCtx %>/vet/records">
             <span class="material-symbols-outlined">calendar_today</span>
             <span class="text-sm font-medium">Medical Records</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors
+              text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800<%= onProfile ? " bg-primary/10 text-primary" : "" %>"
+           href="<%= sidebarCtx %>/vet/profile">
+          <span class="material-symbols-outlined">person</span>
+          <span>My Profile</span>
         </a>
     </nav>
 </aside>

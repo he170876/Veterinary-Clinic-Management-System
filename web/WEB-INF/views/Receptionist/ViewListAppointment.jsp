@@ -566,6 +566,10 @@
                     <span class="material-symbols-outlined">pending_actions</span>
                     <span class="font-medium">Request Center</span>
                 </a>
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="${pageContext.request.contextPath}/Receptionist/profile">
+                    <span class="material-symbols-outlined">person</span>
+                    <span class="font-medium">My Profile</span>
+                </a>
             </nav>
 
         </aside>
