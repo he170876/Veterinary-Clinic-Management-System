@@ -28,6 +28,10 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 <p class="text-sm font-medium">Dashboard</p>
             </a>
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors <%= ("profile".equals(currentPage) || "edit-profile".equals(currentPage)) ? "bg-primary/10 text-primary" : "text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10" %>" href="<%= ctx %>/customer/profile">
+                <span class="material-symbols-outlined">person</span>
+                <p class="text-sm font-medium">My Profile</p>
+            </a>
             <a class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors <%= "pets".equals(currentPage) ? "bg-primary/10 text-primary" : "text-[#181111] dark:text-white hover:bg-background-light dark:hover:bg-white/10" %>" href="<%= ctx %>/pets">
                 <span class="material-symbols-outlined">pets</span>
                 <p class="text-sm font-medium">My Pets</p>

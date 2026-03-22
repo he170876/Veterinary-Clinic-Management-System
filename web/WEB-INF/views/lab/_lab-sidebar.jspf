@@ -25,8 +25,8 @@
         else if (fwdRequestUri != null && !fwdRequestUri.isEmpty()) currentPath = fwdRequestUri;
         else currentPath = request.getRequestURI();
         if (currentPath == null) currentPath = "";
-        if (ctx != null && !ctx.isEmpty() && currentPath.startsWith(ctx)) {
-            currentPath = currentPath.substring(ctx.length());
+        if (labCtx != null && !labCtx.isEmpty() && currentPath.startsWith(labCtx)) {
+            currentPath = currentPath.substring(labCtx.length());
         }
 
         if (currentPath.contains("/lab/labqueue") || currentPath.contains("/lab/dashboard")) _labSidebarActive = "queue";
@@ -55,6 +55,10 @@
         <a class="<%= _labQueueClass %>" href="<%= labCtx %>/lab/labqueue">
             <span class="material-symbols-outlined">list_alt</span>
             <span>Lab Queue</span>
+        </a>
+        <a class="<%= _labProfileClass %>" href="<%= labCtx %>/lab/profile">
+            <span class="material-symbols-outlined">person</span>
+            <span>My Profile</span>
         </a>
     </nav>
 </aside>
