@@ -2,10 +2,9 @@ package model;
 
 import java.time.LocalDateTime;
 
-/** Summary of a lab result for display (test name, value, note, date). */
+/** Summary of a lab result for display (test name, note, date). */
 public class LabResultSummary {
     private String testName;
-    private String resultValue;
     private String resultNote;
     private LocalDateTime resultDate;
     private String petName;
@@ -13,8 +12,6 @@ public class LabResultSummary {
 
     public String getTestName() { return testName; }
     public void setTestName(String testName) { this.testName = testName; }
-    public String getResultValue() { return resultValue; }
-    public void setResultValue(String resultValue) { this.resultValue = resultValue; }
     public String getResultNote() { return resultNote; }
     public void setResultNote(String resultNote) { this.resultNote = resultNote; }
     public LocalDateTime getResultDate() { return resultDate; }

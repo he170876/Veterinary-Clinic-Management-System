@@ -140,7 +140,6 @@
                                     <tr class="bg-[#fcfaf8] dark:bg-gray-800/50 border-b border-[#eadbcd] dark:border-gray-800">
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[#a17145]">Service Name</th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[#a17145]">Category</th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[#a17145]">Duration</th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[#a17145]">Price</th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[#a17145] text-right">Actions</th>
                                     </tr>
@@ -149,7 +148,7 @@
                                     <c:choose>
                                         <c:when test="${empty services}">
                                             <tr>
-                                                <td colspan="5" class="px-6 py-8 text-center text-[#a17145]">
+                                                <td colspan="4" class="px-6 py-8 text-center text-[#a17145]">
                                                     <div class="flex flex-col items-center gap-2">
                                                         <span class="material-symbols-outlined text-4xl opacity-50">inbox</span>
                                                         <p>No services found. Create your first service!</p>
@@ -166,34 +165,26 @@
                                                     </td>
                                                     <td class="px-6 py-4">
                                                         <c:choose>
-                                                            <c:when test="${service.category == 'Wellness'}">
-                                                                <span class="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded-full">${service.category}</span>
-                                                            </c:when>
-                                                            <c:when test="${service.category == 'Dental'}">
-                                                                <span class="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-full">${service.category}</span>
-                                                            </c:when>
-                                                            <c:when test="${service.category == 'Diagnostics'}">
-                                                                <span class="px-2.5 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-full">${service.category}</span>
-                                                            </c:when>
-                                                            <c:when test="${service.category == 'Surgery'}">
-                                                                <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-bold rounded-full">${service.category}</span>
-                                                            </c:when>
-                                                            <c:when test="${service.category == 'Emergency'}">
-                                                                <span class="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold rounded-full">${service.category}</span>
+                                                            <c:when test="${service.category == 'labtest'}">
+                                                                <span class="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-full">${service.category}</span>
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 text-xs font-bold rounded-full">${service.category != null ? service.category : 'N/A'}</span>
+                                                                <span class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded-full">
+                                                                    <c:choose>
+                                                                        <c:when test="${not empty service.category}"><c:out value="${service.category}"/></c:when>
+                                                                        <c:otherwise>general</c:otherwise>
+                                                                    </c:choose>
+                                                                </span>
                                                             </c:otherwise>
                                                         </c:choose>
                                                     </td>
-                                                    <td class="px-6 py-4 text-sm font-medium text-[#a17145]">${service.duration > 0 ? service.duration : 'N/A'} ${service.duration > 0 ? 'min' : ''}</td>
                                                     <td class="px-6 py-4 text-sm font-bold"><fmt:formatNumber value="${service.price}" type="currency" currencySymbol="$" pattern="$#,##0.00"/></td>
                                                     <td class="px-6 py-4">
                                                         <div class="flex items-center justify-end gap-2">
-                                                            <button onclick="openEditServiceModal(${service.serviceId})" class="p-2 text-[#a17145] hover:text-primary hover:bg-primary/10 rounded-lg transition-all" title="Edit">
+                                                            <button onclick="openEditServiceModal('${service.serviceId}')" class="p-2 text-[#a17145] hover:text-primary hover:bg-primary/10 rounded-lg transition-all" title="Edit">
                                                                 <span class="material-symbols-outlined text-xl">edit</span>
                                                             </button>
-                                                            <button onclick="deleteService(${service.serviceId})" class="p-2 text-[#a17145] hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-all" title="Delete">
+                                                            <button onclick="deleteService('${service.serviceId}')" class="p-2 text-[#a17145] hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-all" title="Delete">
                                                                 <span class="material-symbols-outlined text-xl">delete</span>
                                                             </button>
                                                         </div>
@@ -261,21 +252,9 @@
                             <label class="text-sm font-bold text-[#1d140c] dark:text-gray-200">Category</label>
                             <select class="w-full bg-[#fcfaf8] dark:bg-gray-800 border border-[#eadbcd] dark:border-gray-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="addCategory" name="category" required>
                                 <option value="">Select Category</option>
-                                <option value="Wellness">Wellness</option>
-                                <option value="Preventive">Preventive</option>
-                                <option value="Dental">Dental</option>
-                                <option value="Diagnostics">Diagnostics</option>
-                                <option value="Surgery">Surgery</option>
-                                <option value="Emergency">Emergency</option>
-                                <option value="Consultation">Consultation</option>
+                                <option value="general">general</option>
+                                <option value="labtest">labtest</option>
                             </select>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <label class="text-sm font-bold text-[#1d140c] dark:text-gray-200">Standard Duration (min)</label>
-                            <div class="relative">
-                                <input class="w-full bg-[#fcfaf8] dark:bg-gray-800 border border-[#eadbcd] dark:border-gray-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder-[#a17145]/40" id="addDuration" min="0" name="duration" placeholder="30" step="1" type="number" required/>
-                                <span class="me-5 absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#a17145]">MINS</span>
-                            </div>
                         </div>
                     </div>
 
@@ -324,21 +303,9 @@
                             <label class="text-sm font-bold text-[#1d140c] dark:text-gray-200">Category</label>
                             <select class="w-full bg-[#fcfaf8] dark:bg-gray-800 border border-[#eadbcd] dark:border-gray-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="editCategory" name="category" required>
                                 <option value="">Select Category</option>
-                                <option value="Wellness">Wellness</option>
-                                <option value="Preventive">Preventive</option>
-                                <option value="Dental">Dental</option>
-                                <option value="Diagnostics">Diagnostics</option>
-                                <option value="Surgery">Surgery</option>
-                                <option value="Emergency">Emergency</option>
-                                <option value="Consultation">Consultation</option>
+                                <option value="general">general</option>
+                                <option value="labtest">labtest</option>
                             </select>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <label class="text-sm font-bold text-[#1d140c] dark:text-gray-200">Standard Duration (min)</label>
-                            <div class="relative">
-                                <input class="w-full bg-[#fcfaf8] dark:bg-gray-800 border border-[#eadbcd] dark:border-gray-700 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder-[#a17145]/40" id="editDuration" min="0" name="duration" placeholder="30" step="1" type="number" required/>
-                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#a17145]">MINS</span>
-                            </div>
                         </div>
                     </div>
 
@@ -374,7 +341,6 @@
                 data-id="${service.serviceId}"
                 data-name="${service.name}"
                 data-category="${service.category}"
-                data-duration="${service.duration}"
                 data-price="${service.price}"
                 data-description="${service.description}"></div>
             </c:forEach>
@@ -403,7 +369,6 @@
                 document.getElementById('editServiceId').value = service.id;
                 document.getElementById('editName').value = service.name;
                 document.getElementById('editCategory').value = service.category;
-                document.getElementById('editDuration').value = service.duration;
                 document.getElementById('editPrice').value = service.price;
                 document.getElementById('editDescription').value = service.description;
                 
@@ -535,7 +500,6 @@
                                                     id: id,
                                                     name: div.dataset.name || '',
                                                     category: div.dataset.category || '',
-                                                    duration: parseInt(div.dataset.duration) || 0,
                                                     price: parseFloat(div.dataset.price) || 0,
                                                     description: div.dataset.description || ''
                                                 };

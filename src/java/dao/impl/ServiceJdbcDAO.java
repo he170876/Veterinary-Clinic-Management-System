@@ -15,15 +15,15 @@ import model.Service;
 
 /**
  * JDBC implementation of {@link ServiceDAO} for SQL Server.
- * Handles CRUD operations for veterinary services with support for nullable fields
- * (category, duration) and soft delete functionality (is_deleted flag).
+ * Handles CRUD operations for veterinary services with support for
+ * nullable category and soft delete functionality (is_deleted flag).
  */
 public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
 
     @Override
     public List<Service> findAll() {
         List<Service> services = new ArrayList<>();
-        String sql = "SELECT service_id, name, category, duration, price, description, is_deleted "
+        String sql = "SELECT service_id, name, category, price, description, is_deleted "
                 + "FROM Services WHERE is_deleted = 0 ORDER BY name ASC";
 
         try (Connection conn = getConnection();
@@ -50,8 +50,10 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
     @Override
     public List<Service> findByCategory(String category) {
         List<Service> services = new ArrayList<>();
-        String sql = "SELECT service_id, name, category, duration, price, description, is_deleted "
-                + "FROM Services WHERE is_deleted = 0 AND category = ? ORDER BY name ASC";
+        String sql = "SELECT service_id, name, category, price, description, is_deleted "
+                + "FROM Services WHERE is_deleted = 0 "
+                + "AND LOWER(LTRIM(RTRIM(COALESCE(category, '')))) = LOWER(LTRIM(RTRIM(?))) "
+                + "ORDER BY name ASC";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -73,7 +75,7 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
 
     @Override
     public Optional<Service> findById(int serviceId) {
-        String sql = "SELECT service_id, name, category, duration, price, description, is_deleted "
+        String sql = "SELECT service_id, name, category, price, description, is_deleted "
                 + "FROM Services WHERE service_id = ?";
 
         try (Connection conn = getConnection();
@@ -123,9 +125,9 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
 
     @Override
     public Service create(Service service) {
-        String sql = "INSERT INTO Services (name, category, duration, price, description, is_deleted) "
+        String sql = "INSERT INTO Services (name, category, price, description, is_deleted) "
                 + "OUTPUT INSERTED.service_id "
-                + "VALUES (?, ?, ?, ?, ?, 0)";
+                + "VALUES (?, ?, ?, ?, 0)";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -140,15 +142,8 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
                 ps.setNull(2, Types.VARCHAR);
             }
 
-            // Handle nullable duration - 0 means NULL in database
-            if (service.getDuration() > 0) {
-                ps.setInt(3, service.getDuration());
-            } else {
-                ps.setNull(3, Types.INTEGER);
-            }
-
-            ps.setDouble(4, service.getPrice());
-            ps.setString(5, service.getDescription());
+            ps.setDouble(3, service.getPrice());
+            ps.setString(4, service.getDescription());
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -177,7 +172,7 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
 
     @Override
     public boolean update(Service service) {
-        String sql = "UPDATE Services SET name = ?, category = ?, duration = ?, price = ?, description = ? "
+        String sql = "UPDATE Services SET name = ?, category = ?, price = ?, description = ? "
                 + "WHERE service_id = ?";
 
         try (Connection conn = getConnection();
@@ -192,16 +187,9 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
                 ps.setNull(2, Types.VARCHAR);
             }
 
-            // Handle nullable duration - 0 means NULL in database
-            if (service.getDuration() > 0) {
-                ps.setInt(3, service.getDuration());
-            } else {
-                ps.setNull(3, Types.INTEGER);
-            }
-
-            ps.setDouble(4, service.getPrice());
-            ps.setString(5, service.getDescription());
-            ps.setInt(6, service.getServiceId());
+            ps.setDouble(3, service.getPrice());
+            ps.setString(4, service.getDescription());
+            ps.setInt(5, service.getServiceId());
 
             boolean result = ps.executeUpdate() > 0;
             if (result) {
@@ -244,7 +232,7 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
 
     /**
      * Maps a ResultSet row to a Service object.
-     * Handles NULL values for optional fields (category, duration).
+     * Handles NULL values for optional field (category).
      */
     private Service mapRowToService(ResultSet rs) throws SQLException {
         Service service = new Service();
@@ -255,10 +243,6 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
         // Handle nullable category
         String category = rs.getString("category");
         service.setCategory(category == null ? "" : category);
-
-        // Handle nullable duration - NULL returns 0
-        Integer duration = rs.getObject("duration", Integer.class);
-        service.setDuration(duration == null ? 0 : duration);
 
         service.setPrice(rs.getDouble("price"));
         service.setDescription(rs.getString("description"));

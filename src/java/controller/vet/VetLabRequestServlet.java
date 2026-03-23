@@ -12,14 +12,18 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Appointment;
 import model.LabTest;
+import model.Service;
 import model.User;
 import model.Visit;
+import service.ServiceService;
+import service.impl.ServiceServiceImpl;
 
 import java.io.IOException;
 
 /**
  * POST: Create a lab test request for the current examination (visit).
- * Expects appointmentId, testId (LabTests.test_id). Creates visit if needed.
+ * Expects appointmentId + serviceId (Services.category = labtest).
+ * Service name is used to resolve/create LabTests row before creating request.
  */
 @WebServlet(name = "VetLabRequestServlet", urlPatterns = {"/vet/lab-request"})
 public class VetLabRequestServlet extends HttpServlet {
@@ -34,17 +38,17 @@ public class VetLabRequestServlet extends HttpServlet {
         }
 
         String appointmentIdParam = request.getParameter("appointmentId");
-        String testIdParam = request.getParameter("testId");
-        if (appointmentIdParam == null || testIdParam == null || appointmentIdParam.isEmpty() || testIdParam.isEmpty()) {
+        String serviceIdParam = request.getParameter("serviceId");
+        if (appointmentIdParam == null || serviceIdParam == null || appointmentIdParam.isEmpty() || serviceIdParam.isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/vet/queue");
             return;
         }
 
         int appointmentId;
-        int testId;
+        int serviceId;
         try {
             appointmentId = Integer.parseInt(appointmentIdParam);
-            testId = Integer.parseInt(testIdParam);
+            serviceId = Integer.parseInt(serviceIdParam);
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/vet/queue");
             return;
@@ -80,12 +84,30 @@ public class VetLabRequestServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/vet/queue?error=unauthorized");
             return;
         }
-        //tạo lab request
+        // Validate selected service must be in labtest category.
+        ServiceService serviceService = new ServiceServiceImpl();
+        Service selectedService = serviceService.getServiceById(serviceId).orElse(null);
+        String category = selectedService != null && selectedService.getCategory() != null
+                ? selectedService.getCategory().trim().toLowerCase()
+                : "";
+        if (selectedService == null || !"labtest".equals(category)) {
+            response.sendRedirect(request.getContextPath() + "/vet/examination?id=" + appointmentId + "&error=invalidLabService");
+            return;
+        }
+
+        // Create (or reuse) LabTests row by service name, then create request.
         LabTestRequestDAO labDao = new LabTestRequestDAO();
+        int testId = labDao.ensureActiveTestByName(selectedService.getName());
+        if (testId <= 0) {
+            response.sendRedirect(request.getContextPath() + "/vet/examination?id=" + appointmentId + "&error=invalidLabService");
+            return;
+        }
         String clinicalNotes = request.getParameter("clinicalNotes");
         labDao.createRequest(visit.getVisitId(), testId, effectiveVetId, clinicalNotes);
 
-        String testName = "a lab test";
+        String testName = selectedService.getName() != null && !selectedService.getName().isBlank()
+                ? selectedService.getName().trim()
+                : "a lab test";
         for (LabTest lt : labDao.getAllLabTests()) {
             if (lt.getTestId() == testId && lt.getTestName() != null && !lt.getTestName().isBlank()) {
                 testName = lt.getTestName().trim();
