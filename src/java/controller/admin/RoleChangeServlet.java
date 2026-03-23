@@ -1,5 +1,7 @@
 package controller.admin;
 
+import dao.UserDAO;
+import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,6 +16,7 @@ import java.io.IOException;
 @WebServlet(name = "RoleChangeServlet", urlPatterns = {"/owner/change-user-role"})
 public class RoleChangeServlet extends HttpServlet {
     private UserService userService;
+    private final UserDAO userDAO = new UserJdbcDAO();
 
     @Override
     public void init() throws ServletException {
@@ -30,9 +33,8 @@ public class RoleChangeServlet extends HttpServlet {
         }
         // Only admin/owner can change role
         User currentUser = (User) session.getAttribute("currentUser");
-        String roleName = currentUser.getRole() != null && currentUser.getRole().getRoleName() != null
-                ? currentUser.getRole().getRoleName().trim().toLowerCase() : "";
-        if (!(roleName.equals("admin") || roleName.equals("clinicowner"))) {
+        String roleName = normalizeRole(currentUser);
+        if (!(roleName.equals("admin") || roleName.equals("clinicowner") || roleName.equals("clinic owner"))) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
             return;
         }
@@ -46,6 +48,13 @@ public class RoleChangeServlet extends HttpServlet {
         try {
             int userId = Integer.parseInt(userIdStr);
             int newRoleId = Integer.parseInt(newRoleIdStr);
+
+            // Clinic owner can only edit staff; customer accounts are view-only.
+            if ((roleName.equals("clinicowner") || roleName.equals("clinic owner")) && isCustomer(userId)) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Clinic owner cannot edit customer accounts");
+                return;
+            }
+
             boolean success = userService.changeUserRole(userId, newRoleId);
             if (success) {
                 response.sendRedirect(request.getContextPath() + "/owner/user-management");
@@ -55,5 +64,18 @@ public class RoleChangeServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user or role id");
         }
+    }
+
+    private String normalizeRole(User user) {
+        if (user == null || user.getRole() == null || user.getRole().getRoleName() == null) {
+            return "";
+        }
+        return user.getRole().getRoleName().trim().toLowerCase();
+    }
+
+    private boolean isCustomer(int userId) {
+        return userDAO.findById(userId)
+                .map(u -> u.getRole() != null && "customer".equalsIgnoreCase(u.getRole().getRoleName()))
+                .orElse(false);
     }
 }

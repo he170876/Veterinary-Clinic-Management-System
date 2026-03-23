@@ -174,7 +174,7 @@ public class CreateUserServlet extends HttpServlet {
 
         /* ================= REDIRECT KEEP FILTER ================= */
 
-        StringBuilder redirect = new StringBuilder(request.getContextPath() + "/owner/user-management?");
+        StringBuilder redirect = new StringBuilder(request.getContextPath() + "/owner/user-management?created=1&");
 
         append(redirect, "keyword", request.getParameter("keyword"));
         append(redirect, "filterRoleId", request.getParameter("filterRoleId"));
