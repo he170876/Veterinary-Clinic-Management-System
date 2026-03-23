@@ -48,6 +48,11 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         serviceService = new ServiceServiceImpl();
     }
 
+    private List<Service> getGeneralServices() {
+        List<Service> list = serviceService.getServicesByCategory("general");
+        return list != null ? list : java.util.Collections.emptyList();
+    }
+
     private Optional<Customer> resolveCurrentCustomer(User user) {
         if (user == null) {
             return Optional.empty();
@@ -115,7 +120,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         String notes = ValidationUtil.trim(request.getParameter("notes"));
 
         List<Pet> customerPets = petDAO.findByCustomerId(customer.getCustomerId());
-        List<Service> services = serviceService.getAllServices();
+        List<Service> services = getGeneralServices();
 
         if (notes != null && notes.length() > ValidationUtil.NOTES_MAX_LENGTH) {
             forwardForm(request, response, user, customer,
@@ -195,6 +200,16 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
                 return;
             }
             Service selectedService = selectedServiceOpt.get();
+            String category = selectedService.getCategory() != null
+                    ? selectedService.getCategory().trim().toLowerCase()
+                    : "";
+            if (!"general".equals(category)) {
+                forwardForm(request, response, user, customer,
+                        "Selected service is not available for customer booking.",
+                        petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
+                        customerPets, services);
+                return;
+            }
             if (selectedService.getDuration() > 0) {
                 requestedDurationMinutes += selectedService.getDuration();
             }
@@ -304,7 +319,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         request.setAttribute("user", user);
         request.setAttribute("customer", customer);
         request.setAttribute("customerPets", customerPets != null ? customerPets : petDAO.findByCustomerId(customer.getCustomerId()));
-        request.setAttribute("services", services != null ? services : serviceService.getAllServices());
+        request.setAttribute("services", services != null ? services : getGeneralServices());
         request.setAttribute("veterinarians", appointmentDAO.getAllVeterinarians());
         request.setAttribute("formError", formError);
         request.setAttribute("selectedPetId", selectedPetId);
