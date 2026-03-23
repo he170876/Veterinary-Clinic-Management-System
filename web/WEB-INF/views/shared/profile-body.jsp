@@ -85,14 +85,14 @@
     String editProfileUrl = ctx + basePath + "/edit-profile";
     String changePasswordUrl = ctx + basePath + "/change-password";
 %>
-<body class="bg-background-light dark:bg-background-dark font-display">
+<body class="<%= isLabRole ? "bg-surface text-on-surface antialiased" : "bg-background-light dark:bg-background-dark font-display" %>">
 <div class="flex min-h-screen">
     <% if (isCustomerRole) { %>
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <% } else if (isVetRole) { %>
     <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
     <% } else if (isLabRole) {
-        request.setAttribute("labSidebarActive", "queue");
+        request.setAttribute("labSidebarActive", "profile");
     %>
     <%@ include file="/WEB-INF/views/lab/_lab-sidebar.jspf" %>
     <% } else if (isReceptionistRole) { %>
@@ -162,9 +162,33 @@
     </aside>
     <% } %>
 
-    <main class="flex-1 flex flex-col min-w-0">
+    <main class="flex-1 flex flex-col min-w-0<%= isLabRole ? " ml-64" : "" %>">
         <% if (isCustomerRole) { %>
         <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
+        <% } else if (isVetRole) { %>
+        <%-- Đồng bộ với vet/dashboard: stethoscope + vet-header-right (chuông + tên + avatar) --%>
+        <header class="h-16 flex items-center justify-between px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="material-symbols-outlined text-primary shrink-0">stethoscope</span>
+                <div class="min-w-0">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 truncate">My Profile</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><%= roleName == null || roleName.isEmpty() ? "Veterinarian" : roleName %></p>
+                </div>
+            </div>
+            <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
+        </header>
+        <% } else if (isLabRole) { %>
+        <%-- Đồng bộ với lab/labqueue: fixed bar + backdrop + chuông + avatar --%>
+        <header class="fixed top-0 right-0 left-64 h-16 z-40 bg-stone-50/80 dark:bg-stone-950/80 backdrop-blur-md flex justify-between items-center px-8 border-b border-stone-100/80">
+            <div class="flex items-center gap-6 min-w-0">
+                <h1 class="text-lg font-black uppercase tracking-widest text-stone-900 dark:text-stone-50 font-headline truncate">My Profile</h1>
+                <div class="h-4 w-px bg-stone-300 shrink-0"></div>
+                <span class="text-xs font-bold text-stone-500 truncate max-w-[200px]"><%= roleName == null || roleName.isEmpty() ? "Lab Technician" : roleName %></span>
+            </div>
+            <div class="flex items-center gap-6 shrink-0">
+                <%@ include file="/WEB-INF/includes/lab-header-right.jspf" %>
+            </div>
+        </header>
         <% } else { %>
         <header class="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 sticky top-0 z-10">
             <div>
@@ -189,7 +213,7 @@
             </div>
         </header>
         <% } %>
-        <div class="p-8 max-w-6xl mx-auto w-full">
+        <div class="<%= isLabRole ? "pt-24 px-8 pb-12 max-w-6xl mx-auto w-full flex-1 overflow-y-auto" : "p-8 max-w-6xl mx-auto w-full" %>">
             <% if ("1".equals(profileUpdated)) { %>
             <div class="mb-6 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 text-sm font-medium">
                 Profile updated successfully.
@@ -346,6 +370,11 @@
     });
 })();
 </script>
+<% if (isVetRole) { %>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
+<% } else if (isLabRole) { %>
+<%@ include file="/WEB-INF/includes/lab-header-right-script.jspf" %>
+<% } else if (!isCustomerRole) { %>
 <script>
 (function() {
     var toggle = document.getElementById('role-profile-toggle');
@@ -362,4 +391,5 @@
     });
 })();
 </script>
+<% } %>
 </body>

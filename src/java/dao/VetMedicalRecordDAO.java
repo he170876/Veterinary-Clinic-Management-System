@@ -20,7 +20,7 @@ import java.util.List;
 public class VetMedicalRecordDAO extends DBContext {
 
     public MedicalRecord getByVisitId(int visitId) {
-        String sql = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, created_at FROM MedicalRecords WHERE visit_id = ?";
+        String sql = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE visit_id = ?";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, visitId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -33,7 +33,7 @@ public class VetMedicalRecordDAO extends DBContext {
     }
 
     public MedicalRecord getByRecordId(int recordId) {
-        String sql = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, created_at FROM MedicalRecords WHERE record_id = ?";
+        String sql = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE record_id = ?";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, recordId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -45,14 +45,15 @@ public class VetMedicalRecordDAO extends DBContext {
         return null;
     }
 
-    public MedicalRecord create(int visitId, int veterinarianId, String diagnosis, String treatment, String note) {
-        String sql = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, GETDATE())";
+    public MedicalRecord create(int visitId, int veterinarianId, String diagnosis, String treatment, String note, String clinicalCondition) {
+        String sql = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, visitId);
             ps.setInt(2, veterinarianId);
             ps.setString(3, diagnosis);
             ps.setString(4, treatment);
             ps.setString(5, note);
+            ps.setString(6, clinicalCondition);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     MedicalRecord r = new MedicalRecord();
@@ -62,6 +63,7 @@ public class VetMedicalRecordDAO extends DBContext {
                     r.setDiagnosis(diagnosis);
                     r.setTreatment(treatment);
                     r.setNote(note);
+                    r.setClinicalCondition(clinicalCondition);
                     return r;
                 }
             }
@@ -71,13 +73,14 @@ public class VetMedicalRecordDAO extends DBContext {
         return null;
     }
 
-    public boolean update(int recordId, String diagnosis, String treatment, String note) {
-        String sql = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ? WHERE record_id = ?";
+    public boolean update(int recordId, String diagnosis, String treatment, String note, String clinicalCondition) {
+        String sql = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ?, clinical_condition = ? WHERE record_id = ?";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, diagnosis);
             ps.setString(2, treatment);
             ps.setString(3, note);
-            ps.setInt(4, recordId);
+            ps.setString(4, clinicalCondition);
+            ps.setInt(5, recordId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -437,6 +440,7 @@ public class VetMedicalRecordDAO extends DBContext {
         r.setDiagnosis(rs.getString("diagnosis"));
         r.setTreatment(rs.getString("treatment"));
         r.setNote(rs.getString("note"));
+        r.setClinicalCondition(rs.getString("clinical_condition"));
         Timestamp t = rs.getTimestamp("created_at");
         if (t != null) r.setCreatedAt(t.toLocalDateTime());
         return r;

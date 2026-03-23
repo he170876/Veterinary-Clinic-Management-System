@@ -1,5 +1,6 @@
 package controller.lab;
 
+import dao.NotificationDAO;
 import dao.UserDAO;
 import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
@@ -15,6 +16,7 @@ import utils.ProfilePictureUploadUtil;
 import utils.ValidationUtil;
 
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -46,6 +48,9 @@ public class LabEditProfileServlet extends HttpServlet {
         User user = userDAO.findById(sessionUser.getUserId()).orElse(sessionUser);
         session.setAttribute("currentUser", user);
         request.setAttribute("user", user);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.getRequestDispatcher("/WEB-INF/views/lab/edit-profile.jsp").forward(request, response);
     }
 

@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * Lưu ảnh kết quả xét nghiệm dưới {@code /uploads/lab-results/}.
+ * Lưu file kết quả xét nghiệm (chỉ PDF) dưới {@code /uploads/lab-results/}.
  */
 public final class LabResultImageUploadUtil {
 
@@ -20,12 +20,12 @@ public final class LabResultImageUploadUtil {
     /**
      * @return đường dẫn web bắt đầu bằng {@code /uploads/lab-results/...} hoặc null nếu lỗi
      */
-    public static String trySaveLabResultImage(HttpServletRequest request, Part part, int labRequestId) {
+    public static String trySaveLabResultPdf(HttpServletRequest request, Part part, int labRequestId) {
         if (!ProfilePictureUploadUtil.hasNonEmptyFilePayload(part, request)) {
             return null;
         }
-        String ext = ProfilePictureUploadUtil.resolveImageExtension(part.getContentType(), part.getSubmittedFileName());
-        if (ext == null) {
+        String ext = ProfilePictureUploadUtil.resolvePdfExtension(part.getContentType(), part.getSubmittedFileName());
+        if (ext == null || !"pdf".equals(ext)) {
             return null;
         }
         Path baseDir = ProfilePictureUploadUtil.webappRootDirectory(request);

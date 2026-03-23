@@ -86,14 +86,14 @@
     String editProfileAction = ctx + basePath + "/edit-profile";
     String profileUrl = ctx + basePath + "/profile";
 %>
-<body class="bg-background-light dark:bg-background-dark text-[#181111] dark:text-white font-display">
+<body class="<%= isLabRole ? "bg-surface text-on-surface antialiased" : "bg-background-light dark:bg-background-dark text-[#181111] dark:text-white font-display" %>">
 <div class="flex min-h-screen overflow-hidden">
     <% if (isCustomerRole) { %>
     <jsp:include page="/WEB-INF/includes/customer-sidebar.jsp"/>
     <% } else if (isVetRole) { %>
     <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
     <% } else if (isLabRole) {
-        request.setAttribute("labSidebarActive", "queue");
+        request.setAttribute("labSidebarActive", "profile");
     %>
     <%@ include file="/WEB-INF/views/lab/_lab-sidebar.jspf" %>
     <% } else if (isReceptionistRole) { %>
@@ -163,9 +163,31 @@
     </aside>
     <% } %>
 
-    <main class="flex-1 flex flex-col overflow-y-auto">
+    <main class="flex-1 flex flex-col overflow-y-auto<%= isLabRole ? " ml-64" : "" %>">
         <% if (isCustomerRole) { %>
         <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
+        <% } else if (isVetRole) { %>
+        <header class="h-16 flex items-center justify-between px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="material-symbols-outlined text-primary shrink-0">stethoscope</span>
+                <div class="min-w-0">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 truncate">Edit Profile</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><%= roleName == null || roleName.isEmpty() ? "Veterinarian" : roleName %></p>
+                </div>
+            </div>
+            <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
+        </header>
+        <% } else if (isLabRole) { %>
+        <header class="fixed top-0 right-0 left-64 h-16 z-40 bg-stone-50/80 dark:bg-stone-950/80 backdrop-blur-md flex justify-between items-center px-8 border-b border-stone-100/80">
+            <div class="flex items-center gap-6 min-w-0">
+                <h1 class="text-lg font-black uppercase tracking-widest text-stone-900 dark:text-stone-50 font-headline truncate">Edit Profile</h1>
+                <div class="h-4 w-px bg-stone-300 shrink-0"></div>
+                <span class="text-xs font-bold text-stone-500 truncate max-w-[200px]"><%= roleName == null || roleName.isEmpty() ? "Lab Technician" : roleName %></span>
+            </div>
+            <div class="flex items-center gap-6 shrink-0">
+                <%@ include file="/WEB-INF/includes/lab-header-right.jspf" %>
+            </div>
+        </header>
         <% } else { %>
         <header class="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 sticky top-0 z-10">
             <div>
@@ -190,7 +212,7 @@
             </div>
         </header>
         <% } %>
-        <div class="p-8 max-w-5xl mx-auto w-full">
+        <div class="<%= isLabRole ? "pt-24 px-8 pb-12 max-w-5xl mx-auto w-full flex-1 overflow-y-auto" : "p-8 max-w-5xl mx-auto w-full" %>">
             <div class="flex items-center gap-2 mb-6">
                 <a class="text-[#896461] text-sm font-medium hover:text-primary transition-colors" href="<%= dashboardUrl %>">Dashboard</a>
                 <span class="material-symbols-outlined text-[#896461] text-base leading-none">chevron_right</span>
@@ -320,6 +342,11 @@
     });
 })();
 </script>
+<% if (isVetRole) { %>
+<%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
+<% } else if (isLabRole) { %>
+<%@ include file="/WEB-INF/includes/lab-header-right-script.jspf" %>
+<% } else if (!isCustomerRole) { %>
 <script>
 (function() {
     var toggle = document.getElementById('role-profile-toggle');
@@ -336,4 +363,5 @@
     });
 })();
 </script>
+<% } %>
 </body>

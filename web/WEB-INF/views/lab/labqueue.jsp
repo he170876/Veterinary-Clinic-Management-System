@@ -162,31 +162,7 @@
                        type="text"/>
                 <input type="hidden" name="page" value="1"/>
             </form>
-            <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
-            <div class="relative">
-                <button type="button" id="lab-profile-toggle"
-                        class="w-9 h-9 rounded-full overflow-hidden border border-stone-200 hover:ring-2 hover:ring-primary/20 transition-all flex items-center justify-center bg-primary/10 text-primary font-bold text-sm">
-                    <% if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) { %>
-                    <img class="w-full h-full object-cover" src="<%= ctx %><%= user.getProfilePictureUrl() %>" alt="Profile"/>
-                    <% } else { %>
-                    <%= (user.getFullName() != null && !user.getFullName().isEmpty()) ? String.valueOf(user.getFullName().charAt(0)) : "?" %>
-                    <% } %>
-                </button>
-                <div id="lab-profile-menu"
-                     class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-stone-200 dark:border-slate-800 z-50"
-                     style="display:none;">
-                    <a href="<%= ctx %>/lab/profile"
-                       class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-t-xl flex items-center gap-2">
-                        <span class="material-symbols-outlined text-base text-primary">person</span>
-                        <span>My Profile</span>
-                    </a>
-                    <a href="<%= ctx %>/logout"
-                       class="block px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-b-xl flex items-center gap-2">
-                        <span class="material-symbols-outlined text-base text-primary">logout</span>
-                        <span>Sign out</span>
-                    </a>
-                </div>
-            </div>
+            <%@ include file="/WEB-INF/includes/lab-header-right.jspf" %>
         </div>
     </header>
 
@@ -362,21 +338,27 @@
 
         <div class="flex-1 overflow-y-auto p-8 space-y-6">
             <section>
-                <label class="text-[11px] font-black uppercase tracking-widest text-stone-500 mb-2 block">Lab result image <span class="text-red-500">*</span></label>
+                <label class="text-[11px] font-black uppercase tracking-widest text-stone-500 mb-2 block">Lab result (PDF) <span class="text-red-500">*</span></label>
                 <label class="border-2 border-dashed border-stone-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary transition-colors bg-stone-50/50 group">
-                    <input type="file" name="labImage" id="labImageFile" class="sr-only" accept="image/jpeg,image/png,image/gif,image/webp"/>
-                    <div id="lab-image-preview-wrap" class="hidden w-full mb-3">
-                        <img id="lab-image-preview" src="" alt="Preview" class="max-h-48 mx-auto rounded-lg object-contain border border-stone-200"/>
+                    <input type="file" name="labPdf" id="labPdfFile" class="sr-only" accept="application/pdf,.pdf"/>
+                    <div id="lab-pdf-preview-wrap" class="hidden w-full mb-3 text-left">
+                        <div class="flex items-center gap-3 rounded-lg border border-stone-200 bg-white px-4 py-3">
+                            <span class="material-symbols-outlined text-red-600 text-3xl">picture_as_pdf</span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-stone-400 uppercase tracking-wider">Selected file</p>
+                                <p id="lab-pdf-name" class="text-sm font-semibold text-stone-800 truncate">—</p>
+                            </div>
+                        </div>
                     </div>
-                    <div id="lab-image-placeholder" class="flex flex-col items-center">
+                    <div id="lab-pdf-placeholder" class="flex flex-col items-center">
                         <div class="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                             <span class="material-symbols-outlined text-primary">upload_file</span>
                         </div>
-                        <p class="text-sm font-bold text-stone-800">Tap to choose image</p>
-                        <p class="text-xs text-stone-400 mt-1">JPG, PNG, GIF, WebP — max 10MB</p>
+                        <p class="text-sm font-bold text-stone-800">Tap to choose PDF</p>
+                        <p class="text-xs text-stone-400 mt-1">PDF only — max 10MB</p>
                     </div>
                 </label>
-                <p id="lab-image-err" class="hidden text-xs text-red-600 font-semibold mt-1">Please select an image.</p>
+                <p id="lab-pdf-err" class="hidden text-xs text-red-600 font-semibold mt-1">Please select a PDF file.</p>
             </section>
             <section>
                 <label class="text-[11px] font-black uppercase tracking-widest text-stone-500 mb-2 block">Text note <span class="text-red-500">*</span></label>
@@ -480,13 +462,14 @@
                 return false;
             }
             var rn = document.getElementById('resultNoteInput');
-            var imgInput = document.getElementById('labImageFile');
-            var imgErr = document.getElementById('lab-image-err');
+            var pdfInput = document.getElementById('labPdfFile');
+            var pdfErr = document.getElementById('lab-pdf-err');
             var noteErr = document.getElementById('lab-note-err');
-            if (imgErr) imgErr.classList.add('hidden');
+            if (pdfErr) pdfErr.classList.add('hidden');
             if (noteErr) noteErr.classList.add('hidden');
             var noteOk = rn && rn.value.trim().length > 0;
-            var fileOk = imgInput && imgInput.files && imgInput.files.length > 0;
+            var f = pdfInput && pdfInput.files && pdfInput.files[0];
+            var fileOk = f && (/\.pdf$/i.test(f.name) || (f.type && f.type.indexOf('pdf') >= 0));
             if (!noteOk) {
                 e.preventDefault();
                 if (noteErr) noteErr.classList.remove('hidden');
@@ -494,7 +477,7 @@
             }
             if (!fileOk) {
                 e.preventDefault();
-                if (imgErr) imgErr.classList.remove('hidden');
+                if (pdfErr) pdfErr.classList.remove('hidden');
                 return false;
             }
             if (submitBtn) {
@@ -522,22 +505,21 @@
     var resultEntryHint = document.getElementById('resultEntryHint');
     var resultEntryActiveLabel = document.getElementById('resultEntryActiveLabel');
     var resultNoteInput = document.getElementById('resultNoteInput');
-    var labImageFile = document.getElementById('labImageFile');
-    var labImagePreview = document.getElementById('lab-image-preview');
-    var labImagePreviewWrap = document.getElementById('lab-image-preview-wrap');
-    var labImagePlaceholder = document.getElementById('lab-image-placeholder');
+    var labPdfFile = document.getElementById('labPdfFile');
+    var labPdfName = document.getElementById('lab-pdf-name');
+    var labPdfPreviewWrap = document.getElementById('lab-pdf-preview-wrap');
+    var labPdfPlaceholder = document.getElementById('lab-pdf-placeholder');
 
-    if (labImageFile) {
-        labImageFile.addEventListener('change', function() {
-            var f = labImageFile.files && labImageFile.files[0];
-            if (f && labImagePreview && labImagePreviewWrap) {
-                var url = URL.createObjectURL(f);
-                labImagePreview.src = url;
-                labImagePreviewWrap.classList.remove('hidden');
-                if (labImagePlaceholder) labImagePlaceholder.classList.add('hidden');
-            } else if (labImagePreviewWrap) {
-                labImagePreviewWrap.classList.add('hidden');
-                if (labImagePlaceholder) labImagePlaceholder.classList.remove('hidden');
+    if (labPdfFile) {
+        labPdfFile.addEventListener('change', function() {
+            var f = labPdfFile.files && labPdfFile.files[0];
+            if (f && labPdfName && labPdfPreviewWrap) {
+                labPdfName.textContent = f.name || 'document.pdf';
+                labPdfPreviewWrap.classList.remove('hidden');
+                if (labPdfPlaceholder) labPdfPlaceholder.classList.add('hidden');
+            } else if (labPdfPreviewWrap) {
+                labPdfPreviewWrap.classList.add('hidden');
+                if (labPdfPlaceholder) labPdfPlaceholder.classList.remove('hidden');
             }
         });
     }
@@ -565,13 +547,13 @@
             resultNoteInput.disabled = false;
             resultNoteInput.value = '';
         }
-        if (labImageFile) {
-            labImageFile.value = '';
+        if (labPdfFile) {
+            labPdfFile.value = '';
         }
-        if (labImagePreviewWrap) labImagePreviewWrap.classList.add('hidden');
-        if (labImagePlaceholder) labImagePlaceholder.classList.remove('hidden');
-        if (labImagePreview) labImagePreview.src = '';
-        var imgErr = document.getElementById('lab-image-err');
+        if (labPdfPreviewWrap) labPdfPreviewWrap.classList.add('hidden');
+        if (labPdfPlaceholder) labPdfPlaceholder.classList.remove('hidden');
+        if (labPdfName) labPdfName.textContent = '—';
+        var imgErr = document.getElementById('lab-pdf-err');
         var noteErr = document.getElementById('lab-note-err');
         if (imgErr) imgErr.classList.add('hidden');
         if (noteErr) noteErr.classList.add('hidden');

@@ -1,0 +1,16 @@
+<script>
+(function() {
+    var labToggle = document.getElementById('lab-profile-toggle');
+    var labMenu = document.getElementById('lab-profile-menu');
+    if (!labToggle || !labMenu) return;
+    labToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        labMenu.style.display = (labMenu.style.display === 'none' || labMenu.style.display === '') ? 'block' : 'none';
+    });
+    document.addEventListener('click', function(e) {
+        if (!labMenu.contains(e.target) && !labToggle.contains(e.target)) {
+            labMenu.style.display = 'none';
+        }
+    });
+})();
+</script>

@@ -13,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Serves lab result images under {@code /uploads/lab-results/} from the same disk root
+ * Serves lab result files (PDF or legacy images) under {@code /uploads/lab-results/} from the same disk root
  * as {@link utils.LabResultImageUploadUtil} (webapp {@code uploads/lab-results}).
  * Required because {@link controller.common.UploadServlet} maps {@code /uploads/*} to a different base ({@code user.dir/uploads}).
  */
@@ -51,14 +51,18 @@ public class UploadsLabResultsServlet extends HttpServlet {
         }
 
         String lower = name.toLowerCase();
-        if (lower.endsWith(".png")) {
+        if (lower.endsWith(".pdf")) {
+            response.setContentType("application/pdf");
+        } else if (lower.endsWith(".png")) {
             response.setContentType("image/png");
         } else if (lower.endsWith(".gif")) {
             response.setContentType("image/gif");
         } else if (lower.endsWith(".webp")) {
             response.setContentType("image/webp");
-        } else {
+        } else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
             response.setContentType("image/jpeg");
+        } else {
+            response.setContentType("application/octet-stream");
         }
         response.setHeader("Cache-Control", "public, max-age=3600");
         response.setContentLengthLong(Files.size(file));

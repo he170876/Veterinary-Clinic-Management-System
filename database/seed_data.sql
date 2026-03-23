@@ -3,7 +3,7 @@
    SEED DATA (run after schema script)
    =============================== */
 
-USE VetClinicManagement;
+USE VetClinicManagement1;
 GO
 
 /* ========= ROLES ========= */

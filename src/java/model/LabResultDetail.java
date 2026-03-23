@@ -12,7 +12,7 @@ public class LabResultDetail {
     private String technicianName;
     private String resultValue;
     private String resultNote;
-    /** Relative web path to uploaded image, e.g. /uploads/lab-results/lab-1-....jpg */
+    /** Relative web path to uploaded file (PDF), e.g. /uploads/lab-results/lab-1-....pdf */
     private String resultFileUrl;
     private LocalDateTime resultDate;
 

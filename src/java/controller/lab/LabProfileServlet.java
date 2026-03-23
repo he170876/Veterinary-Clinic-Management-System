@@ -1,5 +1,6 @@
 package controller.lab;
 
+import dao.NotificationDAO;
 import dao.UserDAO;
 import dao.impl.UserJdbcDAO;
 import jakarta.servlet.ServletException;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpSession;
 import model.User;
 
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Lab staff profile read-only page with change password modal, same flow as vet profile.
@@ -38,6 +40,9 @@ public class LabProfileServlet extends HttpServlet {
         User fresh = userDAO.findById(sessionUser.getUserId()).orElse(sessionUser);
         session.setAttribute("currentUser", fresh);
         request.setAttribute("user", fresh);
+        NotificationDAO ndao = new NotificationDAO();
+        request.setAttribute("notifications", ndao.getRecentForUser(fresh.getUserId(), 10));
+        request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
 
         request.getRequestDispatcher("/WEB-INF/views/lab/profile.jsp").forward(request, response);
     }

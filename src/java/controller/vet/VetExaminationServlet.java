@@ -26,6 +26,7 @@ import service.impl.ServiceServiceImpl;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Vet examination flow:
@@ -41,6 +42,16 @@ import java.util.List;
  */
 @WebServlet(name = "VetExaminationServlet", urlPatterns = {"/vet/examination"})
 public class VetExaminationServlet extends HttpServlet {
+
+    private static final Set<String> CLINICAL_CONDITION_CODES = Set.of(
+            "stable", "monitoring", "follow_up", "urgent", "critical");
+
+    /** Chuẩn hóa mã condition từ form (dropdown). */
+    private static String normalizeClinicalCondition(String raw) {
+        if (raw == null) return "follow_up";
+        String t = raw.trim();
+        return CLINICAL_CONDITION_CODES.contains(t) ? t : "follow_up";
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -211,6 +222,7 @@ public class VetExaminationServlet extends HttpServlet {
         String diagnosis = request.getParameter("diagnosis");
         String treatment = request.getParameter("treatment");
         String note = request.getParameter("note");
+        String clinicalCondition = normalizeClinicalCondition(request.getParameter("clinicalCondition"));
         if (diagnosis == null) diagnosis = "";
         if (treatment == null) treatment = "";
         if (note == null) note = "";
@@ -223,9 +235,9 @@ public class VetExaminationServlet extends HttpServlet {
                     : vetId;
             record = recordDao.getByVisitId(visit.getVisitId());
             if (record == null) {
-                record = recordDao.create(visit.getVisitId(), effectiveVetId, diagnosis, treatment, note);
+                record = recordDao.create(visit.getVisitId(), effectiveVetId, diagnosis, treatment, note, clinicalCondition);
             } else {
-                recordDao.update(record.getRecordId(), diagnosis, treatment, note);
+                recordDao.update(record.getRecordId(), diagnosis, treatment, note, clinicalCondition);
             }
         }
 

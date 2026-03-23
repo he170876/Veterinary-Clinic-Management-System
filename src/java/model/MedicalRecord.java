@@ -15,6 +15,8 @@ public class MedicalRecord {
     private String diagnosis;
     private String treatment;
     private String note;
+    /** Mã trạng thái lâm sàng: stable, monitoring, follow_up, urgent, critical */
+    private String clinicalCondition;
     private LocalDateTime visitDate;
     private String visitStatus;
     private LocalDateTime createdAt;
@@ -99,6 +101,14 @@ public class MedicalRecord {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getClinicalCondition() {
+        return clinicalCondition;
+    }
+
+    public void setClinicalCondition(String clinicalCondition) {
+        this.clinicalCondition = clinicalCondition;
     }
 
     public LocalDateTime getVisitDate() {

@@ -20,7 +20,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Lab technician submits: <b>ảnh bắt buộc</b> + <b>ghi chú text bắt buộc</b> (multipart).
+ * Lab technician submits: <b>PDF bắt buộc</b> + <b>ghi chú text bắt buộc</b> (multipart).
  */
 @MultipartConfig(
         fileSizeThreshold = 512 * 1024,
@@ -80,9 +80,9 @@ public class LabUploadResultServlet extends HttpServlet {
             resultNote = "";
         }
 
-        Part labImagePart = null;
+        Part labPdfPart = null;
         try {
-            labImagePart = request.getPart("labImage");
+            labPdfPart = request.getPart("labPdf");
         } catch (Exception ignored) {
         }
 
@@ -90,14 +90,14 @@ public class LabUploadResultServlet extends HttpServlet {
             redirectError(response, ctx, "Text note is required.", keepParams);
             return;
         }
-        if (!ProfilePictureUploadUtil.hasNonEmptyFilePayload(labImagePart, request)) {
-            redirectError(response, ctx, "Lab result image is required.", keepParams);
+        if (!ProfilePictureUploadUtil.hasNonEmptyFilePayload(labPdfPart, request)) {
+            redirectError(response, ctx, "Lab result PDF is required.", keepParams);
             return;
         }
 
-        String savedPath = LabResultImageUploadUtil.trySaveLabResultImage(request, labImagePart, requestId);
+        String savedPath = LabResultImageUploadUtil.trySaveLabResultPdf(request, labPdfPart, requestId);
         if (savedPath == null || savedPath.isEmpty()) {
-            redirectError(response, ctx, "Could not save image. Use JPG, PNG, GIF, or WebP.", keepParams);
+            redirectError(response, ctx, "Could not save file. Only PDF is allowed.", keepParams);
             return;
         }
 
@@ -119,7 +119,7 @@ public class LabUploadResultServlet extends HttpServlet {
             ndao.create(
                     user.getUserId(),
                     "Upload successful",
-                    testName + " result" + patientLabel + " was submitted (Request #" + requestId + ")."
+                    "You uploaded the " + testName + " report" + patientLabel + "."
             );
 
             try {
@@ -127,10 +127,14 @@ public class LabUploadResultServlet extends HttpServlet {
                     AppointmentDAO appDao = new AppointmentDAO();
                     int vetUserId = appDao.getUserIdByVeterinarianId(req.getVeterinarianId());
                     if (vetUserId > 0) {
+                        String vetMsg = "The " + testName + " result is ready"
+                                + (petName != null && !petName.trim().isEmpty()
+                                ? " for " + petName.trim() + "." : ".")
+                                + " Open the examination screen to review.";
                         ndao.create(
                                 vetUserId,
-                                "Lab result completed",
-                                testName + " result has been uploaded for request #" + requestId + "."
+                                "Lab result ready",
+                                vetMsg
                         );
                     }
                 }
@@ -143,7 +147,7 @@ public class LabUploadResultServlet extends HttpServlet {
             ndao.create(
                     user.getUserId(),
                     "Upload failed",
-                    "Could not submit " + testName + " result (Request #" + requestId + "). Please try again."
+                    "Could not submit the " + testName + " result. Please try again."
             );
             redirectError(response, ctx, "Upload failed. Please try again.", keepParams);
         }

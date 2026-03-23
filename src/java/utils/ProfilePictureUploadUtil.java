@@ -146,6 +146,48 @@ public final class ProfilePictureUploadUtil {
         return extensionFromFileName(submittedFileName);
     }
 
+    /** PDF only: returns {@code pdf} when MIME or filename indicates a PDF. */
+    public static String extensionForPdfContentType(String contentType) {
+        if (contentType == null) {
+            return null;
+        }
+        String ct = contentType.toLowerCase(Locale.ROOT).trim();
+        if (ct.startsWith("application/pdf") || "application/x-pdf".equals(ct)) {
+            return "pdf";
+        }
+        return null;
+    }
+
+    /** Returns {@code pdf} only when the filename ends with {@code .pdf}. */
+    public static String extensionPdfFromFileName(String fileName) {
+        if (fileName == null) {
+            return null;
+        }
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0 || dot >= fileName.length() - 1) {
+            return null;
+        }
+        String ext = fileName.substring(dot + 1).toLowerCase(Locale.ROOT).trim();
+        return "pdf".equals(ext) ? "pdf" : null;
+    }
+
+    /**
+     * Resolves extension for lab result uploads: <b>PDF only</b> (MIME and/or {@code .pdf} filename).
+     */
+    public static String resolvePdfExtension(String contentType, String submittedFileName) {
+        String ext = extensionForPdfContentType(contentType);
+        if (ext != null) {
+            return ext;
+        }
+        if (contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("application/octet-stream")) {
+            ext = extensionPdfFromFileName(submittedFileName);
+            if (ext != null) {
+                return ext;
+            }
+        }
+        return extensionPdfFromFileName(submittedFileName);
+    }
+
     /**
      * Saves multipart part to {@code /uploads/avatars/{prefix}{userId}-{millis}.{ext}}.
      * A new unique name on each upload forces a new {@code profile_picture_url} in DB and avoids browser cache

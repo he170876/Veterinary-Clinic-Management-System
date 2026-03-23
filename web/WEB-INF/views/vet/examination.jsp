@@ -15,6 +15,7 @@
 <%@ page import="model.LabResultSummary" %>
 <%@ page import="model.LabTestRequest" %>
 <%@ page import="java.util.List" %>
+<%@ page import="java.util.Locale" %>
 <%
     User user = (User) request.getAttribute("user");
     Appointment ap = (Appointment) request.getAttribute("appointment");
@@ -40,8 +41,6 @@
     }
     if (breedAge.isEmpty()) breedAge = "—";
     String weightStr = (pet != null && pet.getWeight() != null) ? pet.getWeight() + " kg" : "—";
-    int petId = (pet != null) ? pet.getPetId() : 0;
-    String patientId = "#ANP-" + petId;
     DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("MMM dd, yyyy");
     DateTimeFormatter labResultFmt = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
     String lastVisit = (ap.getAppointmentTime() != null) ? ap.getAppointmentTime().format(dateFmt) : "—";
@@ -65,6 +64,12 @@
     String diagnosisText = (medicalRecord != null && medicalRecord.getDiagnosis() != null) ? medicalRecord.getDiagnosis() : "";
     String treatmentText = (medicalRecord != null && medicalRecord.getTreatment() != null) ? medicalRecord.getTreatment() : "";
     String noteText = (medicalRecord != null && medicalRecord.getNote() != null) ? medicalRecord.getNote() : "";
+    String clinicalCondition = (medicalRecord != null && medicalRecord.getClinicalCondition() != null && !medicalRecord.getClinicalCondition().isEmpty())
+            ? medicalRecord.getClinicalCondition().trim() : "follow_up";
+    if (!"stable".equals(clinicalCondition) && !"monitoring".equals(clinicalCondition) && !"follow_up".equals(clinicalCondition)
+            && !"urgent".equals(clinicalCondition) && !"critical".equals(clinicalCondition)) {
+        clinicalCondition = "follow_up";
+    }
 %>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -100,18 +105,13 @@
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
 <div class="flex min-h-screen overflow-x-hidden">
 <%@ include file="/WEB-INF/views/vet/_sidebar.jspf" %>
-<main class="flex-1 flex flex-col">
-<header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0">
-<div class="flex items-center gap-4">
-<h2 class="text-slate-800 dark:text-white font-bold text-lg">Current Examination</h2>
-</div>
-<div class="flex items-center gap-6">
-<div class="relative w-64">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
-<input class="w-full pl-10 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20" placeholder="Search patient or owner..." type="text"/>
+<main class="flex-1 flex flex-col overflow-hidden">
+<header class="h-16 flex items-center justify-between px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">stethoscope</span>
+<h2 class="text-lg font-bold">Current Examination</h2>
 </div>
 <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
-</div>
 </header>
 <form id="examination-form" action="<%= ctx %>/vet/examination" method="post">
 <input type="hidden" name="appointmentId" value="<%= ap.getAppointmentId() %>"/>
@@ -135,7 +135,7 @@
 <span class="text-primary font-medium">Patient Examination</span>
 </div>
 <h3 class="text-3xl font-black text-slate-900 dark:text-white"><%= petName %> <span class="text-slate-400 font-light">(<%= species.isEmpty() ? "—" : species %>)</span></h3>
-<p class="text-slate-500">Patient ID: <span class="font-mono text-slate-700 dark:text-slate-300"><%= patientId %></span> | Owner: <%= ownerName %></p>
+<p class="text-slate-500">Owner: <%= ownerName %></p>
 </div>
 <div class="flex items-center gap-3">
 <span class="px-4 py-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-xs font-black rounded-full tracking-widest flex items-center gap-2">
@@ -162,7 +162,15 @@
 </div>
 <div>
 <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Condition</p>
-<span class="px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] font-bold rounded uppercase">Follow-up Required</span>
+<label class="sr-only" for="clinical-condition-select">Patient condition</label>
+<select name="clinicalCondition" id="clinical-condition-select" form="examination-form"
+        class="mt-1 w-full max-w-[260px] rounded-full text-[10px] font-bold uppercase tracking-wide px-3 py-2 border-0 cursor-pointer focus:ring-2 focus:ring-primary/30 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+    <option value="stable" <%= "stable".equals(clinicalCondition) ? "selected" : "" %>>Stable / doing well</option>
+    <option value="monitoring" <%= "monitoring".equals(clinicalCondition) ? "selected" : "" %>>Monitoring</option>
+    <option value="follow_up" <%= "follow_up".equals(clinicalCondition) ? "selected" : "" %>>Follow-up required</option>
+    <option value="urgent" <%= "urgent".equals(clinicalCondition) ? "selected" : "" %>>Urgent</option>
+    <option value="critical" <%= "critical".equals(clinicalCondition) ? "selected" : "" %>>Critical</option>
+</select>
 </div>
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -427,13 +435,21 @@
             </div>
             <%
                 String resultImg = labResultDetail.getResultFileUrl();
-                boolean hasImg = resultImg != null && !resultImg.trim().isEmpty();
+                boolean hasFile = resultImg != null && !resultImg.trim().isEmpty();
+                boolean isPdf = hasFile && resultImg.toLowerCase(Locale.ROOT).endsWith(".pdf");
             %>
-            <% if (hasImg) { %>
+            <% if (hasFile) { %>
             <section>
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Result image</h3>
-                <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-900/50 flex justify-center p-4">
-                    <img src="<%= ctx %><%= resultImg %>" alt="Lab result" class="max-w-full max-h-[420px] object-contain rounded-lg"/>
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3"><%= isPdf ? "Result (PDF)" : "Result file" %></h3>
+                <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-900/50 p-2">
+                    <% if (isPdf) { %>
+                    <iframe src="<%= ctx %><%= resultImg %>" title="Lab result PDF" class="w-full min-h-[480px] rounded-lg border-0 bg-white"></iframe>
+                    <p class="text-[10px] text-slate-400 mt-2 px-2"><a href="<%= ctx %><%= resultImg %>" target="_blank" rel="noopener" class="text-primary font-semibold underline">Open PDF in new tab</a></p>
+                    <% } else { %>
+                    <div class="flex justify-center p-4">
+                        <img src="<%= ctx %><%= resultImg %>" alt="Lab result" class="max-w-full max-h-[420px] object-contain rounded-lg"/>
+                    </div>
+                    <% } %>
                 </div>
             </section>
             <% } %>
@@ -458,6 +474,25 @@
 <!-- Revisit schedule modal removed by design -->
 
 <script>
+(function() {
+    var sel = document.getElementById('clinical-condition-select');
+    if (sel) {
+        var base = 'mt-1 w-full max-w-[260px] rounded-full text-[10px] font-bold uppercase tracking-wide px-3 py-2 border-0 cursor-pointer focus:ring-2 focus:ring-primary/30 ';
+        var variants = {
+            stable: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
+            monitoring: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200',
+            follow_up: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200',
+            urgent: 'bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-200',
+            critical: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
+        };
+        function applyClinicalStyle() {
+            var v = sel.value;
+            sel.className = base + (variants[v] || variants.follow_up);
+        }
+        sel.addEventListener('change', applyClinicalStyle);
+        applyClinicalStyle();
+    }
+})();
 (function() {
     var addBtn = document.getElementById('add-service-btn');
     var dropdown = document.getElementById('add-service-dropdown');

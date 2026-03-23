@@ -32,6 +32,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.diagnosis,
                 mr.treatment,
                 mr.note,
+                mr.clinical_condition,
                 v.check_in_time AS visit_date,
                 v.visit_status,
                 p.pet_id,
@@ -75,6 +76,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.diagnosis,
                 mr.treatment,
                 mr.note,
+                mr.clinical_condition,
                 v.check_in_time AS visit_date,
                 v.visit_status,
                 p.pet_id,
@@ -121,6 +123,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.diagnosis,
                 mr.treatment,
                 mr.note,
+                mr.clinical_condition,
                 v.check_in_time AS visit_date,
                 v.visit_status,
                 p.pet_id,
@@ -162,6 +165,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.diagnosis,
                 mr.treatment,
                 mr.note,
+                mr.clinical_condition,
                 v.check_in_time AS visit_date,
                 v.visit_status,
                 p.pet_id,
@@ -206,6 +210,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.diagnosis,
                 mr.treatment,
                 mr.note,
+                mr.clinical_condition,
                 v.check_in_time AS visit_date,
                 v.visit_status,
                 p.pet_id,
@@ -250,6 +255,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.diagnosis,
                 mr.treatment,
                 mr.note,
+                mr.clinical_condition,
                 v.check_in_time AS visit_date,
                 v.visit_status,
                 p.pet_id,
@@ -294,6 +300,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
         record.setDiagnosis(rs.getString("diagnosis"));
         record.setTreatment(rs.getString("treatment"));
         record.setNote(rs.getString("note"));
+        record.setClinicalCondition(rs.getString("clinical_condition"));
         
         Timestamp visitDate = rs.getTimestamp("visit_date");
         if (visitDate != null) {
@@ -332,6 +339,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.diagnosis,
                 mr.treatment,
                 mr.note,
+                mr.clinical_condition,
                 v.check_in_time AS visit_date,
                 v.visit_status,
                 p.pet_id,

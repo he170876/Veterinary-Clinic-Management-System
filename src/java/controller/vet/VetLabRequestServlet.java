@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Appointment;
+import model.LabTest;
 import model.User;
 import model.Visit;
 
@@ -84,12 +85,24 @@ public class VetLabRequestServlet extends HttpServlet {
         String clinicalNotes = request.getParameter("clinicalNotes");
         labDao.createRequest(visit.getVisitId(), testId, effectiveVetId, clinicalNotes);
 
+        String testName = "a lab test";
+        for (LabTest lt : labDao.getAllLabTests()) {
+            if (lt.getTestId() == testId && lt.getTestName() != null && !lt.getTestName().isBlank()) {
+                testName = lt.getTestName().trim();
+                break;
+            }
+        }
+        String petLabel = "a patient";
+        if (ap.getPet() != null && ap.getPet().getName() != null && !ap.getPet().getName().isBlank()) {
+            petLabel = ap.getPet().getName().trim();
+        }
+
         // Notify Lab Technician(s) that a new lab request was created
         NotificationDAO ndao = new NotificationDAO();
         ndao.createForRole(
                 "LabStaff",
                 "New lab request",
-                "A new lab request was created for visit #" + visit.getVisitId() + " (testId=" + testId + ")."
+                "A veterinarian requested " + testName + " for " + petLabel + "."
         );
 
         response.sendRedirect(request.getContextPath() + "/vet/examination?id=" + appointmentId);

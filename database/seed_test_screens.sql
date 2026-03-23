@@ -5,7 +5,7 @@
    Password for all: dev123
    =============================== */
 
-USE VetClinicManagement;
+USE VetClinicManagement1;
 GO
 
 /* ========= TODAY'S APPOINTMENTS (for Vet Queue & Receptionist list) ========= */
@@ -150,6 +150,7 @@ DECLARE @customerDevId INT = (SELECT TOP 1 c.customer_id FROM Customers c JOIN U
 DECLARE @vetJamesId INT = (SELECT TOP 1 veterinarian_id FROM Veterinarians v
                             JOIN Users u ON v.user_id = u.user_id
                             WHERE u.email = 'dr.james@anipats.com');
+DECLARE @staffId INT = (SELECT TOP 1 receptionist_id FROM Receptionists);
 
 IF @lunaPetId IS NOT NULL AND @customerDevId IS NOT NULL AND @vetJamesId IS NOT NULL AND @staffId IS NOT NULL
 BEGIN

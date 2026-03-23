@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>RDS Appendix - PhiNH - Functional tracking</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; margin: 24px; }
+  h1 { font-size: 16pt; }
+  h2 { font-size: 13pt; margin-top: 24px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #333; padding: 6px 8px; vertical-align: top; }
+  th { background: #f0f0f0; }
+  .note { color: #444; font-size: 10pt; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<h1>Appendix &mdash; Record of Changes (PhiNH) &amp; Functional requirement tracking</h1>
+<p><b>Project:</b> Anipats &mdash; Veterinary Clinic Management System (VCMS)<br/>
+<b>Prepared for:</b> merge into <code>Template1_RDS-Document.docx</code> (same column layout as template / backlog spreadsheet)<br/>
+<b>In charge (tracking):</b> PhiNH</p>
+
+<h2>1. Record of Changes (add these rows under existing table)</h2>
+<table>
+  <tr>
+    <th>Version</th>
+    <th>Date</th>
+    <th>A/M/D</th>
+    <th>In charge</th>
+    <th>Change Description</th>
+  </tr>
+  <tr>
+    <td>V1.1</td>
+    <td>05/03/2026</td>
+    <td>A</td>
+    <td>PhiNH</td>
+    <td>Laboratory: functional requirement &mdash; lab result file sent to veterinarian is <b>PDF only</b>; vet viewer: PDF embed + open in new tab.</td>
+  </tr>
+  <tr>
+    <td>V1.1</td>
+    <td>05/03/2026</td>
+    <td>A</td>
+    <td>PhiNH</td>
+    <td>Examination (4.3): validation rules &mdash; diagnosis required; at least one service; prescription dose numeric + frequency; cannot complete while lab requests are pending.</td>
+  </tr>
+  <tr>
+    <td>V1.1</td>
+    <td>05/03/2026</td>
+    <td>A</td>
+    <td>PhiNH</td>
+    <td>Functional requirement tracking table (Appendix 2 below): aligned with backlog format &mdash; Category, Screen/Function, Actor, Description, Iteration, Status, In charge.</td>
+  </tr>
+</table>
+
+<h2>2. Functional requirement tracking (same style as spreadsheet: Screen / Function)</h2>
+<table>
+  <tr>
+    <th>Category</th>
+    <th>Screen / Function</th>
+    <th>Actor</th>
+    <th>Description (user story)</th>
+    <th>Iteration</th>
+    <th>Status</th>
+    <th>In charge</th>
+  </tr>
+  <tr>
+    <td>Authentication</td>
+    <td>Login / Logout / Register / Forgot password / Change password</td>
+    <td>User</td>
+    <td>As a user I want secure access and account recovery so that I can use role-based features.</td>
+    <td>Iter 1</td>
+    <td>Done</td>
+    <td>PhiNH</td>
+  </tr>
+  <tr>
+    <td>Notification</td>
+    <td>Notification center</td>
+    <td>Lab, Veterinarian</td>
+    <td>As lab/vet I want in-app notifications for lab submit/request and billing-related events.</td>
+    <td>Iter 3</td>
+    <td>Doing</td>
+    <td>PhiNH</td>
+  </tr>
+  <tr>
+    <td>Medical records</td>
+    <td>Create/update record (examination)</td>
+    <td>Veterinarian</td>
+    <td>As a vet I want diagnosis, treatment, services, prescriptions saved during examination.</td>
+    <td>Iter 2</td>
+    <td>Done</td>
+    <td>PhiNH</td>
+  </tr>
+  <tr>
+    <td>Medical records</td>
+    <td>Revisit note</td>
+    <td>Veterinarian</td>
+    <td>As a vet I want revisit/follow-up notes for continuity of care.</td>
+    <td>Iter 3</td>
+    <td>To do</td>
+    <td>PhiNH</td>
+  </tr>
+  <tr>
+    <td>Laboratory</td>
+    <td>Lab queue + Upload result (PDF + note)</td>
+    <td>Lab staff</td>
+    <td>As lab staff I want to upload PDF results and notes so the vet can review.</td>
+    <td>Iter 3</td>
+    <td>Done</td>
+    <td>PhiNH</td>
+  </tr>
+  <tr>
+    <td>Laboratory</td>
+    <td>View lab result (vet)</td>
+    <td>Veterinarian</td>
+    <td>As a vet I want to open completed lab results (PDF) from examination before completing the visit.</td>
+    <td>Iter 2&ndash;3</td>
+    <td>Done</td>
+    <td>PhiNH</td>
+  </tr>
+  <tr>
+    <td>Examination</td>
+    <td>Patient examination</td>
+    <td>Veterinarian</td>
+    <td>As a vet I want to request lab tests, save progress, and complete visit when labs are done and validations pass.</td>
+    <td>Iter 1&ndash;2</td>
+    <td>Done</td>
+    <td>PhiNH</td>
+  </tr>
+  <tr>
+    <td>Receptionist</td>
+    <td>Check-in / Staff queue / Appointments</td>
+    <td>Receptionist</td>
+    <td>As receptionist I want check-in and appointment management to align visit flow.</td>
+    <td>Iter 2</td>
+    <td>Done</td>
+    <td>PhiNH</td>
+  </tr>
+</table>
+
+<p class="note"><b>How to merge into Word template:</b> Open <code>Template1_RDS-Document.docx</code>, copy the table rows from section 1 into <b>Record of Changes</b>. Paste section 2 (or the whole appendix) after <b>II. Functional Requirements</b> or as a new appendix page. Alternatively: open this HTML file in Microsoft Word &rarr; <b>Save As</b> &rarr; <b>Word Document (.docx)</b>, then copy parts into your template.</p>
+
+</body>
+</html>
