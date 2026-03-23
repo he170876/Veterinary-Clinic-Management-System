@@ -181,7 +181,6 @@
                         <th class="px-6 py-4">Date &amp; Time</th>
                         <th class="px-6 py-4">Service Type</th>
                         <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-[#f4ece6]">
@@ -241,11 +240,6 @@
                                             </div>
                                         </c:otherwise>
                                     </c:choose>
-                                </td>
-                                <td class="px-6 py-5 text-right">
-                                    <button class="text-[#9e6b47] hover:text-primary transition-colors">
-                                        <span class="material-symbols-outlined">more_vert</span>
-                                    </button>
                                 </td>
                             </tr>
                         </c:forEach>

@@ -64,6 +64,18 @@
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-[#1d140c] dark:text-white transition-colors duration-200">
+<c:if test="${param.created == '1'}">
+    <div id="createSuccessToast" class="fixed top-5 right-5 z-[9999] min-w-[280px] max-w-sm rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-800 soft-shadow">
+        <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-green-600">check_circle</span>
+            <div>
+                <p class="font-bold">Create account successful</p>
+                <p class="text-sm text-green-700">The new user account has been created.</p>
+            </div>
+        </div>
+    </div>
+</c:if>
+
 <div class="flex min-h-screen">
     <!-- Sidebar -->
     <aside class="w-64 border-r border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark hidden lg:flex flex-col p-6 sticky top-0 h-screen">
@@ -227,7 +239,9 @@
                                             data-user-id="${u.userId}"
                                             data-old-status="${u.status}"
                                             onchange="openConfirmModal(this)"
+                                            ${u.role.roleName == 'Customer' ? 'disabled' : ''}
                                             class="status-select
+                                            ${u.role.roleName == 'Customer' ? 'opacity-60 cursor-not-allowed' : ''}
                                             ${u.status == 'Active' ? 'status-active' :
                                               u.status == 'Inactive' ? 'status-inactive' :
                                               'status-blocked'}">
@@ -253,19 +267,21 @@
                                         class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600">
                                     View
                                 </button>
-                                <button type="button"
-                                        onclick="openEditUserModal(
-                                                        '${u.userId}',
-                                                        '${u.fullName}',
-                                                        '${u.email}',
-                                                        '${u.phone}',
-                                                        '${u.address}',
-                                                        '${u.role.roleId}',
-                                                        '${u.status}'
-                                                        )"
-                                        class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600">
-                                    Edit
-                                </button>
+                                <c:if test="${u.role.roleName != 'Customer'}">
+                                    <button type="button"
+                                            onclick="openEditUserModal(
+                                                            '${u.userId}',
+                                                            '${u.fullName}',
+                                                            '${u.email}',
+                                                            '${u.phone}',
+                                                            '${u.address}',
+                                                            '${u.role.roleId}',
+                                                            '${u.status}'
+                                                            )"
+                                            class="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600">
+                                        Edit
+                                    </button>
+                                </c:if>
                             </td>
                         </tr>
                     </c:forEach>
@@ -450,6 +466,22 @@
         </div>
 
         <script>
+            (function () {
+                var toast = document.getElementById('createSuccessToast');
+                if (!toast) {
+                    return;
+                }
+                setTimeout(function () {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.3s ease';
+                    setTimeout(function () {
+                        if (toast && toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }, 2500);
+            })();
+
             function openCreateUserModal() {
                 const modal = document.getElementById('createUserModal');
                 modal.classList.remove('hidden');
