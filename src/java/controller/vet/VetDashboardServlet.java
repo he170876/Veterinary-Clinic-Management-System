@@ -41,8 +41,8 @@ public class VetDashboardServlet extends HttpServlet {
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
         LocalDate today = LocalDate.now();
 
-        // Shared queue model: all vets see today's actionable queue first.
-        List<Appointment> todayAppointments = appDao.getVetQueueAppointmentsForDate(today);
+        // Shared queue model: actionable today + current vet's resumable in-examination cases.
+        List<Appointment> todayAppointments = appDao.getVetQueueAppointmentsForDate(today, vetId);
         if (todayAppointments.isEmpty() && vetId > 0) {
             // Fallback for days where queue has not been checked in yet.
             todayAppointments = appDao.getTodayAppointmentsByVeterinarianForDashboard(vetId);

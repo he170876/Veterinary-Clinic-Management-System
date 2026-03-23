@@ -36,8 +36,8 @@ public class VetPatientsQueueServlet extends HttpServlet {
         AppointmentDAO dao = new AppointmentDAO();
         LocalDate today = LocalDate.now();
         int currentVetId = dao.getVeterinarianIdByUserId(user.getUserId());
-        // Shared queue across vets
-        List<Appointment> appointments = dao.getVetQueueAppointmentsForDate(today);
+        // Shared queue for today + resumable in-examination owned by current vet.
+        List<Appointment> appointments = dao.getVetQueueAppointmentsForDate(today, currentVetId);
 
         request.setAttribute("user", user);
         NotificationDAO ndao = new NotificationDAO();
