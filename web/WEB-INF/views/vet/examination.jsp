@@ -14,6 +14,7 @@
 <%@ page import="model.Prescription" %>
 <%@ page import="model.LabResultSummary" %>
 <%@ page import="model.LabTestRequest" %>
+<%@ page import="model.Service" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Locale" %>
 <%
@@ -55,6 +56,9 @@
     @SuppressWarnings("unchecked")
     List<LabTest> labTests = (List<LabTest>) request.getAttribute("labTests");
     if (labTests == null) labTests = java.util.Collections.emptyList();
+    @SuppressWarnings("unchecked")
+    List<Service> labTestServices = (List<Service>) request.getAttribute("labTestServices");
+    if (labTestServices == null) labTestServices = java.util.Collections.emptyList();
     @SuppressWarnings("unchecked")
     List<Prescription> prescriptions = (List<Prescription>) request.getAttribute("prescriptions");
     if (prescriptions == null) prescriptions = java.util.Collections.emptyList();
@@ -623,17 +627,17 @@
                     Lab Test Type
                 </label>
 <div class="relative">
-<select class="w-full h-11 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-transparent appearance-none cursor-pointer text-sm" name="testId" required>
+<select class="w-full h-11 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary focus:border-transparent appearance-none cursor-pointer text-sm" name="serviceId" required>
 <option disabled selected value="">Select examination type...</option>
 <%
-    java.util.Set<String> seenLabTestNames = new java.util.HashSet<>();
-    for (LabTest lt : labTests) {
-        String ltName = lt.getTestName();
-        if (ltName == null || ltName.isEmpty()) continue;
-        if (seenLabTestNames.contains(ltName)) continue;
-        seenLabTestNames.add(ltName);
+    java.util.Set<String> seenLabServiceNames = new java.util.HashSet<>();
+    for (Service svc : labTestServices) {
+        String svcName = svc.getName();
+        if (svcName == null || svcName.isEmpty()) continue;
+        if (seenLabServiceNames.contains(svcName)) continue;
+        seenLabServiceNames.add(svcName);
 %>
-<option value="<%= lt.getTestId() %>"><%= ltName %></option>
+<option value="<%= svc.getServiceId() %>"><%= svcName %></option>
 <% } %>
 </select>
 <span class="material-symbols-outlined absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
@@ -775,7 +779,7 @@
 
         // Nếu user chọn Lab Test Type trước khi submit, auto-add service vào Services (UI)
         (function () {
-            const testSelect = labForm.querySelector('select[name="testId"]');
+            const testSelect = labForm.querySelector('select[name="serviceId"]');
             const servicesList = document.getElementById('examination-services-list');
             const serviceIdsInput = document.getElementById('serviceIds');
             if (!testSelect || !servicesList || !serviceIdsInput) return;
@@ -792,10 +796,10 @@
             }
 
             async function ensureServiceForSelectedTest() {
-                const testId = testSelect.value;
+                const serviceId = testSelect.value;
                 const testName = (testSelect.options[testSelect.selectedIndex] && testSelect.options[testSelect.selectedIndex].text) || '';
                 const testNorm = norm(testName);
-                if (!testId || !testNorm) return;
+                if (!serviceId || !testNorm) return;
 
                 // Avoid duplicates by service name
                 let exists = false;
@@ -804,33 +808,22 @@
                 });
                 if (exists) return;
 
-                try {
-                    const r = await fetch('<%= ctx %>/vet/lab-service?testId=' + encodeURIComponent(testId), {
-                        credentials: 'same-origin'
-                    });
-                    if (!r.ok) return;
-                    const json = await r.json();
-                    if (!json || !json.success || !json.serviceId) return;
-
-                    const displayName = String(json.serviceName || testName);
-                    const row = document.createElement('div');
-                    row.className = 'flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row';
-                    row.setAttribute('data-service-id', String(json.serviceId));
-                    row.setAttribute('data-service-name', displayName);
-                    row.innerHTML =
-                        '<div class="flex items-center gap-3">' +
-                        '<span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>' +
-                        '<span class="text-sm font-semibold text-slate-700 dark:text-slate-200">' + escHtml(displayName) + '</span>' +
-                        '</div>' +
-                        '<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">' +
-                        '<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove">' +
-                        '<span class="material-symbols-outlined text-lg">delete</span></button></div>';
-                    row.querySelector('.service-remove').addEventListener('click', function () { row.remove(); updateServiceIds(); });
-                    servicesList.appendChild(row);
-                    updateServiceIds();
-                } catch (e) {
-                    // ignore
-                }
+                const displayName = String(testName);
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row';
+                row.setAttribute('data-service-id', String(serviceId));
+                row.setAttribute('data-service-name', displayName);
+                row.innerHTML =
+                    '<div class="flex items-center gap-3">' +
+                    '<span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>' +
+                    '<span class="text-sm font-semibold text-slate-700 dark:text-slate-200">' + escHtml(displayName) + '</span>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">' +
+                    '<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove">' +
+                    '<span class="material-symbols-outlined text-lg">delete</span></button></div>';
+                row.querySelector('.service-remove').addEventListener('click', function () { row.remove(); updateServiceIds(); });
+                servicesList.appendChild(row);
+                updateServiceIds();
             }
 
             testSelect.addEventListener('change', function () {

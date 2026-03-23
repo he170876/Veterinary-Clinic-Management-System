@@ -18,6 +18,7 @@ import model.LabTestRequest;
 import model.MedicalRecord;
 import model.Prescription;
 import model.RecordServiceLine;
+import model.Service;
 import model.User;
 import model.Visit;
 import service.ServiceService;
@@ -143,6 +144,14 @@ public class VetExaminationServlet extends HttpServlet {
 
         LabTestRequestDAO labDao = new LabTestRequestDAO();
         ServiceService serviceService = new ServiceServiceImpl();
+        List<Service> allServices = serviceService.getAllServices();
+        List<Service> labTestServices = new java.util.ArrayList<>();
+        for (Service s : allServices) {
+            String c = s.getCategory() != null ? s.getCategory().trim().toLowerCase() : "";
+            if ("labtest".equals(c)) {
+                labTestServices.add(s);
+            }
+        }
         List<LabResultSummary> recentLabResults = (ap != null && ap.getPet() != null)
                 ? labDao.getRecentResultsByPetId(ap.getPet().getPetId(), 14) : List.of();
         List<LabTestRequest> labRequests = (visit != null)
@@ -169,7 +178,8 @@ public class VetExaminationServlet extends HttpServlet {
         request.setAttribute("recentLabResults", recentLabResults);
         request.setAttribute("labResultDetail", labResultDetail);
         request.setAttribute("labRequests", labRequests);
-        request.setAttribute("clinicServices", serviceService.getAllServices());
+        request.setAttribute("clinicServices", allServices);
+        request.setAttribute("labTestServices", labTestServices);
         request.setAttribute("labTests", labDao.getAllLabTests());
         if ("pendingLab".equals(request.getParameter("error"))) {
             request.setAttribute("examCompleteBlocked",

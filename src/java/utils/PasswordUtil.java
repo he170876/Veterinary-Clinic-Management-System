@@ -1,5 +1,6 @@
 package utils;
 
+import org.mindrot.jbcrypt.BCrypt;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -10,6 +11,16 @@ import java.security.NoSuchAlgorithmException;
  * but this provides a clear starting point for the VCMS base code.
  */
 public class PasswordUtil {
+
+    /**
+     * bcrypt hashes typically look like:
+     * $2a$..., $2b$..., $2y$...
+     */
+    private static boolean looksLikeBcryptHash(String hashedPassword) {
+        if (hashedPassword == null) return false;
+        String h = hashedPassword.trim();
+        return h.startsWith("$2a$") || h.startsWith("$2b$") || h.startsWith("$2y$") || h.startsWith("$2x$");
+    }
 
     public static String hashPassword(String rawPassword) {
         try {
@@ -22,7 +33,18 @@ public class PasswordUtil {
     }
 
     public static boolean matches(String rawPassword, String hashedPassword) {
-        return hashPassword(rawPassword).equals(hashedPassword);
+        if (rawPassword == null || hashedPassword == null) return false;
+
+        // Support both legacy SHA-256 and accounts created with BCrypt.
+        if (looksLikeBcryptHash(hashedPassword)) {
+            try {
+                return BCrypt.checkpw(rawPassword, hashedPassword);
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        return hashPassword(rawPassword).equals(hashedPassword.trim());
     }
 
     private static String bytesToHex(byte[] hash) {

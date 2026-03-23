@@ -17,15 +17,12 @@ public class LabTestRequestDAO extends DBContext {
 
     public List<LabTest> getAllLabTests() {
         List<LabTest> list = new ArrayList<>();
-        String sql = "SELECT test_id, test_name, description, normal_range, unit, status FROM LabTests WHERE status = 'Active' ORDER BY test_name";
+        String sql = "SELECT test_id, test_name, status FROM LabTests WHERE status = 'Active' ORDER BY test_name";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 LabTest t = new LabTest();
                 t.setTestId(rs.getInt("test_id"));
                 t.setTestName(rs.getString("test_name"));
-                t.setDescription(rs.getString("description"));
-                t.setNormalRange(rs.getString("normal_range"));
-                t.setUnit(rs.getString("unit"));
                 t.setStatus(rs.getString("status"));
                 list.add(t);
             }
@@ -33,6 +30,38 @@ public class LabTestRequestDAO extends DBContext {
             e.printStackTrace();
         }
         return list;
+    }
+
+    /**
+     * Ensure there is an active LabTests row for the provided name.
+     * Returns existing test_id if found (case-insensitive), otherwise creates one.
+     */
+    public int ensureActiveTestByName(String testName) {
+        if (testName == null || testName.trim().isEmpty()) return -1;
+        String normalized = testName.trim();
+        String findSql = "SELECT TOP 1 test_id FROM LabTests WHERE LOWER(LTRIM(RTRIM(test_name))) = LOWER(LTRIM(RTRIM(?))) ORDER BY test_id";
+        String insertSql = "INSERT INTO LabTests (test_name, status) OUTPUT INSERTED.test_id VALUES (?, 'Active')";
+        try (Connection con = getConnection()) {
+            try (PreparedStatement ps = con.prepareStatement(findSql)) {
+                ps.setString(1, normalized);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("test_id");
+                    }
+                }
+            }
+            try (PreparedStatement ps = con.prepareStatement(insertSql)) {
+                ps.setString(1, normalized);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     /** Create a lab test request (status Pending). */
@@ -433,18 +462,17 @@ public class LabTestRequestDAO extends DBContext {
     }
 
     /** Insert LabTestResults and set LabTestRequests.status = 'Completed'. {@code resultFile} = relative URL (e.g. /uploads/lab-results/...). */
-    public boolean saveResult(int requestId, String resultValue, String resultNote, String resultFile, int labStaffId) {
+    public boolean saveResult(int requestId, String resultNote, String resultFile, int labStaffId) {
         Connection con = null;
         try {
             con = getConnection();
             con.setAutoCommit(false);
-            String insertResult = "INSERT INTO LabTestResults (request_id, result_value, result_note, result_file, result_date, lab_staff_id) VALUES (?, ?, ?, ?, GETDATE(), ?)";
+            String insertResult = "INSERT INTO LabTestResults (request_id, result_note, result_file, result_date, lab_staff_id) VALUES (?, ?, ?, GETDATE(), ?)";
             try (PreparedStatement ps = con.prepareStatement(insertResult)) {
                 ps.setInt(1, requestId);
-                ps.setString(2, resultValue);
-                ps.setString(3, resultNote);
-                ps.setString(4, resultFile != null ? resultFile : "");
-                ps.setInt(5, labStaffId);
+                ps.setString(2, resultNote);
+                ps.setString(3, resultFile != null ? resultFile : "");
+                ps.setInt(4, labStaffId);
                 ps.executeUpdate();
             }
             String updateStatus = "UPDATE LabTestRequests SET status = 'Completed' WHERE request_id = ?";
@@ -500,7 +528,7 @@ public class LabTestRequestDAO extends DBContext {
     public List<LabResultSummary> getRecentResultsForVeterinarian(int veterinarianId, int limit) {
         List<LabResultSummary> list = new ArrayList<>();
         String sql = """
-            SELECT TOP (?) p.name AS pet_name, lt.test_name, ltr.result_value, ltr.result_note, ltr.result_date
+            SELECT TOP (?) p.name AS pet_name, lt.test_name, ltr.result_note, ltr.result_date
             FROM LabTestResults ltr
             JOIN LabTestRequests req ON ltr.request_id = req.request_id
             JOIN Visits v ON req.visit_id = v.visit_id
@@ -517,7 +545,6 @@ public class LabTestRequestDAO extends DBContext {
                     LabResultSummary s = new LabResultSummary();
                     s.setPetName(rs.getString("pet_name"));
                     s.setTestName(rs.getString("test_name"));
-                    s.setResultValue(rs.getString("result_value"));
                     s.setResultNote(rs.getString("result_note"));
                     Timestamp t = rs.getTimestamp("result_date");
                     if (t != null) s.setResultDate(t.toLocalDateTime());
@@ -534,7 +561,7 @@ public class LabTestRequestDAO extends DBContext {
     public List<LabResultSummary> getRecentResultsByPetId(int petId, int days) {
         List<LabResultSummary> list = new ArrayList<>();
         String sql = """
-            SELECT lt.test_name, ltr.result_value, ltr.result_note, ltr.result_date
+            SELECT lt.test_name, ltr.result_note, ltr.result_date
             FROM LabTestResults ltr
             JOIN LabTestRequests req ON ltr.request_id = req.request_id
             JOIN Visits v ON req.visit_id = v.visit_id
@@ -549,7 +576,6 @@ public class LabTestRequestDAO extends DBContext {
                 while (rs.next()) {
                     LabResultSummary s = new LabResultSummary();
                     s.setTestName(rs.getString("test_name"));
-                    s.setResultValue(rs.getString("result_value"));
                     s.setResultNote(rs.getString("result_note"));
                     Timestamp t = rs.getTimestamp("result_date");
                     if (t != null) s.setResultDate(t.toLocalDateTime());
@@ -584,7 +610,6 @@ public class LabTestRequestDAO extends DBContext {
                    p.name               AS pet_name,
                    vet_u.full_name      AS veterinarian_name,
                    tech_u.full_name     AS technician_name,
-                   res.result_value,
                    res.result_note,
                    res.result_file,
                    res.result_date
@@ -611,7 +636,6 @@ public class LabTestRequestDAO extends DBContext {
                     d.setPetName(rs.getString("pet_name"));
                     d.setVeterinarianName(rs.getString("veterinarian_name"));
                     d.setTechnicianName(rs.getString("technician_name"));
-                    d.setResultValue(rs.getString("result_value"));
                     d.setResultNote(rs.getString("result_note"));
                     d.setResultFileUrl(rs.getString("result_file"));
                     Timestamp t = rs.getTimestamp("result_date");

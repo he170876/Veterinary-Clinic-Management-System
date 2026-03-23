@@ -2142,7 +2142,7 @@ public class AppointmentDAO extends DBContext {
                     SELECT
                         a.appointment_date,
                         %s
-                        s.duration,
+                        CAST(NULL AS INT) AS duration,
                         s.category,
                         s.name AS service_name
                     FROM appointments a
@@ -2158,7 +2158,7 @@ public class AppointmentDAO extends DBContext {
                 sql = """
                     SELECT
                         a.appointment_time,
-                        s.duration,
+                        CAST(NULL AS INT) AS duration,
                         s.category,
                         s.name AS service_name
                     FROM appointments a
