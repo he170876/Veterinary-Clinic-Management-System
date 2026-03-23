@@ -106,7 +106,18 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        String slot = "AM".equalsIgnoreCase(timeSlot) || "PM".equalsIgnoreCase(timeSlot) ? timeSlot.toUpperCase() : "AM";
+        String normalizedSlot = ValidationUtil.normalizeBookingSlot(timeSlot);
+        if (normalizedSlot == null) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Invalid time slot selected.\"}");
+            return;
+        }
+
+        if (!ValidationUtil.isBookableDateSlot(appointmentDate, normalizedSlot)) {
+            response.getWriter().print("{\"success\":false,\"message\":\"Selected time slot has passed. Please choose a different slot or date.\"}");
+            return;
+        }
+
+        String slot = "morning".equals(normalizedSlot) ? "AM" : "PM";
 
         UserDAO userDAO = new UserJdbcDAO();
         CustomerDAO customerDAO = new CustomerJdbcDAO();

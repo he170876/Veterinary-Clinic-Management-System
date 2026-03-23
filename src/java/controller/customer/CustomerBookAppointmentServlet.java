@@ -203,8 +203,8 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
             requestedDurationMinutes = 30;
         }
 
-        // Validate time slot
-        if (!("morning".equals(timeSlot) || "afternoon".equals(timeSlot))) {
+        String normalizedSlot = ValidationUtil.normalizeBookingSlot(timeSlot);
+        if (normalizedSlot == null) {
             forwardForm(request, response, user, customer,
                     "Invalid time slot selected.",
                     petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
@@ -212,11 +212,9 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        // Convert time slot to appointment time (morning=08:00, afternoon=14:00)
-        LocalDateTime requestedTime;
+        LocalDate requestedDate;
         try {
-            int hour = "morning".equals(timeSlot) ? 8 : 14;
-            requestedTime = LocalDateTime.parse(appointmentDate + "T" + String.format("%02d:00", hour));
+            requestedDate = LocalDate.parse(appointmentDate);
         } catch (DateTimeParseException ex) {
             forwardForm(request, response, user, customer,
                     "Please provide a valid appointment date.",
@@ -225,9 +223,22 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        if (requestedTime.toLocalDate().isBefore(LocalDate.now())) {
+        if (!ValidationUtil.isBookableDateSlot(requestedDate, normalizedSlot)) {
             forwardForm(request, response, user, customer,
-                    "Appointment time cannot be in the past.",
+                    "Selected time slot has passed. Please choose a different slot or date.",
+                    petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
+                    customerPets, services);
+            return;
+        }
+
+        // Convert time slot to appointment time (morning=08:00, afternoon=14:00)
+        LocalDateTime requestedTime;
+        try {
+            int hour = "morning".equals(normalizedSlot) ? 8 : 14;
+            requestedTime = LocalDateTime.parse(appointmentDate + "T" + String.format("%02d:00", hour));
+        } catch (DateTimeParseException ex) {
+            forwardForm(request, response, user, customer,
+                    "Please provide a valid appointment date.",
                     petIdParam, selectedServiceIdsCsv, appointmentDate, timeSlot, notes,
                     customerPets, services);
             return;

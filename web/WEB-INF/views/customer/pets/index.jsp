@@ -77,6 +77,8 @@
     User currentUser = (User) session.getAttribute("currentUser");
     String currentRole = (currentUser != null && currentUser.getRole() != null) ? currentUser.getRole().getRoleName() : "";
     boolean isCustomerUser = "Customer".equalsIgnoreCase(currentRole);
+    String errorMessage = request.getParameter("error");
+    String successMessage = request.getParameter("success");
 %>
 <%
     if (pets == null) {
@@ -96,6 +98,16 @@
 <main class="flex-1 flex flex-col overflow-y-auto">
 <jsp:include page="/WEB-INF/includes/customer-header.jsp"/>
 <div class="p-8 max-w-7xl mx-auto w-full">
+<% if (errorMessage != null && !errorMessage.trim().isEmpty()) { %>
+<div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+    <p class="text-sm font-medium text-red-800"><%= errorMessage %></p>
+</div>
+<% } %>
+<% if (successMessage != null && !successMessage.trim().isEmpty()) { %>
+<div class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+    <p class="text-sm font-medium text-green-800"><%= successMessage %></p>
+</div>
+<% } %>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 <div class="bg-white dark:bg-[#2d2116] p-6 rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] flex items-center gap-5">
 <div class="summary-card-icon bg-orange-100 text-primary">
@@ -203,7 +215,6 @@
             <div class="size-12 rounded-lg bg-cover bg-center border border-[#f5f2f0] dark:border-[#3d2f23]" style='background-image: url("<%= photoUrl %>");'></div>
             <div>
                 <p class="font-bold"><%= petName %></p>
-                <p class="text-xs text-[#8d755e]">ID: <%= pet.getPetId() %></p>
             </div>
         </div>
     </td>

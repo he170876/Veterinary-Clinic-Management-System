@@ -15,6 +15,7 @@ import model.User;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,6 +62,11 @@ public class CustomerMedicalRecordsServlet extends HttpServlet {
         Customer customer = customerOpt.get();
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         List<MedicalRecordSummary> records = recordDao.getRecordsForCustomer(customer.getCustomerId());
+        records.sort(Comparator
+            .comparing(MedicalRecordSummary::getExaminationDate,
+                Comparator.nullsLast(Comparator.naturalOrder()))
+            .reversed()
+            .thenComparing(MedicalRecordSummary::getRecordId, Comparator.reverseOrder()));
 
         request.setAttribute("user", user);
         request.setAttribute("records", records);

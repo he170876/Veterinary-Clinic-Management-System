@@ -143,22 +143,11 @@
                 </div>
 
                 <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-primary mb-4">1. Observations (3 Items)</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Observation 1: Diagnosis</p>
-                                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100"><%= diagnosis %></p>
-                            </div>
-                            <div class="rounded-lg border border-slate-100 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Observation 2: Clinical Notes</p>
-                                <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"><%= !note.isEmpty() ? note : "No additional notes were recorded for this examination." %></p>
-                            </div>
-                            <div class="rounded-lg border border-slate-100 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Observation 3: Visit Summary</p>
-                                <p class="text-sm text-slate-700 dark:text-slate-300">Duration: <span class="font-semibold"><%= durationLabel %></span></p>
-                                <p class="text-sm text-slate-700 dark:text-slate-300 mt-1">Concluded: <span class="font-semibold"><%= concludedAt.isEmpty() ? "N/A" : concludedAt %></span></p>
-                            </div>
-                        </div>
+                    <h3 class="text-lg font-bold text-primary mb-4">1. Observation</h3>
+                    <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Clinical Observation</p>
+                        <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line"><%= !note.isEmpty() ? note : diagnosis %></p>
+                    </div>
                 </div>
 
                 <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
@@ -170,10 +159,31 @@
                                 <% for (LabTestRequest req : labRequests) {
                                        String testName = req.getTestName() != null ? req.getTestName() : "Lab Test";
                                        String status = req.getStatus() != null ? req.getStatus() : "Pending";
+                                       String resultNote = req.getResultNote() != null ? req.getResultNote() : "";
+                                       String resultFileUrl = req.getResultFileUrl() != null ? req.getResultFileUrl().trim() : "";
+                                       String resolvedFileUrl = "";
+                                       if (!resultFileUrl.isEmpty()) {
+                                           resolvedFileUrl = resultFileUrl.startsWith("http://") || resultFileUrl.startsWith("https://")
+                                                   ? resultFileUrl
+                                                   : ctx + (resultFileUrl.startsWith("/") ? resultFileUrl : "/" + resultFileUrl);
+                                       }
                                 %>
-                                <div class="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100"><%= testName %></p>
-                                    <span class="px-2 py-1 rounded-full text-[10px] font-bold <%= "Completed".equalsIgnoreCase(status) ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" %>"><%= status %></span>
+                                <div class="p-3 rounded-lg border border-slate-100 dark:border-slate-800 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100"><%= testName %></p>
+                                        <span class="px-2 py-1 rounded-full text-[10px] font-bold <%= "Completed".equalsIgnoreCase(status) ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" %>"><%= status %></span>
+                                    </div>
+                                    <div class="text-xs text-slate-600 dark:text-slate-300">
+                                        <span class="font-semibold">Note:</span>
+                                        <span><%= !resultNote.isEmpty() ? resultNote : "No note." %></span>
+                                    </div>
+                                    <div class="text-xs">
+                                        <% if (!resolvedFileUrl.isEmpty()) { %>
+                                            <a class="text-primary font-semibold hover:underline" href="<%= resolvedFileUrl %>" target="_blank" rel="noopener">Open Uploaded Result File</a>
+                                        <% } else { %>
+                                            <span class="text-slate-500 dark:text-slate-400">No uploaded file.</span>
+                                        <% } %>
+                                    </div>
                                 </div>
                                 <% } %>
                             </div>

@@ -14,8 +14,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
+import model.Appointment;
 import model.Customer;
 import model.User;
+import utils.ValidationUtil;
 
 @WebServlet(name = "CustomerRescheduleRequestServlet", urlPatterns = {"/customer/appointments/request-reschedule"})
 public class CustomerRescheduleRequestServlet extends HttpServlet {
@@ -69,10 +71,20 @@ public class CustomerRescheduleRequestServlet extends HttpServlet {
             return;
         }
 
-        String requestedSlot = requestedSlotRaw.trim().toLowerCase();
+        String requestedSlot = ValidationUtil.normalizeBookingSlot(requestedSlotRaw);
+        if (requestedSlot == null) {
+            response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=invalid_datetime");
+            return;
+        }
+
         LocalDateTime requestedDateTime;
         try {
             LocalDate requestedDate = LocalDate.parse(requestedDateRaw.trim());
+            if (!ValidationUtil.isBookableDateSlot(requestedDate, requestedSlot)) {
+                response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=slot_passed");
+                return;
+            }
+
             LocalTime requestedTime;
             if ("morning".equals(requestedSlot)) {
                 requestedTime = LocalTime.of(8, 0);
@@ -88,6 +100,41 @@ public class CustomerRescheduleRequestServlet extends HttpServlet {
         }
 
         String cleanedReason = reason != null ? reason.trim() : null;
+
+        Appointment currentAppointment = appointmentDAO.getAppointmentDetailByCustomer(
+                appointmentId,
+                customerOpt.get().getCustomerId());
+        if (currentAppointment == null) {
+            response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=invalid_appointment");
+            return;
+        }
+
+        LocalDate currentDate = currentAppointment.getAppointmentDate();
+        if (currentDate == null && currentAppointment.getAppointmentTime() != null) {
+            currentDate = currentAppointment.getAppointmentTime().toLocalDate();
+        }
+
+        String currentSlot = ValidationUtil.normalizeBookingSlot(currentAppointment.getTimeSlot());
+        if (currentSlot == null && currentAppointment.getAppointmentTime() != null) {
+            currentSlot = currentAppointment.getAppointmentTime().getHour() < 12 ? "morning" : "afternoon";
+        }
+
+        if (currentDate != null && requestedDateTime.toLocalDate().equals(currentDate)
+                && requestedSlot.equals(currentSlot)) {
+            response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=same_slot");
+            return;
+        }
+
+        // Customer should see conflict feedback immediately instead of waiting for receptionist approval.
+        if (appointmentDAO.hasCustomerAppointmentConflictExcluding(
+                customerOpt.get().getCustomerId(),
+                requestedDateTime,
+                30,
+                appointmentId)) {
+            response.sendRedirect(request.getContextPath() + "/customer/appointments?tab=" + tab + "&error=conflict_slot");
+            return;
+        }
+
         boolean success = appointmentDAO.createRescheduleRequest(
                 appointmentId,
                 customerOpt.get().getCustomerId(),

@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -95,12 +96,21 @@ public class MedicalRecordDetailServlet extends HttpServlet {
             VetMedicalRecordDAO vetMedicalRecordDAO = new VetMedicalRecordDAO();
             List<Prescription> prescriptions = vetMedicalRecordDAO.getPrescriptionsByRecordId(record.getRecordId());
             List<RecordServiceLine> services = vetMedicalRecordDAO.getServicesForRecord(record.getRecordId());
+            List<RecordServiceLine> filteredServices = new ArrayList<>();
+            for (RecordServiceLine line : services) {
+                if (line == null) continue;
+                String serviceName = line.getServiceName() == null ? "" : line.getServiceName().trim().toLowerCase();
+                if (serviceName.contains("general checkup") || serviceName.contains("general check up")) {
+                    continue;
+                }
+                filteredServices.add(line);
+            }
 
             LabTestRequestDAO labTestRequestDAO = new LabTestRequestDAO();
             List<LabTestRequest> labRequests = labTestRequestDAO.getByVisitId(record.getVisitId());
 
             double totalAmount = 0.0;
-            for (RecordServiceLine line : services) {
+            for (RecordServiceLine line : filteredServices) {
                 if (line.getPrice() != null && line.getQuantity() > 0) {
                     totalAmount += line.getPrice() * line.getQuantity();
                 }
@@ -111,7 +121,7 @@ public class MedicalRecordDetailServlet extends HttpServlet {
             request.setAttribute("medicalRecord", record);
             request.setAttribute("labRequests", labRequests);
             request.setAttribute("prescriptions", prescriptions);
-            request.setAttribute("services", services);
+            request.setAttribute("services", filteredServices);
             request.setAttribute("totalAmount", totalAmount);
             request.setAttribute("customerCurrentPage", "medical-history");
 

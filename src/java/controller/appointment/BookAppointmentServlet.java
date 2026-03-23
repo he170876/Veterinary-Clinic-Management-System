@@ -138,6 +138,12 @@ public class BookAppointmentServlet extends HttpServlet {
             return;
         }
 
+                if (!ValidationUtil.isBookableDateSlot(preferredDate, normalizedTimeSlot)) {
+                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                        + URLEncoder.encode("Selected time slot has passed. Please choose a different slot or date.", StandardCharsets.UTF_8));
+                    return;
+                }
+
         Connection conn = null;
         boolean newUserCreated = false; // Flag to track new user creation
         try {

@@ -77,10 +77,7 @@
         <header class="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 sticky top-0 z-10">
             <div class="flex-1"></div>
             <div class="flex items-center gap-4">
-                <button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 relative">
-                    <span class="material-symbols-outlined">notifications</span>
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-white"></span>
-                </button>
+                <%@ include file="/WEB-INF/includes/notifications-dropdown.jsp" %>
                 <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
                     <div class="text-right">
                         <p class="text-sm font-semibold">${not empty currentUser ? currentUser.fullName : 'User'}</p>

@@ -651,6 +651,14 @@ public class PetServlet extends HttpServlet {
                 response.sendRedirect("pets?error=Pet not found");
                 return;
             }
+
+            int activeAppointments = appointmentDAO.countActiveAppointmentsByPetId(petId);
+            if (activeAppointments > 0) {
+                String target = appendQueryParam(request.getContextPath() + "/pets", "error",
+                        "Cannot delete pet because it still has active appointments. Please cancel or reschedule them first.");
+                response.sendRedirect(target);
+                return;
+            }
             
             boolean success = petService.deletePet(petId);
 
@@ -708,6 +716,15 @@ public class PetServlet extends HttpServlet {
                 }
             } else {
                 response.sendRedirect("pets?error=Pet not found in trash");
+                return;
+            }
+
+            int totalAppointments = appointmentDAO.countAppointmentsByPetId(petId);
+            if (totalAppointments > 0) {
+                String fallback = buildDefaultDashboardUrl(request, customerId);
+                String target = appendQueryParam(resolveSafeReturnUrl(request, fallback), "error",
+                        "Cannot permanently delete pet because appointment history exists. Keep it in trash to preserve records.");
+                response.sendRedirect(target);
                 return;
             }
             

@@ -130,37 +130,46 @@
                         <% for (LabTestRequest req : labRequests) {
                                String testName = req.getTestName() != null ? req.getTestName() : "Lab Test";
                                String status = req.getStatus() != null ? req.getStatus() : "Pending";
+                               String resultNote = req.getResultNote() != null ? req.getResultNote() : "";
+                               String resultFileUrl = req.getResultFileUrl() != null ? req.getResultFileUrl().trim() : "";
+                               String resolvedFileUrl = "";
+                               if (!resultFileUrl.isEmpty()) {
+                                   resolvedFileUrl = resultFileUrl.startsWith("http://") || resultFileUrl.startsWith("https://")
+                                           ? resultFileUrl
+                                           : ctx + (resultFileUrl.startsWith("/") ? resultFileUrl : "/" + resultFileUrl);
+                               }
                         %>
-                        <div class="flex items-center justify-between rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] p-3 bg-[#fcfbf9] dark:bg-[#34281d]">
-                            <p class="font-semibold text-sm"><%= testName %></p>
-                            <span class="px-3 py-1 rounded-full text-xs font-bold <%= "Completed".equalsIgnoreCase(status) ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" %>">
-                                <%= status %>
-                            </span>
+                        <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] p-3 bg-[#fcfbf9] dark:bg-[#34281d] space-y-2">
+                            <div class="flex items-center justify-between">
+                                <p class="font-semibold text-sm"><%= testName %></p>
+                                <span class="px-3 py-1 rounded-full text-xs font-bold <%= "Completed".equalsIgnoreCase(status) ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" %>">
+                                    <%= status %>
+                                </span>
+                            </div>
+                            <p class="text-sm text-[#8d755e]">
+                                <span class="font-semibold">Note:</span>
+                                <%= !resultNote.isEmpty() ? resultNote : "No note." %>
+                            </p>
+                            <% if (!resolvedFileUrl.isEmpty()) { %>
+                                <a class="text-sm text-primary font-semibold hover:underline" href="<%= resolvedFileUrl %>" target="_blank" rel="noopener">Open Uploaded Result File</a>
+                            <% } else { %>
+                                <p class="text-sm text-[#8d755e]">No uploaded file.</p>
+                            <% } %>
                         </div>
                         <% } %>
                     </div>
                 <% } %>
             </div>
 
-            <!-- 2. Observations (3 items) -->
+            <!-- 2. Observation -->
             <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
                 <div class="flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-primary">visibility</span>
-                    <h3 class="text-lg font-bold">2. Observations (3 Items)</h3>
+                    <h3 class="text-lg font-bold">2. Observation</h3>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="rounded-lg border border-blue-200 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10 p-4">
-                        <p class="text-xs uppercase font-bold text-[#8d755e] mb-1">Observation 1: Diagnosis</p>
-                        <p class="text-sm leading-relaxed"><%= diagnosis %></p>
-                    </div>
-                    <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] bg-[#fcfbf9] dark:bg-[#34281d] p-4">
-                        <p class="text-xs uppercase font-bold text-[#8d755e] mb-1">Observation 2: Clinical Notes</p>
-                        <p class="text-sm text-[#8d755e] leading-relaxed whitespace-pre-line"><%= note %></p>
-                    </div>
-                    <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] bg-[#fcfbf9] dark:bg-[#34281d] p-4">
-                        <p class="text-xs uppercase font-bold text-[#8d755e] mb-1">Observation 3: Visit Status</p>
-                        <p class="text-sm leading-relaxed"><%= visitStatus %></p>
-                    </div>
+                <div class="rounded-lg border border-blue-200 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10 p-4">
+                    <p class="text-xs uppercase font-bold text-[#8d755e] mb-1">Clinical Observation</p>
+                    <p class="text-sm leading-relaxed whitespace-pre-line"><%= !note.equals("No additional notes") ? note : diagnosis %></p>
                 </div>
             </div>
 

@@ -11,7 +11,10 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import model.Appointment;
 import model.User;
@@ -72,7 +75,7 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
         final LocalDate rangeStart = fromDate;
         final LocalDate rangeEnd = toDate;
 
-        List<Appointment> allAppointments = dao.getAllAppointments();
+        List<Appointment> allAppointments = mergeAppointmentsById(dao.getAllAppointments());
         List<Appointment> requestAppointments = allAppointments.stream()
                 .filter(a -> a.getAppointmentTime() != null)
                 .filter(a -> {
@@ -189,5 +192,54 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
 
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/ManageAppointmentRequests.jsp")
                 .forward(request, response);
+    }
+
+    private List<Appointment> mergeAppointmentsById(List<Appointment> appointments) {
+        if (appointments == null || appointments.isEmpty()) {
+            return appointments == null ? new ArrayList<>() : appointments;
+        }
+
+        Map<Integer, Appointment> merged = new LinkedHashMap<>();
+        for (Appointment appt : appointments) {
+            if (appt == null) {
+                continue;
+            }
+
+            int appointmentId = appt.getAppointmentId();
+            Appointment existing = merged.get(appointmentId);
+            if (existing == null) {
+                merged.put(appointmentId, appt);
+                continue;
+            }
+
+            String combinedService = mergeServiceNames(existing.getService(), appt.getService());
+            existing.setService(combinedService);
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    private String mergeServiceNames(String left, String right) {
+        String first = normalizeText(left);
+        String second = normalizeText(right);
+
+        if (first.isEmpty()) {
+            return second;
+        }
+        if (second.isEmpty()) {
+            return first;
+        }
+
+        for (String part : first.split(",")) {
+            if (second.equalsIgnoreCase(part.trim())) {
+                return first;
+            }
+        }
+
+        return first + ", " + second;
+    }
+
+    private String normalizeText(String value) {
+        return value == null ? "" : value.trim();
     }
 }

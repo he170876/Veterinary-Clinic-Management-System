@@ -350,7 +350,7 @@ public class VetMedicalRecordDAO extends DBContext {
                     OR p.name LIKE ?
                     OR cu.full_name LIKE ?
                     OR CAST(mr.record_id AS NVARCHAR(20)) = ? )
-            ORDER BY mr.created_at ASC, mr.record_id ASC
+                        ORDER BY mr.created_at DESC, mr.record_id DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
             """;
 
@@ -406,7 +406,7 @@ public class VetMedicalRecordDAO extends DBContext {
                         -- Support both Done and Completed statuses.
                         WHERE v.customer_id = ?
                             AND LOWER(COALESCE(a.status, '')) IN ('done', 'completed')
-            ORDER BY mr.created_at DESC
+            ORDER BY mr.created_at DESC, mr.record_id DESC
             """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, customerId);

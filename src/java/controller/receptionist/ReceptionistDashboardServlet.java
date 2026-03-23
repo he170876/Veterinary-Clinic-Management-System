@@ -1,6 +1,7 @@
 package controller.receptionist;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import dao.ServiceDAO;
 import dao.impl.ServiceJdbcDAO;
 import java.io.IOException;
@@ -85,6 +86,17 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         request.setAttribute("veterinarians", veterinarians);
         ServiceDAO serviceDAO = new ServiceJdbcDAO();
         request.setAttribute("services", serviceDAO.findAll());
+
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            Object currentUserObj = session.getAttribute("currentUser");
+            if (currentUserObj instanceof User) {
+                User currentUser = (User) currentUserObj;
+                NotificationDAO ndao = new NotificationDAO();
+                request.setAttribute("notifications", ndao.getRecentForUser(currentUser.getUserId(), 10));
+                request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
+            }
+        }
         
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/dashboard.jsp")
                 .forward(request, response);

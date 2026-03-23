@@ -1,5 +1,9 @@
 package utils;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 /**
  * Shared validation rules for VCMS.
  * Rules: no leading/trailing spaces (trim); name 1-30 chars; password 6-128, 1 upper + 1 digit;
@@ -113,6 +117,55 @@ public final class ValidationUtil {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * Normalize booking slot to canonical values used by validation rules.
+     * Returns "morning", "afternoon" or null if invalid.
+     */
+    public static String normalizeBookingSlot(String slot) {
+        if (slot == null) {
+            return null;
+        }
+        String normalized = slot.trim().toLowerCase();
+        if ("morning".equals(normalized) || "am".equals(normalized)) {
+            return "morning";
+        }
+        if ("afternoon".equals(normalized) || "pm".equals(normalized)) {
+            return "afternoon";
+        }
+        return null;
+    }
+
+    /**
+     * Returns true when the provided date+slot can still be booked from now.
+     * Rule:
+     * - date in the past: false
+     * - future date: true
+     * - today: booking must happen before slot start time
+     */
+    public static boolean isBookableDateSlot(LocalDate date, String slot) {
+        if (date == null) {
+            return false;
+        }
+
+        String normalizedSlot = normalizeBookingSlot(slot);
+        if (normalizedSlot == null) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        if (date.isBefore(today)) {
+            return false;
+        }
+        if (date.isAfter(today)) {
+            return true;
+        }
+
+        LocalTime slotStart = "morning".equals(normalizedSlot)
+                ? LocalTime.of(8, 0)
+                : LocalTime.of(14, 0);
+        return LocalDateTime.now().isBefore(LocalDateTime.of(today, slotStart));
     }
 
     /** No spaces allowed anywhere in value (reject if contains space). */

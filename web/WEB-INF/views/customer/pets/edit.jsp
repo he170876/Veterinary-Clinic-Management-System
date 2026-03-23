@@ -101,7 +101,7 @@
 <div class="mt-4 text-center">
 <h3 class="text-lg font-bold">Pet Photo</h3>
 <p class="text-sm text-gray-500 mb-4">Click to update your pet's profile picture</p>
-q<input type="file" id="photoInput" name="photo" accept="image/*" class="hidden" onchange="previewPhoto(this)"/>
+<input type="file" id="photoInput" name="photo" accept="image/*" class="hidden" onchange="previewPhoto(this)"/>
 <label for="photoInput" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-bold text-sm transition-colors cursor-pointer">
 <span class="material-symbols-outlined text-lg">upload</span>
                                 Upload New
@@ -166,7 +166,15 @@ function bindPhotoPreview() {
 <label class="text-sm font-bold text-gray-700 dark:text-gray-300">
                                 Species <span class="text-primary">*</span>
 </label>
-<input name="species" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" required="" type="text" value="<%= pet != null ? pet.getSpecies() : "" %>"/>
+<select name="species" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-primary transition-all" required="">
+    <option value="dog" <%= pet != null && pet.getSpecies() != null && "dog".equalsIgnoreCase(pet.getSpecies()) ? "selected" : "" %>>Dog</option>
+    <option value="cat" <%= pet != null && pet.getSpecies() != null && "cat".equalsIgnoreCase(pet.getSpecies()) ? "selected" : "" %>>Cat</option>
+    <option value="bird" <%= pet != null && pet.getSpecies() != null && "bird".equalsIgnoreCase(pet.getSpecies()) ? "selected" : "" %>>Bird</option>
+    <option value="rabbit" <%= pet != null && pet.getSpecies() != null && "rabbit".equalsIgnoreCase(pet.getSpecies()) ? "selected" : "" %>>Rabbit</option>
+    <option value="hamster" <%= pet != null && pet.getSpecies() != null && "hamster".equalsIgnoreCase(pet.getSpecies()) ? "selected" : "" %>>Hamster</option>
+    <option value="reptile" <%= pet != null && pet.getSpecies() != null && "reptile".equalsIgnoreCase(pet.getSpecies()) ? "selected" : "" %>>Reptile</option>
+    <option value="other" <%= pet != null && pet.getSpecies() != null && !"dog".equalsIgnoreCase(pet.getSpecies()) && !"cat".equalsIgnoreCase(pet.getSpecies()) && !"bird".equalsIgnoreCase(pet.getSpecies()) && !"rabbit".equalsIgnoreCase(pet.getSpecies()) && !"hamster".equalsIgnoreCase(pet.getSpecies()) && !"reptile".equalsIgnoreCase(pet.getSpecies()) ? "selected" : "" %>>Other</option>
+</select>
 </div>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-bold text-gray-700 dark:text-gray-300">Breed</label>

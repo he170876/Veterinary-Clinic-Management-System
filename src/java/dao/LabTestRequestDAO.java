@@ -340,7 +340,9 @@ public class LabTestRequestDAO extends DBContext {
                    p.name AS pet_name, p.species,
                    u.full_name AS owner_name,
                    vet_u.full_name AS veterinarian_name,
-                   lt.test_name
+                 lt.test_name,
+                 res.result_note,
+                 res.result_file
             FROM LabTestRequests ltr
             JOIN Visits v ON ltr.visit_id = v.visit_id
             JOIN Pets p ON v.pet_id = p.pet_id
@@ -349,6 +351,7 @@ public class LabTestRequestDAO extends DBContext {
             JOIN Veterinarians vet ON ltr.veterinarian_id = vet.veterinarian_id
             JOIN Users vet_u ON vet.user_id = vet_u.user_id
             JOIN LabTests lt ON ltr.test_id = lt.test_id
+             LEFT JOIN LabTestResults res ON res.request_id = ltr.request_id
             WHERE ltr.visit_id = ?
             ORDER BY ltr.request_time DESC
             """;
@@ -369,6 +372,8 @@ public class LabTestRequestDAO extends DBContext {
                     r.setOwnerName(rs.getString("owner_name"));
                     r.setVeterinarianName(rs.getString("veterinarian_name"));
                     r.setTestName(rs.getString("test_name"));
+                    r.setResultNote(rs.getString("result_note"));
+                    r.setResultFileUrl(rs.getString("result_file"));
                     list.add(r);
                 }
             }

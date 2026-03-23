@@ -25,27 +25,29 @@
 
     String notifCenterHref = notifCtx + "/notifications";
     String notifCenterLabel = "View notification center";
+    String notifRoleNormalized = "";
     Object currentUserObj = session != null ? session.getAttribute("currentUser") : null;
     if (currentUserObj instanceof User) {
         User notifUser = (User) currentUserObj;
         String notifRoleName = notifUser.getRole() != null ? notifUser.getRole().getRoleName() : null;
-        String notifRoleNormalized = notifRoleName != null
+        notifRoleNormalized = notifRoleName != null
                 ? notifRoleName.trim().toLowerCase().replace(" ", "").replace("_", "").replace("-", "")
                 : "";
         if ("receptionist".equals(notifRoleNormalized) || "frontdesk".equals(notifRoleNormalized)) {
             notifCenterHref = notifCtx + "/Receptionist/ManageAppointmentRequests";
             notifCenterLabel = "View request center";
+        } else if ("customer".equals(notifRoleNormalized)) {
+            notifCenterHref = notifCtx + "/customer/appointments?tab=upcoming";
+            notifCenterLabel = "View my appointments";
         }
     }
 %>
-<div class="relative inline-block text-left" id="notif-root" data-base-url="<%= notifCtx %>">
+<div class="relative inline-block text-left" id="notif-root" data-base-url="<%= notifCtx %>" data-user-role="<%= notifRoleNormalized %>">
     <button type="button"
             class="relative p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
             id="notif-toggle">
         <span class="material-symbols-outlined">notifications</span>
-        <% if (hasUnread) { %>
-        <span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-white dark:border-slate-900"></span>
-        <% } %>
+        <span id="notif-unread-dot" class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-white dark:border-slate-900 <%= hasUnread ? "" : "hidden" %>"></span>
     </button>
     <div id="notif-menu"
          class="absolute right-0 mt-2 w-80 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 z-50"
@@ -91,10 +93,15 @@
                     }
 
                     String itemHref = null;
-                    if (isRequestNotification && appointmentId > 0) {
+                        if (isRequestNotification && appointmentId > 0
+                            && ("receptionist".equals(notifRoleNormalized) || "frontdesk".equals(notifRoleNormalized))) {
                         itemHref = notifCtx + "/Receptionist/ManageAppointmentRequests?requestType="
                                 + URLEncoder.encode(reqType, StandardCharsets.UTF_8)
                                 + "&appointmentId=" + appointmentId;
+                    } else if ("customer".equals(notifRoleNormalized)
+                            && appointmentId > 0
+                            && (titleLower.contains("reschedule") || titleLower.contains("doctor") || titleLower.contains("appointment"))) {
+                        itemHref = notifCtx + "/customer/appointments?tab=upcoming&appointmentId=" + appointmentId;
                     }
                 %>
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -135,7 +142,8 @@
         const menu = document.getElementById('notif-menu');
         const itemsEl = document.getElementById('notif-items');
         const countEl = document.getElementById('notif-count');
-        if (!btn || !menu || !itemsEl || !countEl) return;
+        const unreadDot = document.getElementById('notif-unread-dot');
+        if (!btn || !menu || !itemsEl || !countEl || !unreadDot) return;
         function isOpen() {
             return menu.style.display !== 'none';
         }
@@ -195,8 +203,12 @@
                     }
 
                     let itemHref = null;
-                    if (isRequestNotification && appointmentId) {
+                    if (isRequestNotification && appointmentId
+                        && (role === 'receptionist' || role === 'frontdesk')) {
                         itemHref = base + '/Receptionist/ManageAppointmentRequests?requestType=' + encodeURIComponent(requestType) + '&appointmentId=' + encodeURIComponent(appointmentId);
+                    } else if (role === 'customer' && appointmentId
+                        && (rawTitle.indexOf('reschedule') !== -1 || rawTitle.indexOf('doctor') !== -1 || rawTitle.indexOf('appointment') !== -1)) {
+                        itemHref = base + '/customer/appointments?tab=upcoming&appointmentId=' + encodeURIComponent(appointmentId);
                     }
 
                     html += '<div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">';
@@ -216,9 +228,12 @@
                 itemsEl.innerHTML = html;
             }
             countEl.textContent = data.length + ' items';
+            if (data.length > 0) unreadDot.classList.remove('hidden');
+            else unreadDot.classList.add('hidden');
         }
 
         const base = root.getAttribute('data-base-url') || '';
+        const role = (root.getAttribute('data-user-role') || '').toLowerCase();
         const pollUrl = base + '/notifications/poll';
 
         async function poll() {

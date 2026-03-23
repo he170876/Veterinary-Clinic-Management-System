@@ -118,7 +118,23 @@
                 </c:if>
                 <c:if test="${not empty param.error}">
                     <div class="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-medium">
-                        Could not submit your request. Please check data and try again.
+                        <c:choose>
+                            <c:when test="${param.error == 'conflict_slot'}">
+                                You already have another appointment in this slot. Please choose a different date or time slot.
+                            </c:when>
+                            <c:when test="${param.error == 'same_slot'}">
+                                New schedule must be different from your current appointment slot.
+                            </c:when>
+                            <c:when test="${param.error == 'slot_passed'}">
+                                Selected time slot has passed. Please choose another slot.
+                            </c:when>
+                            <c:when test="${param.error == 'invalid_datetime'}">
+                                Invalid date/time selection. Please check and try again.
+                            </c:when>
+                            <c:otherwise>
+                                Could not submit your request. Please check data and try again.
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                 </c:if>
 

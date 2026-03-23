@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -99,6 +100,15 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
 
         // Services and prescriptions
         List<RecordServiceLine> services = recordDao.getServicesForRecord(record.getRecordId());
+        List<RecordServiceLine> filteredServices = new ArrayList<>();
+        for (RecordServiceLine line : services) {
+            if (line == null) continue;
+            String serviceName = line.getServiceName() == null ? "" : line.getServiceName().trim().toLowerCase();
+            if (serviceName.contains("general checkup") || serviceName.contains("general check up")) {
+                continue;
+            }
+            filteredServices.add(line);
+        }
         List<Prescription> prescriptions = recordDao.getPrescriptionsByRecordId(record.getRecordId());
         LabTestRequestDAO labTestRequestDAO = new LabTestRequestDAO();
         List<LabTestRequest> labRequests = labTestRequestDAO.getByVisitId(record.getVisitId());
@@ -120,7 +130,7 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
                 : (record.getCreatedAt() != null ? record.getCreatedAt().format(fullDateTimeFmt) : "");
 
         double totalAmount = 0;
-        for (RecordServiceLine line : services) {
+        for (RecordServiceLine line : filteredServices) {
             if (line.getPrice() != null && line.getQuantity() > 0) {
                 totalAmount += line.getPrice() * line.getQuantity();
             }
@@ -135,7 +145,7 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
         request.setAttribute("pet", pet);
         request.setAttribute("customer", customer);
         request.setAttribute("labRequests", labRequests);
-        request.setAttribute("services", services);
+        request.setAttribute("services", filteredServices);
         request.setAttribute("prescriptions", prescriptions);
         request.setAttribute("durationLabel", durationLabel);
         request.setAttribute("concludedAt", concludedAt);

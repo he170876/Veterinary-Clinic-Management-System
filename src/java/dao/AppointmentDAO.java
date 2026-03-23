@@ -2061,6 +2061,8 @@ public class AppointmentDAO extends DBContext {
                     WHERE customer_id = ?
                       AND appointment_date = ?
                       AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
+                                            AND LOWER(COALESCE(status, '')) NOT LIKE '%reject%'
+                                            AND LOWER(COALESCE(status, '')) NOT LIKE '%declin%'
                       AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
                       AND LOWER(COALESCE(status, '')) <> 'done'
                 """;
@@ -2071,6 +2073,8 @@ public class AppointmentDAO extends DBContext {
                     WHERE customer_id = ?
                       AND CAST(appointment_time AS DATE) = ?
                       AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
+                                            AND LOWER(COALESCE(status, '')) NOT LIKE '%reject%'
+                                            AND LOWER(COALESCE(status, '')) NOT LIKE '%declin%'
                       AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
                       AND LOWER(COALESCE(status, '')) <> 'done'
                 """;
@@ -2093,13 +2097,100 @@ public class AppointmentDAO extends DBContext {
         return 0;
     }
 
+    /**
+     * Counts upcoming active appointments of a pet.
+     * Active means status is not cancelled/rejected/completed/done.
+     */
+    public int countActiveAppointmentsByPetId(int petId) {
+        try (Connection con = getConnection()) {
+            Set<String> appointmentColumns = getAppointmentsTableColumns(con);
+            boolean hasAppointmentTime = appointmentColumns.contains("appointment_time");
+            boolean hasAppointmentDate = appointmentColumns.contains("appointment_date");
+
+            String sql;
+            if (hasAppointmentTime) {
+                sql = """
+                    SELECT COUNT(*)
+                    FROM appointments
+                    WHERE pet_id = ?
+                      AND appointment_time >= ?
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%reject%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%declin%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
+                      AND LOWER(COALESCE(status, '')) <> 'done'
+                """;
+            } else if (hasAppointmentDate) {
+                sql = """
+                    SELECT COUNT(*)
+                    FROM appointments
+                    WHERE pet_id = ?
+                      AND appointment_date >= ?
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%cancel%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%reject%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%declin%'
+                      AND LOWER(COALESCE(status, '')) NOT LIKE '%complete%'
+                      AND LOWER(COALESCE(status, '')) <> 'done'
+                """;
+            } else {
+                return 0;
+            }
+
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, petId);
+                if (hasAppointmentTime) {
+                    ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+                } else {
+                    ps.setDate(2, java.sql.Date.valueOf(LocalDate.now()));
+                }
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Counts all appointments of a pet, regardless of status.
+     */
+    public int countAppointmentsByPetId(int petId) {
+        String sql = "SELECT COUNT(*) FROM appointments WHERE pet_id = ?";
+
+        try (
+            Connection con = getConnection();
+            PreparedStatement ps = con.prepareStatement(sql)
+        ) {
+            ps.setInt(1, petId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public boolean hasCustomerAppointmentConflict(int customerId, LocalDateTime appointmentTime) {
         return hasCustomerAppointmentConflict(customerId, appointmentTime, DEFAULT_SERVICE_DURATION_MINUTES);
     }
 
     public boolean hasCustomerAppointmentConflict(int customerId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
         return hasAppointmentOverlapByEntity("a.customer_id = ?", customerId, appointmentTime,
-                requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+            requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES, null);
+        }
+
+        public boolean hasCustomerAppointmentConflictExcluding(int customerId, LocalDateTime appointmentTime,
+            int requestedDurationMinutes, int excludedAppointmentId) {
+        return hasAppointmentOverlapByEntity("a.customer_id = ?", customerId, appointmentTime,
+            requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES, excludedAppointmentId);
     }
 
     public boolean hasPetAppointmentConflict(int petId, LocalDateTime appointmentTime) {
@@ -2108,7 +2199,13 @@ public class AppointmentDAO extends DBContext {
 
     public boolean hasPetAppointmentConflict(int petId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
         return hasAppointmentOverlapByEntity("a.pet_id = ?", petId, appointmentTime,
-                requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+            requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES, null);
+        }
+
+        public boolean hasPetAppointmentConflictExcluding(int petId, LocalDateTime appointmentTime,
+            int requestedDurationMinutes, int excludedAppointmentId) {
+        return hasAppointmentOverlapByEntity("a.pet_id = ?", petId, appointmentTime,
+            requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES, excludedAppointmentId);
     }
 
     public boolean hasVeterinarianAppointmentConflict(int veterinarianId, LocalDateTime appointmentTime) {
@@ -2117,11 +2214,17 @@ public class AppointmentDAO extends DBContext {
 
     public boolean hasVeterinarianAppointmentConflict(int veterinarianId, LocalDateTime appointmentTime, int requestedDurationMinutes) {
         return hasAppointmentOverlapByEntity("a.veterinarian_id = ?", veterinarianId, appointmentTime,
-                requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES);
+            requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES, null);
+        }
+
+        public boolean hasVeterinarianAppointmentConflictExcluding(int veterinarianId, LocalDateTime appointmentTime,
+            int requestedDurationMinutes, int excludedAppointmentId) {
+        return hasAppointmentOverlapByEntity("a.veterinarian_id = ?", veterinarianId, appointmentTime,
+            requestedDurationMinutes, DEFAULT_BOOKING_BUFFER_MINUTES, excludedAppointmentId);
     }
 
     private boolean hasAppointmentOverlapByEntity(String entityConditionSql, int entityId, LocalDateTime requestedStart,
-            int requestedDurationMinutes, int bufferMinutes) {
+            int requestedDurationMinutes, int bufferMinutes, Integer excludedAppointmentId) {
         if (requestedStart == null) {
             return false;
         }
@@ -2149,6 +2252,7 @@ public class AppointmentDAO extends DBContext {
                     LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
                     LEFT JOIN services s ON aps.service_id = s.service_id
                     WHERE %s
+                                            AND (? IS NULL OR a.appointment_id <> ?)
                       AND a.appointment_date IS NOT NULL
                       AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%cancel%%'
                       AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%complete%%'
@@ -2165,6 +2269,7 @@ public class AppointmentDAO extends DBContext {
                     LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
                     LEFT JOIN services s ON aps.service_id = s.service_id
                     WHERE %s
+                                            AND (? IS NULL OR a.appointment_id <> ?)
                       AND a.appointment_time IS NOT NULL
                       AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%cancel%%'
                       AND LOWER(COALESCE(a.status, '')) NOT LIKE '%%complete%%'
@@ -2176,6 +2281,13 @@ public class AppointmentDAO extends DBContext {
 
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, entityId);
+                if (excludedAppointmentId != null && excludedAppointmentId > 0) {
+                    ps.setInt(2, excludedAppointmentId);
+                    ps.setInt(3, excludedAppointmentId);
+                } else {
+                    ps.setNull(2, java.sql.Types.INTEGER);
+                    ps.setNull(3, java.sql.Types.INTEGER);
+                }
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         LocalDateTime existingStart;
@@ -2557,6 +2669,19 @@ public class AppointmentDAO extends DBContext {
             }
 
             if ("Reschedule-Requested".equalsIgnoreCase(currentStatus)) {
+                con.rollback();
+                return false;
+            }
+
+            String currentSlotNormalized = oldTime.getHour() < 12 ? "morning" : "afternoon";
+            if (requestedAppointmentTime.toLocalDate().equals(oldTime.toLocalDate())
+                    && normalizedRequestedSlot.equals(currentSlotNormalized)) {
+                con.rollback();
+                return false;
+            }
+
+            if (hasCustomerAppointmentConflictExcluding(customerId, requestedAppointmentTime,
+                    DEFAULT_SERVICE_DURATION_MINUTES, appointmentId)) {
                 con.rollback();
                 return false;
             }
@@ -2991,7 +3116,7 @@ public class AppointmentDAO extends DBContext {
 
     public boolean processRescheduleRequest(int appointmentId, boolean approve) {
         String findSql = """
-            SELECT customer_id, status
+            SELECT customer_id, pet_id, veterinarian_id, status
             FROM appointments
             WHERE appointment_id = ?
         """;
@@ -3015,6 +3140,9 @@ public class AppointmentDAO extends DBContext {
             con.setAutoCommit(false);
 
             String status;
+            int customerId;
+            int petId;
+            Integer veterinarianId;
             try (PreparedStatement findPs = con.prepareStatement(findSql)) {
                 findPs.setInt(1, appointmentId);
                 try (ResultSet rs = findPs.executeQuery()) {
@@ -3022,6 +3150,10 @@ public class AppointmentDAO extends DBContext {
                         con.rollback();
                         return false;
                     }
+                    customerId = rs.getInt("customer_id");
+                    petId = rs.getInt("pet_id");
+                    int rawVeterinarianId = rs.getInt("veterinarian_id");
+                    veterinarianId = rs.wasNull() ? null : Integer.valueOf(rawVeterinarianId);
                     status = rs.getString("status");
                 }
             }
@@ -3055,6 +3187,24 @@ public class AppointmentDAO extends DBContext {
                     con.rollback();
                     return false;
                 }
+
+                int requestedDuration = DEFAULT_SERVICE_DURATION_MINUTES;
+                if (hasCustomerAppointmentConflictExcluding(customerId, requestedTime, requestedDuration, appointmentId)) {
+                    con.rollback();
+                    return false;
+                }
+
+                if (petId > 0 && hasPetAppointmentConflictExcluding(petId, requestedTime, requestedDuration, appointmentId)) {
+                    con.rollback();
+                    return false;
+                }
+
+                if (veterinarianId != null && veterinarianId > 0
+                        && hasVeterinarianAppointmentConflictExcluding(veterinarianId, requestedTime, requestedDuration, appointmentId)) {
+                    con.rollback();
+                    return false;
+                }
+
                 String requestedSlotForDb = toDatabaseTimeSlot(requestedSlot, requestedTime);
 
                 // Detect which columns are available

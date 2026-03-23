@@ -23,6 +23,8 @@ public class LabTestRequest {
     private String veterinarianName;
     private String testName;
     private String clinicalNotes;
+    private String resultNote;
+    private String resultFileUrl;
 
     public int getRequestId() { return requestId; }
     public void setRequestId(int requestId) { this.requestId = requestId; }
@@ -50,4 +52,8 @@ public class LabTestRequest {
     public void setTestName(String testName) { this.testName = testName; }
     public String getClinicalNotes() { return clinicalNotes; }
     public void setClinicalNotes(String clinicalNotes) { this.clinicalNotes = clinicalNotes; }
+    public String getResultNote() { return resultNote; }
+    public void setResultNote(String resultNote) { this.resultNote = resultNote; }
+    public String getResultFileUrl() { return resultFileUrl; }
+    public void setResultFileUrl(String resultFileUrl) { this.resultFileUrl = resultFileUrl; }
 }
