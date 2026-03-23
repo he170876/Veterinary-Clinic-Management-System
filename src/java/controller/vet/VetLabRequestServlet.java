@@ -3,6 +3,7 @@ package controller.vet;
 import dao.AppointmentDAO;
 import dao.LabTestRequestDAO;
 import dao.NotificationDAO;
+import dao.VetMedicalRecordDAO;
 import dao.VisitDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -12,6 +13,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Appointment;
 import model.LabTest;
+import model.MedicalRecord;
+import model.RecordServiceLine;
 import model.Service;
 import model.User;
 import model.Visit;
@@ -104,6 +107,26 @@ public class VetLabRequestServlet extends HttpServlet {
         }
         String clinicalNotes = request.getParameter("clinicalNotes");
         labDao.createRequest(visit.getVisitId(), testId, effectiveVetId, clinicalNotes);
+
+        // Backend guarantee: lab-requested service is persisted to medical record services.
+        // This avoids relying only on frontend JS sync.
+        VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
+        MedicalRecord record = recordDao.getByVisitId(visit.getVisitId());
+        if (record == null) {
+            record = recordDao.create(visit.getVisitId(), effectiveVetId, "", "", "", "follow_up");
+        }
+        if (record != null) {
+            boolean alreadyAdded = false;
+            for (RecordServiceLine line : recordDao.getServicesForRecord(record.getRecordId())) {
+                if (line.getServiceId() == selectedService.getServiceId()) {
+                    alreadyAdded = true;
+                    break;
+                }
+            }
+            if (!alreadyAdded) {
+                recordDao.addService(record.getRecordId(), selectedService.getServiceId(), 1, selectedService.getPrice());
+            }
+        }
 
         String testName = selectedService.getName() != null && !selectedService.getName().isBlank()
                 ? selectedService.getName().trim()

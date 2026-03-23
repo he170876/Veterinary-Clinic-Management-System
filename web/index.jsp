@@ -69,7 +69,7 @@ Anipats landing page - VCMS (Tailwind design)
     
     // Load services for the booking form
     ServiceDAO serviceDAO = new ServiceJdbcDAO();
-    List<model.Service> services = serviceDAO.findAll(); // findAll() gets non-deleted services
+    List<model.Service> services = serviceDAO.findByCategory("general");
     request.setAttribute("services", services);
     
     // --- DEBUGGING ---

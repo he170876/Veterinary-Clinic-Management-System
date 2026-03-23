@@ -778,11 +778,11 @@
         if (!examForm || !labForm) return;
 
         // Nếu user chọn Lab Test Type trước khi submit, auto-add service vào Services (UI)
-        (function () {
+        const ensureSelectedLabServiceInExam = (function () {
             const testSelect = labForm.querySelector('select[name="serviceId"]');
             const servicesList = document.getElementById('examination-services-list');
             const serviceIdsInput = document.getElementById('serviceIds');
-            if (!testSelect || !servicesList || !serviceIdsInput) return;
+            if (!testSelect || !servicesList || !serviceIdsInput) return function () {};
 
             const norm = (s) => String(s || '').trim().toLowerCase();
 
@@ -829,12 +829,33 @@
             testSelect.addEventListener('change', function () {
                 ensureServiceForSelectedTest();
             });
+            return function () {
+                ensureServiceForSelectedTest();
+                updateServiceIds();
+            };
         })();
+
+        // Ensure hidden serviceIds is always synced from current DOM rows.
+        function syncServiceIdsFromRows() {
+            const serviceIdsInput = document.getElementById('serviceIds');
+            const servicesList = document.getElementById('examination-services-list');
+            if (!serviceIdsInput || !servicesList) return;
+            const ids = [];
+            servicesList.querySelectorAll('.service-row').forEach(function (r) {
+                const id = r.getAttribute('data-service-id');
+                if (id && id !== '') ids.push(id);
+            });
+            serviceIdsInput.value = ids.join(',');
+        }
 
         let isSubmitting = false;
         labForm.addEventListener('submit', async function (e) {
             if (isSubmitting) return;
             e.preventDefault();
+
+            // Guarantee selected lab service appears in Services before autosave.
+            ensureSelectedLabServiceInExam();
+            syncServiceIdsFromRows();
 
             saveDraft(); /* persist to localStorage before any network call */
 
