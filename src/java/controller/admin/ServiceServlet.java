@@ -111,7 +111,6 @@ public class ServiceServlet extends HttpServlet {
             String name = request.getParameter("name");
             String category = request.getParameter("category");
             String description = request.getParameter("description");
-            String durationStr = request.getParameter("duration");
             String priceStr = request.getParameter("price");
 
             // ====== VALIDATION ======
@@ -129,20 +128,6 @@ public class ServiceServlet extends HttpServlet {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
                 response.setContentType("text/plain;charset=UTF-8");
                 response.getWriter().write("Service name already exists");
-                return;
-            }
-
-            int duration = 0;
-            try {
-                if (durationStr != null && !durationStr.trim().isEmpty()) {
-                    duration = Integer.parseInt(durationStr.trim());
-                    if (duration < 0) {
-                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Duration cannot be negative.");
-                        return;
-                    }
-                }
-            } catch (NumberFormatException e) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid duration format. Please enter a whole number.");
                 return;
             }
 
@@ -169,7 +154,6 @@ public class ServiceServlet extends HttpServlet {
             service.setName(name);
             service.setCategory(category != null ? category.trim() : "");
             service.setDescription(description != null ? description.trim() : "");
-            service.setDuration(duration);
             service.setPrice(price);
 
             Service created = serviceService.createService(service);
@@ -204,7 +188,6 @@ public class ServiceServlet extends HttpServlet {
             String name = request.getParameter("name");
             String category = request.getParameter("category");
             String description = request.getParameter("description");
-            String durationStr = request.getParameter("duration");
             String priceStr = request.getParameter("price");
 
             // ====== VALIDATION ======
@@ -214,20 +197,6 @@ public class ServiceServlet extends HttpServlet {
             }
             if (name.trim().length() > 100) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Service name must be less than 100 characters.");
-                return;
-            }
-
-            int duration = 0;
-            try {
-                if (durationStr != null && !durationStr.trim().isEmpty()) {
-                    duration = Integer.parseInt(durationStr.trim());
-                    if (duration < 0) {
-                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Duration cannot be negative.");
-                        return;
-                    }
-                }
-            } catch (NumberFormatException e) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid duration format. Please enter a whole number.");
                 return;
             }
 
@@ -253,7 +222,6 @@ public class ServiceServlet extends HttpServlet {
             service.setName(name.trim());
             service.setCategory(category != null ? category.trim() : "");
             service.setDescription(description != null ? description.trim() : "");
-            service.setDuration(duration);
             service.setPrice(price);
 
             if (serviceService.updateService(service)) {

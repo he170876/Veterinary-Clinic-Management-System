@@ -546,12 +546,12 @@ public class AppointmentDAO extends DBContext {
     }
 
     /**
-     * Shared veterinarian queue for today:
-     * - Checked-in appointments (actionable)
-     * - In-Examination appointments (visible, may be locked by another vet)
+     * Shared veterinarian queue:
+     * - Today's Checked-in appointments (actionable)
+     * - In-Examination appointments owned by current vet (resume even across days)
      * Ordered by arrival_time.
      */
-    public List<Appointment> getVetQueueAppointmentsForDate(LocalDate date) {
+    public List<Appointment> getVetQueueAppointmentsForDate(LocalDate date, int veterinarianId) {
         List<Appointment> list = new ArrayList<>();
         String sql = """
             SELECT a.appointment_id,
@@ -581,8 +581,11 @@ public class AppointmentDAO extends DBContext {
             LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
             LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
-              AND a.appointment_date = ?
-              AND a.status IN ('Checked-in', 'In-Examination')
+              AND (
+                    (a.appointment_date = ? AND a.status = 'Checked-in')
+                    OR
+                    (a.status = 'In-Examination' AND a.veterinarian_id = ?)
+                  )
             ORDER BY COALESCE(
                 a.arrival_time,
                 DATEADD(hour, CASE WHEN UPPER(COALESCE(a.time_slot, 'AM')) = 'PM' THEN 15 ELSE 9 END, CAST(a.appointment_date AS datetime))
@@ -590,6 +593,7 @@ public class AppointmentDAO extends DBContext {
             """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setObject(1, date);
+            ps.setInt(2, veterinarianId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Appointment ap = new Appointment();
@@ -2245,7 +2249,7 @@ public class AppointmentDAO extends DBContext {
                     SELECT
                         a.appointment_date,
                         %s
-                        s.duration,
+                        CAST(NULL AS INT) AS duration,
                         s.category,
                         s.name AS service_name
                     FROM appointments a
@@ -2262,7 +2266,7 @@ public class AppointmentDAO extends DBContext {
                 sql = """
                     SELECT
                         a.appointment_time,
-                        s.duration,
+                        CAST(NULL AS INT) AS duration,
                         s.category,
                         s.name AS service_name
                     FROM appointments a

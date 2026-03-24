@@ -101,8 +101,7 @@ public class LabUploadResultServlet extends HttpServlet {
             return;
         }
 
-        String resultValue = "-";
-        boolean ok = dao.saveResult(requestId, resultValue, resultNote, savedPath, labStaffId);
+        boolean ok = dao.saveResult(requestId, resultNote, savedPath, labStaffId);
 
         model.LabTestRequest req = null;
         try {

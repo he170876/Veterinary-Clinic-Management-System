@@ -10,7 +10,6 @@ public class LabResultDetail {
     private String petName;
     private String veterinarianName;
     private String technicianName;
-    private String resultValue;
     private String resultNote;
     /** Relative web path to uploaded file (PDF), e.g. /uploads/lab-results/lab-1-....pdf */
     private String resultFileUrl;
@@ -62,14 +61,6 @@ public class LabResultDetail {
 
     public void setTechnicianName(String technicianName) {
         this.technicianName = technicianName;
-    }
-
-    public String getResultValue() {
-        return resultValue;
-    }
-
-    public void setResultValue(String resultValue) {
-        this.resultValue = resultValue;
     }
 
     public String getResultNote() {

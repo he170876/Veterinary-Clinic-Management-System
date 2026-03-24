@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.ResultSetMetaData;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +20,45 @@ import java.util.List;
  */
 public class VetMedicalRecordDAO extends DBContext {
 
+    private boolean hasClinicalConditionColumn(Connection con) {
+        String sql = """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = 'MedicalRecords' AND COLUMN_NAME = 'clinical_condition'
+            """;
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean hasColumn(ResultSet rs, String columnName) {
+        try {
+            ResultSetMetaData meta = rs.getMetaData();
+            int count = meta.getColumnCount();
+            for (int i = 1; i <= count; i++) {
+                if (columnName.equalsIgnoreCase(meta.getColumnLabel(i))
+                        || columnName.equalsIgnoreCase(meta.getColumnName(i))) {
+                    return true;
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+        return false;
+    }
+
     public MedicalRecord getByVisitId(int visitId) {
-        String sql = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE visit_id = ?";
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, visitId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapRecord(rs);
+        String sqlWithCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE visit_id = ?";
+        String sqlLegacy = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, created_at FROM MedicalRecords WHERE visit_id = ?";
+        try (Connection con = getConnection()) {
+            String sql = hasClinicalConditionColumn(con) ? sqlWithCondition : sqlLegacy;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, visitId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return mapRecord(rs);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -33,11 +67,15 @@ public class VetMedicalRecordDAO extends DBContext {
     }
 
     public MedicalRecord getByRecordId(int recordId) {
-        String sql = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE record_id = ?";
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, recordId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapRecord(rs);
+        String sqlWithCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE record_id = ?";
+        String sqlLegacy = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, created_at FROM MedicalRecords WHERE record_id = ?";
+        try (Connection con = getConnection()) {
+            String sql = hasClinicalConditionColumn(con) ? sqlWithCondition : sqlLegacy;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, recordId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return mapRecord(rs);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -46,25 +84,32 @@ public class VetMedicalRecordDAO extends DBContext {
     }
 
     public MedicalRecord create(int visitId, int veterinarianId, String diagnosis, String treatment, String note, String clinicalCondition) {
-        String sql = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, visitId);
-            ps.setInt(2, veterinarianId);
-            ps.setString(3, diagnosis);
-            ps.setString(4, treatment);
-            ps.setString(5, note);
-            ps.setString(6, clinicalCondition);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    MedicalRecord r = new MedicalRecord();
-                    r.setRecordId(rs.getInt(1));
-                    r.setVisitId(visitId);
-                    r.setVeterinarianId(veterinarianId);
-                    r.setDiagnosis(diagnosis);
-                    r.setTreatment(treatment);
-                    r.setNote(note);
-                    r.setClinicalCondition(clinicalCondition);
-                    return r;
+        String sqlWithCondition = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+        String sqlLegacy = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, GETDATE())";
+        try (Connection con = getConnection()) {
+            boolean hasCondition = hasClinicalConditionColumn(con);
+            String sql = hasCondition ? sqlWithCondition : sqlLegacy;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, visitId);
+                ps.setInt(2, veterinarianId);
+                ps.setString(3, diagnosis);
+                ps.setString(4, treatment);
+                ps.setString(5, note);
+                if (hasCondition) {
+                    ps.setString(6, clinicalCondition);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        MedicalRecord r = new MedicalRecord();
+                        r.setRecordId(rs.getInt(1));
+                        r.setVisitId(visitId);
+                        r.setVeterinarianId(veterinarianId);
+                        r.setDiagnosis(diagnosis);
+                        r.setTreatment(treatment);
+                        r.setNote(note);
+                        r.setClinicalCondition(clinicalCondition);
+                        return r;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -74,14 +119,23 @@ public class VetMedicalRecordDAO extends DBContext {
     }
 
     public boolean update(int recordId, String diagnosis, String treatment, String note, String clinicalCondition) {
-        String sql = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ?, clinical_condition = ? WHERE record_id = ?";
-        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, diagnosis);
-            ps.setString(2, treatment);
-            ps.setString(3, note);
-            ps.setString(4, clinicalCondition);
-            ps.setInt(5, recordId);
-            return ps.executeUpdate() > 0;
+        String sqlWithCondition = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ?, clinical_condition = ? WHERE record_id = ?";
+        String sqlLegacy = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ? WHERE record_id = ?";
+        try (Connection con = getConnection()) {
+            boolean hasCondition = hasClinicalConditionColumn(con);
+            String sql = hasCondition ? sqlWithCondition : sqlLegacy;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, diagnosis);
+                ps.setString(2, treatment);
+                ps.setString(3, note);
+                if (hasCondition) {
+                    ps.setString(4, clinicalCondition);
+                    ps.setInt(5, recordId);
+                } else {
+                    ps.setInt(4, recordId);
+                }
+                return ps.executeUpdate() > 0;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -440,7 +494,9 @@ public class VetMedicalRecordDAO extends DBContext {
         r.setDiagnosis(rs.getString("diagnosis"));
         r.setTreatment(rs.getString("treatment"));
         r.setNote(rs.getString("note"));
-        r.setClinicalCondition(rs.getString("clinical_condition"));
+        if (hasColumn(rs, "clinical_condition")) {
+            r.setClinicalCondition(rs.getString("clinical_condition"));
+        }
         Timestamp t = rs.getTimestamp("created_at");
         if (t != null) r.setCreatedAt(t.toLocalDateTime());
         return r;
