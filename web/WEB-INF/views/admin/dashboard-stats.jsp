@@ -75,6 +75,10 @@
                             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">medical_services</span>
                             <span class="text-sm font-semibold">Services</span>
                         </a>
+                        <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/content">
+                            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">edit_document</span>
+                            <span class="text-sm font-semibold">Content</span>
+                        </a>
                         <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/images">
                             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">image</span>
                             <span class="text-sm font-semibold">Images</span>
@@ -87,13 +91,18 @@
         <main class="flex-1 flex flex-col overflow-y-auto">
             <header class="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-[#f4ece6] px-8 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-6 flex-1">
-                    <h2 class="text-[#1c130d] dark:text-white text-xl font-bold whitespace-nowrap">Admin Overview</h2>
+                    <h2 class="text-[#1c130d] dark:text-white text-xl font-bold whitespace-nowrap">Owner Overview</h2>
                     <div class="relative w-full max-w-md">
                         <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#9e6b47]">search</span>
                         <input class="w-full bg-[#f4ece6] border-none rounded-full pl-12 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-[#9e6b47]" placeholder="Search pets, owners or records..." type="text"/>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
+                    <a href="${pageContext.request.contextPath}/logout"
+                       class="px-4 py-2 rounded-xl bg-dark-accent text-white text-sm font-bold hover:opacity-90 transition-all flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">logout</span>
+                        <span>Logout</span>
+                    </a>
                     <button class="size-10 rounded-full border border-[#eadbcd] dark:border-gray-800 flex items-center justify-center hover:bg-[#f4ede6] dark:hover:bg-gray-800 transition-colors relative">
                         <span class="material-symbols-outlined text-xl text-[#a17145]">notifications</span>
                     </button>
@@ -128,44 +137,36 @@
                             <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
                                 <span class="material-symbols-outlined">group</span>
                             </div>
-                            <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">+12%</span>
                         </div>
                         <p class="text-[#9e6b47] text-sm font-semibold uppercase tracking-wider">Total Users</p>
                         <h3 class="text-3xl font-extrabold text-[#1c130d] dark:text-white">${totalUsers}</h3>
-                        <p class="text-xs text-[#9e6b47] mt-2 italic">Pet owners registered</p>
                     </div>
                     <div class="bg-white dark:bg-[#2d1e14] p-6 rounded-xl border border-[#e9d9ce] shadow-sm flex flex-col gap-1">
                         <div class="flex justify-between items-start mb-2">
                             <div class="p-2 bg-orange-50 text-primary rounded-lg">
                                 <span class="material-symbols-outlined">event_available</span>
                             </div>
-                            <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">+5%</span>
                         </div>
                         <p class="text-[#9e6b47] text-sm font-semibold uppercase tracking-wider">Total Appointments</p>
                         <h3 class="text-3xl font-extrabold text-[#1c130d] dark:text-white">${totalAppointments}</h3>
-                        <p class="text-xs text-[#9e6b47] mt-2 italic">Scheduled this month</p>
                     </div>
                     <div class="bg-white dark:bg-[#2d1e14] p-6 rounded-xl border border-[#e9d9ce] shadow-sm flex flex-col gap-1">
                         <div class="flex justify-between items-start mb-2">
                             <div class="p-2 bg-purple-50 text-purple-600 rounded-lg">
                                 <span class="material-symbols-outlined">pets</span>
                             </div>
-                            <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">+8%</span>
                         </div>
                         <p class="text-[#9e6b47] text-sm font-semibold uppercase tracking-wider">Total Patients</p>
                         <h3 class="text-3xl font-extrabold text-[#1c130d] dark:text-white">${totalPatients}</h3>
-                        <p class="text-xs text-[#9e6b47] mt-2 italic">Unique animals treated</p>
                     </div>
                     <div class="bg-white dark:bg-[#2d1e14] p-6 rounded-xl border border-[#e9d9ce] shadow-sm flex flex-col gap-1">
                         <div class="flex justify-between items-start mb-2">
                             <div class="p-2 bg-teal-50 text-teal-600 rounded-lg">
                                 <span class="material-symbols-outlined">app_registration</span>
                             </div>
-                            <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">+15%</span>
                         </div>
                         <p class="text-[#9e6b47] text-sm font-semibold uppercase tracking-wider">New Registrations</p>
                         <h3 class="text-3xl font-extrabold text-[#1c130d] dark:text-white">${newRegistrations7Days}</h3>
-                        <p class="text-xs text-[#9e6b47] mt-2 italic">Customer accounts this week</p>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-[#2d1e14] rounded-xl border border-[#e9d9ce] shadow-sm overflow-hidden">

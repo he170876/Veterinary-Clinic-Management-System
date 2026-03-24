@@ -93,12 +93,12 @@ public final class ValidationUtil {
         return address.trim().length() <= ADDRESS_MAX_LENGTH;
     }
 
-    /** Owner or pet name (booking): 1-100 chars, letters and spaces. */
+    /** Owner or pet name (booking): 1-100 chars, Unicode letters with optional spaces/apostrophe/hyphen/dot separators. */
     public static boolean isValidOwnerOrPetName(String name) {
         if (name == null) return false;
         String t = name.trim();
         if (t.isEmpty() || t.length() > OWNER_OR_PET_NAME_MAX_LENGTH) return false;
-        return t.matches("^[a-zA-Z\\s]+$");
+        return t.matches("^[\\p{L}\\p{M}]+(?:[ '\\-.][\\p{L}\\p{M}]+)*$");
     }
 
     /** Generic email format (for guest booking): has @ and dot, max 255. */

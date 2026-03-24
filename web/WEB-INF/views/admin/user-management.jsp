@@ -101,6 +101,10 @@
                 <span class="material-symbols-outlined">medical_services</span>
                 <span class="text-sm font-semibold">Services</span>
             </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/content">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">edit_document</span>
+                <span class="text-sm font-semibold">Content</span>
+            </a>
             <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/images">
                         <span class="material-symbols-outlined">image</span>
                         <span class="text-sm font-semibold">Images</span>
