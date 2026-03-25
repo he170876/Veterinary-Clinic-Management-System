@@ -19,3 +19,28 @@ BEGIN
     UPDATE dbo.MedicalRecords SET clinical_condition = N'follow_up' WHERE clinical_condition IS NULL;
 END
 GO
+
+/* ============================================================
+   treatment -> conclusion (idempotent)
+   ============================================================ */
+IF COL_LENGTH('dbo.MedicalRecords', 'conclusion') IS NULL
+BEGIN
+    ALTER TABLE dbo.MedicalRecords ADD conclusion NVARCHAR(500) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.MedicalRecords', 'treatment') IS NOT NULL
+BEGIN
+    UPDATE dbo.MedicalRecords
+    SET conclusion = CASE
+        WHEN conclusion IS NULL OR LTRIM(RTRIM(conclusion)) = '' THEN treatment
+        ELSE conclusion
+    END;
+END
+GO
+
+IF COL_LENGTH('dbo.MedicalRecords', 'treatment') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.MedicalRecords DROP COLUMN treatment;
+END
+GO

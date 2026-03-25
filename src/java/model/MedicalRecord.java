@@ -13,7 +13,7 @@ public class MedicalRecord {
     private int veterinarianId;
     private String veterinarianName;
     private String diagnosis;
-    private String treatment;
+    private String conclusion;
     private String note;
     /** Mã trạng thái lâm sàng: stable, monitoring, follow_up, urgent, critical */
     private String clinicalCondition;
@@ -25,7 +25,7 @@ public class MedicalRecord {
     }
 
     public MedicalRecord(int recordId, int visitId, Pet pet, int veterinarianId,
-            String veterinarianName, String diagnosis, String treatment,
+            String veterinarianName, String diagnosis, String conclusion,
             String note, LocalDateTime visitDate, String visitStatus) {
         this.recordId = recordId;
         this.visitId = visitId;
@@ -33,7 +33,7 @@ public class MedicalRecord {
         this.veterinarianId = veterinarianId;
         this.veterinarianName = veterinarianName;
         this.diagnosis = diagnosis;
-        this.treatment = treatment;
+        this.conclusion = conclusion;
         this.note = note;
         this.visitDate = visitDate;
         this.visitStatus = visitStatus;
@@ -87,12 +87,12 @@ public class MedicalRecord {
         this.diagnosis = diagnosis;
     }
 
-    public String getTreatment() {
-        return treatment;
+    public String getConclusion() {
+        return conclusion;
     }
 
-    public void setTreatment(String treatment) {
-        this.treatment = treatment;
+    public void setConclusion(String conclusion) {
+        this.conclusion = conclusion;
     }
 
     public String getNote() {
@@ -143,6 +143,7 @@ public class MedicalRecord {
                 ", pet=" + (pet != null ? pet.getName() : "null") +
                 ", veterinarianName='" + veterinarianName + '\'' +
                 ", diagnosis='" + diagnosis + '\'' +
+                ", conclusion='" + conclusion + '\'' +
                 ", visitDate=" + visitDate +
                 '}';
     }

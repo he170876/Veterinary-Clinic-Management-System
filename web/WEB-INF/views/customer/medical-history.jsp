@@ -24,7 +24,7 @@
     request.setAttribute("customerCurrentPage", "medical-history");
     String ctx = request.getContextPath();
     request.setAttribute("customerHeaderTitle", "Medical History");
-    request.setAttribute("customerHeaderSubtitle", "Review treatment, diagnosis, and visit timelines for your pets.");
+    request.setAttribute("customerHeaderSubtitle", "Review conclusion, diagnosis, and visit timelines for your pets.");
     request.setAttribute("customerHeaderDisplayName", user.getFullName() != null ? user.getFullName() : user.getEmail());
     request.setAttribute("customerHeaderRoleText", "Pet Owner");
 %>
@@ -178,8 +178,8 @@
                 ? record.getPet().getName() : "N/A";
         String diagnosis = (record.getDiagnosis() != null && !record.getDiagnosis().trim().isEmpty())
                 ? record.getDiagnosis() : "N/A";
-        String treatment = (record.getTreatment() != null && !record.getTreatment().trim().isEmpty())
-                ? record.getTreatment() : "N/A";
+        String conclusion = (record.getConclusion() != null && !record.getConclusion().trim().isEmpty())
+                ? record.getConclusion() : "N/A";
         String vetName = (record.getVeterinarianName() != null && !record.getVeterinarianName().trim().isEmpty())
                 ? record.getVeterinarianName() : "N/A";
         
@@ -187,8 +187,8 @@
         if (diagnosis.length() > 50) {
             diagnosis = diagnosis.substring(0, 47) + "...";
         }
-        if (treatment.length() > 50) {
-            treatment = treatment.substring(0, 47) + "...";
+        if (conclusion.length() > 50) {
+            conclusion = conclusion.substring(0, 47) + "...";
         }
 %>
 <tr class="hover:bg-[#fcfbf9] dark:hover:bg-[#34281d] transition-colors align-top">
@@ -205,7 +205,7 @@
             <%= diagnosis %>
         </span>
     </td>
-    <td class="px-6 py-4 text-sm text-[#8d755e]"><%= treatment %></td>
+        <td class="px-6 py-4 text-sm text-[#8d755e]"><%= conclusion %></td>
     <td class="px-6 py-4 text-sm text-right">
         <a href="<%= ctx %>/customer/medical-record-detail?id=<%= record.getRecordId() %>" 
            class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg transition-colors text-xs font-medium">

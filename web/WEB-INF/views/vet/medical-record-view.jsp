@@ -211,10 +211,10 @@
                 <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                     <h3 class="text-lg font-bold text-primary mb-4">4. Treatment Plan</h3>
                         <%
-                            String treatment = record != null && record.getTreatment() != null ? record.getTreatment() : "No treatment plan recorded.";
+                            String conclusion = record != null && record.getConclusion() != null ? record.getConclusion() : "No conclusion recorded.";
                         %>
                         <div class="mb-4 p-4 border border-primary/20 bg-primary/5 rounded-lg">
-                            <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line"><%= treatment %></p>
+                            <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line"><%= conclusion %></p>
                         </div>
                         <ul class="divide-y divide-slate-100 dark:divide-slate-900">
                             <%

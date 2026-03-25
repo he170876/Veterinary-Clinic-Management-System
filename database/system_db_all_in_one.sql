@@ -1,15 +1,93 @@
 /*
-    ONE-RUN script for this session
-    Includes:
-    1) add_clinical_condition_medical_records.sql
-    2) services_category_migration.sql
-    3) labtests_simplify_sync.sql (simplify + sync from Services)
-    4) drop_result_value_labtestresults.sql
-    5) services_overview.sql (verification queries)
+    FULL ONE-RUN migration for the whole current system.
+    IMPORTANT:
+    - Run this file in the target database context (select DB first).
+    - Script is idempotent where possible (safe to rerun).
 */
 
 /* ============================================================
-   1) MedicalRecords: add clinical_condition
+   0) Safety check: must run inside a user database
+   ============================================================ */
+IF DB_NAME() IN ('master', 'model', 'msdb', 'tempdb')
+BEGIN
+    RAISERROR('Please select application database first, then run this script.', 16, 1);
+    RETURN;
+END
+GO
+
+/* ============================================================
+   1) Users/Auth migrations
+   ============================================================ */
+IF NOT EXISTS (
+    SELECT 1
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'Users' AND COLUMN_NAME = 'profile_picture_url'
+)
+BEGIN
+    ALTER TABLE dbo.Users ADD profile_picture_url NVARCHAR(500) NULL;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'Users' AND COLUMN_NAME = 'is_google_user'
+)
+BEGIN
+    ALTER TABLE dbo.Users ADD is_google_user BIT NOT NULL CONSTRAINT DF_Users_is_google_user DEFAULT 0;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE object_id = OBJECT_ID('dbo.Users') AND name = 'UQ_Users_Email'
+)
+BEGIN
+    CREATE UNIQUE INDEX UQ_Users_Email ON dbo.Users(email);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PasswordResetTokens' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    CREATE TABLE dbo.PasswordResetTokens (
+        token NVARCHAR(64) NOT NULL PRIMARY KEY,
+        email NVARCHAR(255) NOT NULL,
+        expires_at DATETIME2 NOT NULL,
+        created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE object_id = OBJECT_ID('dbo.PasswordResetTokens') AND name = 'IX_PasswordResetTokens_email'
+)
+BEGIN
+    CREATE INDEX IX_PasswordResetTokens_email ON dbo.PasswordResetTokens(email);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE object_id = OBJECT_ID('dbo.PasswordResetTokens') AND name = 'IX_PasswordResetTokens_expires_at'
+)
+BEGIN
+    CREATE INDEX IX_PasswordResetTokens_expires_at ON dbo.PasswordResetTokens(expires_at);
+END
+GO
+
+/* ============================================================
+   2) Appointment/check-in migrations
+   ============================================================ */
+IF COL_LENGTH('dbo.Appointments', 'arrival_time') IS NULL
+BEGIN
+    ALTER TABLE dbo.Appointments ADD arrival_time DATETIME NULL;
+END
+GO
+
+/* ============================================================
+   3) Medical record migration
    ============================================================ */
 IF NOT EXISTS (
     SELECT 1 FROM sys.columns
@@ -32,7 +110,7 @@ END
 GO
 
 /* ============================================================
-   1.1) MedicalRecords treatment -> conclusion
+   3.1) MedicalRecords treatment -> conclusion
    ============================================================ */
 IF COL_LENGTH('dbo.MedicalRecords', 'conclusion') IS NULL
 BEGIN
@@ -57,9 +135,32 @@ END
 GO
 
 /* ============================================================
-   2) Services normalization
-   - Only categories: labtest/general
-   - Drop Services.duration
+   4) Lab result migrations
+   ============================================================ */
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'LabTestResults' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    ALTER TABLE dbo.LabTestResults ALTER COLUMN result_note NVARCHAR(MAX) NULL;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.LabTestResults') AND name = N'result_file'
+)
+BEGIN
+    ALTER TABLE dbo.LabTestResults ADD result_file NVARCHAR(500) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.LabTestResults', 'result_value') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.LabTestResults DROP COLUMN result_value;
+END
+GO
+
+/* ============================================================
+   5) Services category normalization
    ============================================================ */
 IF COL_LENGTH('dbo.Services', 'category') IS NULL
 BEGIN
@@ -179,65 +280,7 @@ END
 GO
 
 /* ============================================================
-   3) Overview / verification
-   ============================================================ */
-SELECT
-    c.COLUMN_NAME,
-    c.DATA_TYPE,
-    c.CHARACTER_MAXIMUM_LENGTH,
-    c.IS_NULLABLE
-FROM INFORMATION_SCHEMA.COLUMNS c
-WHERE c.TABLE_SCHEMA = 'dbo'
-  AND c.TABLE_NAME = 'Services'
-ORDER BY c.ORDINAL_POSITION;
-GO
-
-SELECT
-    LOWER(LTRIM(RTRIM(COALESCE(category, 'general')))) AS category,
-    COUNT(*) AS total_services,
-    SUM(CASE WHEN is_deleted = 0 THEN 1 ELSE 0 END) AS active_services
-FROM dbo.Services
-GROUP BY LOWER(LTRIM(RTRIM(COALESCE(category, 'general'))))
-ORDER BY category;
-GO
-
-SELECT
-    service_id,
-    name,
-    category,
-    price,
-    description
-FROM dbo.Services
-WHERE is_deleted = 0
-ORDER BY category, name;
-GO
-
-SELECT
-    service_id,
-    name,
-    price
-FROM dbo.Services
-WHERE is_deleted = 0
-  AND LOWER(LTRIM(RTRIM(COALESCE(category, '')))) = 'labtest'
-ORDER BY name;
-GO
-
-SELECT
-    s.service_id,
-    s.name AS service_name,
-    lt.test_id,
-    lt.test_name
-FROM dbo.Services s
-LEFT JOIN dbo.LabTests lt
-  ON LOWER(LTRIM(RTRIM(COALESCE(lt.test_name, ''))))
-   = LOWER(LTRIM(RTRIM(COALESCE(s.name, ''))))
-WHERE s.is_deleted = 0
-  AND LOWER(LTRIM(RTRIM(COALESCE(s.category, '')))) = 'labtest'
-ORDER BY s.name;
-GO
-
-/* ============================================================
-   4) LabTests simplify + sync from Services(category='labtest')
+   6) LabTests simplify + sync from Services(category='labtest')
    ============================================================ */
 IF COL_LENGTH('dbo.LabTests', 'test_name') IS NULL
 BEGIN
@@ -319,22 +362,33 @@ END
 GO
 
 /* ============================================================
-   5) Drop LabTestResults.result_value
+   7) Verification (quick overview)
    ============================================================ */
-IF COL_LENGTH('dbo.LabTestResults', 'result_value') IS NOT NULL
-BEGIN
-    ALTER TABLE dbo.LabTestResults DROP COLUMN result_value;
-END
+SELECT DB_NAME() AS running_database;
 GO
 
-/* ============================================================
-   6) Final overview checks
-   ============================================================ */
-SELECT
-    c.COLUMN_NAME,
-    c.DATA_TYPE,
-    c.CHARACTER_MAXIMUM_LENGTH,
-    c.IS_NULLABLE
+SELECT c.COLUMN_NAME, c.DATA_TYPE, c.IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS c
+WHERE c.TABLE_SCHEMA = 'dbo'
+  AND c.TABLE_NAME = 'Users'
+  AND c.COLUMN_NAME IN ('profile_picture_url', 'is_google_user')
+ORDER BY c.COLUMN_NAME;
+GO
+
+SELECT c.COLUMN_NAME, c.DATA_TYPE, c.CHARACTER_MAXIMUM_LENGTH, c.IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS c
+WHERE c.TABLE_SCHEMA = 'dbo'
+  AND c.TABLE_NAME = 'Services'
+ORDER BY c.ORDINAL_POSITION;
+GO
+
+SELECT LOWER(LTRIM(RTRIM(COALESCE(category, 'general')))) AS category, COUNT(*) AS total_services
+FROM dbo.Services
+GROUP BY LOWER(LTRIM(RTRIM(COALESCE(category, 'general'))))
+ORDER BY category;
+GO
+
+SELECT c.COLUMN_NAME, c.DATA_TYPE, c.IS_NULLABLE
 FROM INFORMATION_SCHEMA.COLUMNS c
 WHERE c.TABLE_SCHEMA = 'dbo'
   AND c.TABLE_NAME = 'LabTests'
@@ -348,3 +402,9 @@ WHERE c.TABLE_SCHEMA = 'dbo'
 ORDER BY c.ORDINAL_POSITION;
 GO
 
+SELECT c.COLUMN_NAME, c.DATA_TYPE, c.IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS c
+WHERE c.TABLE_SCHEMA = 'dbo'
+  AND c.TABLE_NAME = 'MedicalRecords'
+  AND c.COLUMN_NAME = 'clinical_condition';
+GO

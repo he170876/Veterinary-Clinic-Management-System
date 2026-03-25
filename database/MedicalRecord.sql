@@ -1,4 +1,4 @@
-﻿USE VetClinicManagement1;
+USE VetClinicManagement1;
 GO
 
 -- =====================================================================
@@ -109,7 +109,7 @@ BEGIN
         INSERT INTO dbo.MedicalRecords
         (
             visit_id, veterinarian_id,
-            diagnosis, treatment, note, created_at
+            diagnosis, conclusion, note, created_at
         )
         VALUES
         (

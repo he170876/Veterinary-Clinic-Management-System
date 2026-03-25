@@ -293,7 +293,7 @@ CREATE TABLE [dbo].[MedicalRecords](
 	[visit_id] [int] NOT NULL,
 	[veterinarian_id] [int] NOT NULL,
 	[diagnosis] [nvarchar](500) NULL,
-	[treatment] [nvarchar](500) NULL,
+	[conclusion] [nvarchar](500) NULL,
 	[note] [nvarchar](500) NULL,
 	[created_at] [datetime] NULL,
 PRIMARY KEY CLUSTERED 
@@ -903,7 +903,7 @@ WHERE a.status = 'Completed';
 GO
 
 /* ========= MEDICAL RECORDS ========= */
-INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note)
+INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note)
 SELECT v.visit_id, v.veterinarian_id,
        'Routine checkup - healthy',
        'Vaccination booster administered',
@@ -1104,7 +1104,7 @@ BEGIN
     SET @visit1 = SCOPE_IDENTITY();
 
     DECLARE @record1 INT;
-    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note)
+    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note)
     VALUES (@visit1, @vetSarahId,
             'Chronic otitis externa (ear infection), mild flare-up',
             'Clean ear canal, prescribe topical antibiotic drops for 7 days',
@@ -1160,7 +1160,7 @@ BEGIN
     SET @visit2 = SCOPE_IDENTITY();
 
     DECLARE @record2 INT;
-    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note)
+    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note)
     VALUES (@visit2, @vetJamesId,
             'Acute gastroenteritis, likely dietary indiscretion',
             'Prescribe bland diet and antiemetic for 3 days; recheck if no improvement.',
@@ -1464,7 +1464,7 @@ GO
 /* 1) Backfill medical records for completed visits that do not have one yet. */
 IF EXISTS (SELECT 1 FROM dbo.Veterinarians)
 BEGIN
-    INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at)
+    INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note, created_at)
     SELECT
         v.visit_id,
         COALESCE(v.veterinarian_id, (SELECT TOP 1 veterinarian_id FROM dbo.Veterinarians ORDER BY veterinarian_id)),
@@ -1556,7 +1556,7 @@ BEGIN
         );
         SET @fallbackVisitId = SCOPE_IDENTITY();
 
-        INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at)
+        INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note, created_at)
         VALUES (
             @fallbackVisitId,
             @fallbackVetId,
@@ -1656,7 +1656,7 @@ BEGIN
         SET @extraVisitId = SCOPE_IDENTITY();
 
         DECLARE @extraRecordId INT;
-        INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at)
+        INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note, created_at)
         VALUES (
             @extraVisitId,
             @extraVetId,
@@ -1981,7 +1981,7 @@ BEGIN
           SELECT 1 FROM dbo.Visits v WHERE v.appointment_id = a.appointment_id
       );
 
-    INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at)
+    INSERT INTO dbo.MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note, created_at)
     SELECT
         v.visit_id,
         COALESCE(v.veterinarian_id, @FallbackVetId),

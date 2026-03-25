@@ -183,7 +183,7 @@ WHERE a.status = 'Completed';
 GO
 
 /* ========= MEDICAL RECORDS ========= */
-INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note)
+INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note)
 SELECT v.visit_id, v.veterinarian_id,
        'Routine checkup - healthy',
        'Vaccination booster administered',
