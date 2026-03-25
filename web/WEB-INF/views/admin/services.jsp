@@ -381,86 +381,136 @@
                 document.getElementById('editServiceModal').classList.remove('flex');
             }
             
+            function showToast(message, type) {
+                const toast = document.createElement('div');
+                const isSuccess = type === 'success';
+                toast.className = [
+                    'fixed top-5 right-5 z-[9999] min-w-[280px] max-w-sm rounded-xl border px-4 py-3 soft-shadow',
+                    isSuccess
+                        ? 'border-green-200 bg-green-50 text-green-800'
+                        : 'border-red-200 bg-red-50 text-red-800'
+                ].join(' ');
+
+                toast.innerHTML =
+                    '<div class="flex items-start gap-3">'
+                    + '<span class="material-symbols-outlined ' + (isSuccess ? 'text-green-600' : 'text-red-600') + '">'
+                    + (isSuccess ? 'check_circle' : 'error')
+                    + '</span>'
+                    + '<div>'
+                    + '<p class="font-bold">' + (isSuccess ? 'Success' : 'Failed') + '</p>'
+                    + '<p class="text-sm ' + (isSuccess ? 'text-green-700' : 'text-red-700') + '">' + message + '</p>'
+                    + '</div>'
+                    + '</div>';
+
+                document.body.appendChild(toast);
+
+                setTimeout(function () {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.25s ease';
+                    setTimeout(function () {
+                        if (toast && toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 250);
+                }, 2400);
+            }
+
+            async function parseErrorMessage(response, fallbackMessage) {
+                try {
+                    const text = (await response.text()).trim();
+                    return text || fallbackMessage;
+                } catch (e) {
+                    return fallbackMessage;
+                }
+            }
+
             // Form Submissions
-            function submitAddService(event) {
+            async function submitAddService(event) {
                 event.preventDefault();
                 const formData = new FormData(document.getElementById('addServiceForm'));
                 const params = new URLSearchParams(formData);
-                
-                fetch('<%= request.getContextPath() %>/owner/services', {
-                    method: 'POST',
-                    body: params
-                })
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    if (response.status === 302 || response.redirected) {
-                        location.reload();
-                        } else if (response.status === 409) {
-                            alert('Service name already exists. Please use a different name.');
-                            } else if (response.ok) {
-                                location.reload();
-                                } else {
-                                    alert('Error saving service (Status: ' + response.status + ')');
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Fetch error:', error);
-                                alert('Network error: ' + error.message);
-                            });
-                        }
-                        
-                        function submitEditService(event) {
-                            event.preventDefault();
-                            const formData = new FormData(document.getElementById('editServiceForm'));
-                            const params = new URLSearchParams(formData);
-                            
-                            fetch('<%= request.getContextPath() %>/owner/services', {
-                                method: 'POST',
-                                body: params
-                            })
-                            .then(response => {
-                                console.log('Response status:', response.status);
-                                if (response.status === 302 || response.redirected) {
-                                    location.reload();
-                                    } else if (response.ok) {
-                                        location.reload();
-                                        } else {
-                                            alert('Error updating service (Status: ' + response.status + ')');
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Fetch error:', error);
-                                        alert('Network error: ' + error.message);
-                                    });
-                                }
-                                
-                                // Delete Service
-                                function deleteService(id) {
-                                    if (confirm('Are you sure you want to delete this service?')) {
-                                        const params = new URLSearchParams();
-                                        params.append('action', 'delete');
-                                        params.append('serviceId', id);
-                                        
-                                        fetch('<%= request.getContextPath() %>/owner/services', {
-                                            method: 'POST',
-                                            body: params
-                                        })
-                                        .then(response => {
-                                            console.log('Delete response status:', response.status);
-                                            if (response.status === 302 || response.redirected) {
-                                                location.reload();
-                                                } else if (response.ok) {
-                                                    location.reload();
-                                                    } else {
-                                                        alert('Error deleting service');
-                                                    }
-                                                })
-                                                .catch(error => {
-                                                    console.error('Fetch error:', error);
-                                                    alert('Network error: ' + error.message);
-                                                });
-                                            }
-                                        }
+
+                try {
+                    const response = await fetch('<%= request.getContextPath() %>/owner/services', {
+                        method: 'POST',
+                        body: params
+                    });
+
+                    if (response.redirected || response.ok) {
+                        closeAddModal();
+                        showToast('Service created successfully.', 'success');
+                        setTimeout(function () {
+                            location.reload();
+                        }, 700);
+                        return;
+                    }
+
+                    const errorMessage = response.status === 409
+                        ? 'Service name already exists. Please use a different name.'
+                        : await parseErrorMessage(response, 'Error saving service.');
+                    showToast(errorMessage, 'error');
+                } catch (error) {
+                    showToast('Network error: ' + error.message, 'error');
+                }
+            }
+
+            async function submitEditService(event) {
+                event.preventDefault();
+                const formData = new FormData(document.getElementById('editServiceForm'));
+                const params = new URLSearchParams(formData);
+
+                try {
+                    const response = await fetch('<%= request.getContextPath() %>/owner/services', {
+                        method: 'POST',
+                        body: params
+                    });
+
+                    if (response.redirected || response.ok) {
+                        closeEditModal();
+                        showToast('Service updated successfully.', 'success');
+                        setTimeout(function () {
+                            location.reload();
+                        }, 700);
+                        return;
+                    }
+
+                    const errorMessage = await parseErrorMessage(response, 'Error updating service.');
+                    showToast(errorMessage, 'error');
+                } catch (error) {
+                    showToast('Network error: ' + error.message, 'error');
+                }
+            }
+
+            // Delete Service
+            async function deleteService(id) {
+                if (!confirm('Are you sure you want to delete this service?')) {
+                    return;
+                }
+
+                const params = new URLSearchParams();
+                params.append('action', 'delete');
+                params.append('serviceId', id);
+
+                try {
+                    const response = await fetch('<%= request.getContextPath() %>/owner/services', {
+                        method: 'POST',
+                        body: params
+                    });
+
+                    if (response.redirected || response.ok) {
+                        showToast('Service deleted successfully.', 'success');
+                        setTimeout(function () {
+                            location.reload();
+                        }, 700);
+                        return;
+                    }
+
+                    const errorMessage = await parseErrorMessage(response, 'Error deleting service.');
+                    showToast(errorMessage, 'error');
+                } catch (error) {
+                    showToast('Network error: ' + error.message, 'error');
+                }
+            }
                                         
                                         // Search/Filter Services
                                         function filterServices() {

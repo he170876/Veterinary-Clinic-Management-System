@@ -268,127 +268,189 @@
         </div>
 
         <script>
-            function openAddImageModal() {
-                document.getElementById('modalTitle').textContent = 'Add New Image';
-                document.getElementById('formAction').value = 'create';
-                document.getElementById('imageFile').required = true;
-                document.getElementById('imageForm').reset();
-                document.getElementById('imageId').value = '';
-                document.getElementById('imageModal').classList.remove('hidden');
+            function showToast(message, type) {
+                const toast = document.createElement('div');
+                const isSuccess = type === 'success';
+                toast.className = [
+                'fixed top-5 right-5 z-[9999] min-w-[280px] max-w-sm rounded-xl border px-4 py-3 soft-shadow',
+                isSuccess
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-red-200 bg-red-50 text-red-800'
+                ].join(' ');
+                
+                toast.innerHTML =
+                '<div class="flex items-start gap-3">'
+                + '<span class="material-symbols-outlined ' + (isSuccess ? 'text-green-600' : 'text-red-600') + '">'
+                + (isSuccess ? 'check_circle' : 'error')
+                + '</span>'
+                + '<div>'
+                + '<p class="font-bold">' + (isSuccess ? 'Success' : 'Failed') + '</p>'
+                + '<p class="text-sm ' + (isSuccess ? 'text-green-700' : 'text-red-700') + '">' + message + '</p>'
+                + '</div>'
+                + '</div>';
+                
+                document.body.appendChild(toast);
+                setTimeout(function () {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.25s ease';
+                    setTimeout(function () {
+                        if (toast && toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 250);
+                }, 2400);
             }
             
-            function openEditImageModal(imageId) {
-                // Get image data from the card element
-                const card = document.querySelector('[data-image-id="' + imageId + '"]');
-                if (!card) {
-                    alert('Image not found');
-                    return;
+            async function parseErrorMessage(response, fallbackMessage) {
+                try {
+                    const text = (await response.text()).trim();
+                    return text || fallbackMessage;
+                    } catch (e) {
+                        return fallbackMessage;
+                    }
                 }
                 
-                document.getElementById('modalTitle').textContent = 'Edit Image';
-                document.getElementById('formAction').value = 'update';
-                document.getElementById('imageFile').required = false;
-                document.getElementById('imageId').value = card.dataset.imageId;
-                document.getElementById('title').value = card.dataset.imageTitle;
-                document.getElementById('altText').value = card.dataset.imageAlt;
-                document.getElementById('section').value = card.dataset.imageSection;
-                document.getElementById('sortOrder').value = card.dataset.imageSort;
-                document.getElementById('imageFile').value = '';
-                document.getElementById('imageModal').classList.remove('hidden');
-            }
-            
-            function closeImageModal() {
-                document.getElementById('imageModal').classList.add('hidden');
-            }
-            
-            function deleteImage(imageId) {
-                if (confirm('Are you sure you want to delete this image?')) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '${pageContext.request.contextPath}/owner/images/delete/' + imageId;
-                    document.body.appendChild(form);
-                    form.submit();
+                function openAddImageModal() {
+                    document.getElementById('modalTitle').textContent = 'Add New Image';
+                    document.getElementById('formAction').value = 'create';
+                    document.getElementById('imageFile').required = true;
+                    document.getElementById('imageForm').reset();
+                    document.getElementById('imageId').value = '';
+                    document.getElementById('imageModal').classList.remove('hidden');
                 }
-            }
-            
-            function filterImages() {
-                const searchInput = document.getElementById('searchInput').value.toLowerCase();
-                const sections = document.querySelectorAll('.section-group');
                 
-                sections.forEach(section => {
-                    const cards = section.querySelectorAll('.image-card');
-                    let hasVisibleCards = false;
-                    
-                    cards.forEach(card => {
-                        const title = card.dataset.imageTitle.toLowerCase();
-                        const sectionName = card.dataset.imageSection.toLowerCase();
-                        
-                        if (title.includes(searchInput) || sectionName.includes(searchInput)) {
-                            card.style.display = '';
-                            hasVisibleCards = true;
-                            } else {
-                                card.style.display = 'none';
-                            }
-                        });
-                        
-                        if (hasVisibleCards) {
-                            section.style.display = '';
-                            } else {
-                                section.style.display = 'none';
-                            }
-                        });
+                function openEditImageModal(imageId) {
+                    const card = document.querySelector('[data-image-id="' + imageId + '"]');
+                    if (!card) {
+                        showToast('Image not found.', 'error');
+                        return;
                     }
                     
-                    // Close modal when clicking outside
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const imageModal = document.getElementById('imageModal');
-                        if (imageModal) {
-                            imageModal.addEventListener('click', function(e) {
-                                if (e.target === this) {
-                                    closeImageModal();
-                                }
-                            });
-                        }
-                        
-                        // Handle form submission
-                        const imageForm = document.getElementById('imageForm');
-                        if (imageForm) {
-                            imageForm.addEventListener('submit', function(e) {
-                                // Validate file on create
-                                const action = document.getElementById('formAction').value;
-                                const fileInput = document.getElementById('imageFile');
-                                
-                                if (action === 'create' && (!fileInput.files || fileInput.files.length === 0)) {
-                                    e.preventDefault();
-                                    alert('Please select an image file');
-                                    return;
-                                }
-                            });
-                        }
-                        
-                        // Calculate and display total image count
-                        const imageCountEl = document.getElementById('imageCount');
-                        if (imageCountEl) {
-                            imageCountEl.textContent = document.querySelectorAll('.image-card').length;
-                        }
-                    });
-                </script>
-
-                <script>
-                    (function () {
-                        var toggle = document.getElementById('admin-profile-toggle');
-                        var menu = document.getElementById('admin-profile-menu');
-                        if (!toggle || !menu) return;
-                        toggle.addEventListener('click', function (e) {
-                            e.stopPropagation();
-                            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+                    document.getElementById('modalTitle').textContent = 'Edit Image';
+                    document.getElementById('formAction').value = 'update';
+                    document.getElementById('imageFile').required = false;
+                    document.getElementById('imageId').value = card.dataset.imageId;
+                    document.getElementById('title').value = card.dataset.imageTitle;
+                    document.getElementById('altText').value = card.dataset.imageAlt;
+                    document.getElementById('section').value = card.dataset.imageSection;
+                    document.getElementById('sortOrder').value = card.dataset.imageSort;
+                    document.getElementById('imageFile').value = '';
+                    document.getElementById('imageModal').classList.remove('hidden');
+                }
+                
+                function closeImageModal() {
+                    document.getElementById('imageModal').classList.add('hidden');
+                }
+                
+                async function submitImageForm(event) {
+                    event.preventDefault();
+                    
+                    const form = document.getElementById('imageForm');
+                    const action = document.getElementById('formAction').value;
+                    const fileInput = document.getElementById('imageFile');
+                    
+                    if (action === 'create' && (!fileInput.files || fileInput.files.length === 0)) {
+                        showToast('Please select an image file.', 'error');
+                        return;
+                    }
+                    
+                    const formData = new FormData(form);
+                    
+                    try {
+                        const response = await fetch('${pageContext.request.contextPath}/owner/images', {
+                            method: 'POST',
+                            body: formData
                         });
-                        document.addEventListener('click', function (e) {
-                            if (!menu.contains(e.target) && !toggle.contains(e.target)) {
-                                menu.style.display = 'none';
+                        
+                        if (response.redirected || response.ok) {
+                            closeImageModal();
+                            showToast(action === 'create' ? 'Image created successfully.' : 'Image updated successfully.', 'success');
+                            setTimeout(function () {
+                                location.reload();
+                            }, 700);
+                            return;
+                        }
+                        
+                        const errorMessage = await parseErrorMessage(response, action === 'create' ? 'Failed to create image.' : 'Failed to update image.');
+                        showToast(errorMessage, 'error');
+                        } catch (error) {
+                            showToast('Network error: ' + error.message, 'error');
+                        }
+                    }
+                    
+                    async function deleteImage(imageId) {
+                        if (!confirm('Are you sure you want to delete this image?')) {
+                            return;
+                        }
+                        
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/owner/images/delete/' + imageId, {
+                                method: 'POST'
+                            });
+                            
+                            if (response.redirected || response.ok) {
+                                showToast('Image deleted successfully.', 'success');
+                                setTimeout(function () {
+                                    location.reload();
+                                }, 700);
+                                return;
                             }
-                        });
-                    })();
-                </script>
-            </body>
-        </html>
+                            
+                            const errorMessage = await parseErrorMessage(response, 'Failed to delete image.');
+                            showToast(errorMessage, 'error');
+                            } catch (error) {
+                                showToast('Network error: ' + error.message, 'error');
+                            }
+                        }
+                        
+                        function filterImages() {
+                            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+                            const sections = document.querySelectorAll('.section-group');
+                            
+                            sections.forEach(section => {
+                                const cards = section.querySelectorAll('.image-card');
+                                let hasVisibleCards = false;
+                                
+                                cards.forEach(card => {
+                                    const title = card.dataset.imageTitle.toLowerCase();
+                                    const sectionName = card.dataset.imageSection.toLowerCase();
+                                    
+                                    if (title.includes(searchInput) || sectionName.includes(searchInput)) {
+                                        card.style.display = '';
+                                        hasVisibleCards = true;
+                                        } else {
+                                            card.style.display = 'none';
+                                        }
+                                    });
+                                    
+                                    if (hasVisibleCards) {
+                                        section.style.display = '';
+                                        } else {
+                                            section.style.display = 'none';
+                                        }
+                                    });
+                                }
+                                
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const imageModal = document.getElementById('imageModal');
+                                    if (imageModal) {
+                                        imageModal.addEventListener('click', function(e) {
+                                            if (e.target === this) {
+                                                closeImageModal();
+                                            }
+                                        });
+                                    }
+                                    
+                                    const imageForm = document.getElementById('imageForm');
+                                    if (imageForm) {
+                                        imageForm.addEventListener('submit', submitImageForm);
+                                    }
+                                    
+                                    const imageCountEl = document.getElementById('imageCount');
+                                    if (imageCountEl) {
+                                        imageCountEl.textContent = document.querySelectorAll('.image-card').length;
+                                    }
+                                });
+                            </script>
+                        </body>
+                    </html>

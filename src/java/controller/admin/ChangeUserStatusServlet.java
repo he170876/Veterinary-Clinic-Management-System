@@ -8,6 +8,8 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import model.User;
 
 @WebServlet(name = "ChangeUserStatusServlet", urlPatterns = {"/admin/change-user-status"})
 public class ChangeUserStatusServlet extends HttpServlet {
@@ -17,6 +19,19 @@ public class ChangeUserStatusServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("currentUser") == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+
+        User currentUser = (User) session.getAttribute("currentUser");
+        String actorRole = normalizeRole(currentUser);
+        if (!("admin".equals(actorRole) || "clinicowner".equals(actorRole) || "clinic owner".equals(actorRole))) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+            return;
+        }
 
         /* ===== USER UPDATE PARAM ===== */
         String idRaw = request.getParameter("id");
@@ -32,6 +47,11 @@ public class ChangeUserStatusServlet extends HttpServlet {
             userId = Integer.parseInt(idRaw);
         } catch (NumberFormatException e) {
             response.sendRedirect("user-management");
+            return;
+        }
+
+        if (("clinicowner".equals(actorRole) || "clinic owner".equals(actorRole)) && isCustomer(userId)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Clinic owner cannot edit customer accounts");
             return;
         }
 
@@ -66,6 +86,19 @@ public class ChangeUserStatusServlet extends HttpServlet {
 
     private String encode(String value) {
         return value.replace(" ", "%20");
+    }
+
+    private String normalizeRole(User user) {
+        if (user == null || user.getRole() == null || user.getRole().getRoleName() == null) {
+            return "";
+        }
+        return user.getRole().getRoleName().trim().toLowerCase();
+    }
+
+    private boolean isCustomer(int userId) {
+        return userDAO.findById(userId)
+                .map(u -> u.getRole() != null && "customer".equalsIgnoreCase(u.getRole().getRoleName()))
+                .orElse(false);
     }
 
 }
