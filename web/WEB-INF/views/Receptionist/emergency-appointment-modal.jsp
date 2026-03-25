@@ -1,6 +1,6 @@
 <%--
   Emergency Appointment modal for receptionist (Dashboard & ViewListAppointment).
-  Fields: Owner Name, Phone Number, Pet Name (input or dropdown from lookup), Pet Type.
+  Fields: Phone Number, Owner Name (locked on lookup), Pet (dropdown incl. new pet), Pet Type (locked on existing pet).
   Same phone lookup as Book Appointment. Creates type=Emergency, status=Checked-In, service_id=null, today's date, time_slot from current time.
 --%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
@@ -20,22 +20,28 @@
         <div class="p-6">
             <form id="emergencyAppointmentForm" class="space-y-4">
                 <div>
-                    <label for="em_ownerName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Name *</label>
-                    <input type="text" id="em_ownerName" name="ownerName" placeholder="Enter full name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
-                </div>
-                <div>
                     <label for="em_phone" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone Number *</label>
                     <input type="tel" id="em_phone" name="phone" placeholder="0123456789 (10 digits, start with 0)" pattern="0[0-9]{9}" maxlength="10" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
                     <p id="em_phoneStatus" class="text-xs mt-1 text-slate-500 hidden"></p>
                 </div>
+                <div>
+                    <label for="em_ownerName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Name *</label>
+                    <input type="text" id="em_ownerName" name="ownerName" placeholder="Enter full name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
+                </div>
                 <div id="em_petNameWrapper">
-                    <label for="em_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>
-                    <input type="text" id="em_petName" name="petName" placeholder="Your pet's name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
+                    <label for="em_petSelect" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet *</label>
+                    <select id="em_petSelect" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>
+                        <option value="__new__">Add a new pet</option>
+                    </select>
+                    <div id="em_newPetFields" class="mt-3">
+                        <label for="em_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>
+                        <input type="text" id="em_petName" name="petName" placeholder="Your pet's name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
+                    </div>
                     <input type="hidden" id="em_petId" name="petId" value=""/>
                 </div>
                 <div>
                     <label for="em_petType" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Type *</label>
-                    <select id="em_petType" name="petType" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20">
+                    <select id="em_petType" name="petType" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>
                         <option value="">Select pet type</option>
                         <option value="Dog">Dog</option>
                         <option value="Cat">Cat</option>
@@ -63,11 +69,14 @@
     var modal = document.getElementById('emergencyAppointmentModal');
     var phoneInput = document.getElementById('em_phone');
     var ownerInput = document.getElementById('em_ownerName');
-    var petNameWrapper = document.getElementById('em_petNameWrapper');
+    var petSelect = document.getElementById('em_petSelect');
+    var newPetFields = document.getElementById('em_newPetFields');
+    var petNameInput = document.getElementById('em_petName');
     var bookPetId = document.getElementById('em_petId');
     var petTypeSelect = document.getElementById('em_petType');
     var phoneStatus = document.getElementById('em_phoneStatus');
     var form = document.getElementById('emergencyAppointmentForm');
+    var NEW_PET_VALUE = '__new__';
 
     var petTypeValues = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other'];
     function matchPetType(dbSpecies) {
@@ -78,52 +87,87 @@
         }
         return 'Other';
     }
-    function setPetTypeFromPet(disabled, value) {
-        var pt = document.getElementById('em_petType');
-        if (!pt) return;
-        if (disabled) {
-            var v = matchPetType(value);
-            pt.value = v || '';
-            pt.disabled = true;
-            pt.classList.add('bg-slate-100', 'dark:bg-slate-700');
+    function setPetTypeFromSpecies(species, locked) {
+        if (!petTypeSelect) return;
+        if (locked) {
+            var v = matchPetType(species);
+            petTypeSelect.value = v || '';
+            petTypeSelect.disabled = true;
+            petTypeSelect.classList.add('bg-slate-100', 'dark:bg-slate-700');
         } else {
-            pt.value = '';
-            pt.disabled = false;
-            pt.classList.remove('bg-slate-100', 'dark:bg-slate-700');
+            petTypeSelect.value = '';
+            petTypeSelect.disabled = false;
+            petTypeSelect.classList.remove('bg-slate-100', 'dark:bg-slate-700');
         }
     }
-    function switchToPetDropdown(pets) {
-        setPetTypeFromPet(false, '');
-        var html = '<label for="em_petSelect" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
-        html += '<select id="em_petSelect" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>';
-        html += '<option value="" data-species="">Choose a pet</option>';
-        for (var i = 0; i < pets.length; i++) {
-            var species = (pets[i].species != null && pets[i].species !== undefined) ? String(pets[i].species) : '';
-            html += '<option value="' + pets[i].petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (pets[i].name || '') + '</option>';
+
+    function setPetUIFromSelection() {
+        if (!petSelect) return;
+        var value = petSelect.value;
+        var isNewPet = !value || value === NEW_PET_VALUE;
+
+        if (bookPetId) bookPetId.value = isNewPet ? '' : value;
+
+        if (newPetFields) {
+            if (isNewPet) newPetFields.classList.remove('hidden');
+            else newPetFields.classList.add('hidden');
         }
-        html += '</select>';
-        petNameWrapper.innerHTML = html;
-        petNameWrapper.appendChild(bookPetId);
-        bookPetId.name = 'petId';
-        bookPetId.value = '';
-        var sel = document.getElementById('em_petSelect');
-        if (sel) {
-            sel.addEventListener('change', function() {
-                bookPetId.value = this.value;
-                var opt = this.options[this.selectedIndex];
-                var species = opt ? (opt.getAttribute('data-species') || '') : '';
-                setPetTypeFromPet(!!this.value, species);
-            });
+
+        if (petNameInput) {
+            petNameInput.disabled = !isNewPet;
+            petNameInput.required = isNewPet;
+        }
+
+        if (!isNewPet) {
+            var opt = petSelect.options[petSelect.selectedIndex];
+            var species = opt ? (opt.getAttribute('data-species') || '') : '';
+            setPetTypeFromSpecies(species, true);
+        } else {
+            setPetTypeFromSpecies('', false);
         }
     }
-    function switchToPetTextInput() {
-        setPetTypeFromPet(false, '');
-        var html = '<label for="em_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
-        html += '<input type="text" id="em_petName" name="petName" placeholder="Your pet\'s name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>';
-        petNameWrapper.innerHTML = html;
-        petNameWrapper.appendChild(bookPetId);
-        bookPetId.value = '';
-        bookPetId.name = 'petId';
+
+    function renderPetSelectOptions(pets) {
+        if (!petSelect) return;
+
+        var html = '';
+        if (pets && pets.length > 0) {
+            for (var i = 0; i < pets.length; i++) {
+                var p = pets[i] || {};
+                var species = p.species != null ? String(p.species) : '';
+                html += '<option value="' + p.petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (p.name || '') + '</option>';
+            }
+        }
+        html += '<option value="' + NEW_PET_VALUE + '">Add a new pet</option>';
+
+        petSelect.innerHTML = html;
+        if (pets && pets.length > 0) {
+            petSelect.value = String(pets[0].petId);
+        } else {
+            petSelect.value = NEW_PET_VALUE;
+        }
+
+        setPetUIFromSelection();
+    }
+
+    function setOwnerNameLocked(locked, fullName) {
+        if (!ownerInput) return;
+        if (locked) {
+            ownerInput.value = fullName || '';
+            ownerInput.readOnly = true;
+            ownerInput.classList.remove('bg-slate-50', 'dark:bg-slate-800');
+            ownerInput.classList.add('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+        } else {
+            ownerInput.readOnly = false;
+            ownerInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+            ownerInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+        }
+    }
+
+    if (petSelect) {
+        petSelect.addEventListener('change', function() {
+            setPetUIFromSelection();
+        });
     }
 
     var lookupTimeout;
@@ -134,7 +178,8 @@
             phoneStatus.textContent = '';
         }
         if (phone.length < 10) {
-            switchToPetTextInput();
+            setOwnerNameLocked(false);
+            renderPetSelectOptions([]);
             return;
         }
         clearTimeout(lookupTimeout);
@@ -147,16 +192,13 @@
                         if (data.found) {
                             phoneStatus.textContent = 'Customer found. Select pet below.';
                             phoneStatus.className = 'text-xs mt-1 text-green-600 dark:text-green-400';
-                            if (ownerInput) ownerInput.value = data.customer.fullName || '';
-                            if (data.pets && data.pets.length > 0) {
-                                switchToPetDropdown(data.pets);
-                            } else {
-                                switchToPetTextInput();
-                            }
+                            setOwnerNameLocked(true, data.customer.fullName || '');
+                            renderPetSelectOptions(data.pets || []);
                         } else {
                             phoneStatus.textContent = 'New customer. Enter pet details.';
                             phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
-                            switchToPetTextInput();
+                            setOwnerNameLocked(false);
+                            renderPetSelectOptions([]);
                         }
                     }
                 })
@@ -166,7 +208,8 @@
                         phoneStatus.textContent = 'Could not lookup. Enter details manually.';
                         phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
                     }
-                    switchToPetTextInput();
+                    setOwnerNameLocked(false);
+                    renderPetSelectOptions([]);
                 });
         }, 400);
     }
@@ -181,6 +224,34 @@
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             document.body.style.overflow = 'hidden';
+
+            // Reset state when opening modal
+            if (phoneInput) phoneInput.value = '';
+            if (phoneStatus) {
+                phoneStatus.classList.add('hidden');
+                phoneStatus.textContent = '';
+            }
+            if (ownerInput) {
+                ownerInput.readOnly = false;
+                ownerInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                ownerInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+                ownerInput.value = '';
+            }
+            if (bookPetId) bookPetId.value = '';
+            if (petSelect) {
+                petSelect.innerHTML = '<option value="' + NEW_PET_VALUE + '">Add a new pet</option>';
+                petSelect.value = NEW_PET_VALUE;
+            }
+            if (newPetFields) newPetFields.classList.remove('hidden');
+            if (petNameInput) {
+                petNameInput.disabled = false;
+                petNameInput.required = true;
+            }
+            if (petTypeSelect) {
+                petTypeSelect.disabled = false;
+                petTypeSelect.classList.remove('bg-slate-100', 'dark:bg-slate-700');
+                petTypeSelect.value = '';
+            }
         }
     }
     function hideModal() {
@@ -200,11 +271,10 @@
             e.preventDefault();
             var bookPetIdEl = document.getElementById('em_petId');
             var petSelect = document.getElementById('em_petSelect');
-            var petNameEl = document.getElementById('em_petName');
-            if (petSelect && petSelect.value && bookPetIdEl) {
-                bookPetIdEl.value = petSelect.value;
-            } else if (petNameEl && bookPetIdEl) {
-                bookPetIdEl.value = '';
+            if (petSelect && bookPetIdEl) {
+                bookPetIdEl.value = (petSelect.value && petSelect.value !== NEW_PET_VALUE)
+                    ? petSelect.value
+                    : '';
             }
             var fd = new FormData(form);
             fetch(ctx + '/Receptionist/EmergencyAppointment', {

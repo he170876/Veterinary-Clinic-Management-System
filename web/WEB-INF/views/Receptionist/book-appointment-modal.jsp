@@ -18,8 +18,9 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
             <form id="receptionistBookForm" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="book_ownerName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Name *</label>
-                        <input type="text" id="book_ownerName" name="ownerName" placeholder="Enter full name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
+                        <label for="book_phone" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone Number *</label>
+                        <input type="tel" id="book_phone" name="phone" placeholder="0123456789 (10 digits, start with 0)" pattern="0[0-9]{9}" maxlength="10" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
+                        <p id="book_phoneStatus" class="text-xs mt-1 text-slate-500 hidden"></p>
                     </div>
                     <div>
                         <label for="book_email" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address *</label>
@@ -28,23 +29,22 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="book_phone" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone Number *</label>
-                        <input type="tel" id="book_phone" name="phone" placeholder="0123456789 (10 digits, start with 0)" pattern="0[0-9]{9}" maxlength="10" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
-                        <p id="book_phoneStatus" class="text-xs mt-1 text-slate-500 hidden"></p>
+                        <label for="book_ownerName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Name *</label>
+                        <input type="text" id="book_ownerName" name="ownerName" placeholder="Enter full name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Select Service(s) *</label>
                         <div class="relative" id="book_serviceDropdownWrap">
-                            <button type="button" id="book_serviceDropdownBtn" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 text-left flex items-center justify-between">
-                                <span id="book_serviceDropdownText">Choose service(s)</span>
-                                <span>▾</span>
+                            <button type="button" id="book_serviceDropdownBtn" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 text-left flex items-center justify-between text-sm font-semibold">
+                                <span id="book_serviceDropdownText" class="text-sm font-semibold">Choose service(s)</span>
+                                <span class="material-symbols-outlined text-sm leading-none">expand_more</span>
                             </button>
                             <div id="book_serviceDropdown" class="hidden absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-20 p-2">
                                 <c:if test="${not empty services}">
                                     <c:forEach var="sv" items="${services}">
-                                        <label class="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                                        <label class="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-sm font-medium text-slate-800 dark:text-slate-200">
                                             <input type="checkbox" name="serviceIds" value="${sv.serviceId}" class="book-service-checkbox"/>
-                                            <span>${sv.name}</span>
+                                            <span class="leading-tight">${sv.name}</span>
                                         </label>
                                     </c:forEach>
                                 </c:if>
@@ -54,13 +54,19 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div id="book_petNameWrapper">
-                        <label for="book_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>
-                        <input type="text" id="book_petName" name="petName" placeholder="Your pet's name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
+                        <label for="book_petSelect" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet *</label>
+                        <select id="book_petSelect" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>
+                            <option value="__new__">Add a new pet</option>
+                        </select>
+                        <div id="book_newPetFields" class="mt-3">
+                            <label for="book_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>
+                            <input type="text" id="book_petName" name="petName" placeholder="Your pet's name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
+                        </div>
                         <input type="hidden" id="book_petId" name="petId" value=""/>
                     </div>
                     <div>
                         <label for="book_petType" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Type *</label>
-                        <select id="book_petType" name="petType" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20">
+                        <select id="book_petType" name="petType" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>
                             <option value="">Select pet type</option>
                             <option value="Dog">Dog</option>
                             <option value="Cat">Cat</option>
@@ -85,8 +91,7 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                     </div>
                 </div>
                 <div>
-                    <label for="book_notes" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Additional Notes</label>
-                    <textarea id="book_notes" name="notes" rows="4" placeholder="How can we help your pet today?" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 resize-none min-h-[100px] max-h-[100px]"></textarea>
+                    <textarea id="book_notes" name="notes" rows="4" placeholder="" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 resize-none min-h-[100px] max-h-[100px]"></textarea>
                 </div>
                 <button type="submit" class="w-full py-3 rounded-xl bg-primary text-white font-semibold hover:opacity-90 transition-opacity">
                     Confirm Booking
@@ -110,11 +115,14 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
         var ownerInput = document.getElementById('book_ownerName');
         var emailInput = document.getElementById('book_email');
         var petNameWrapper = document.getElementById('book_petNameWrapper');
+        var petSelect = document.getElementById('book_petSelect');
+        var newPetFields = document.getElementById('book_newPetFields');
         var petNameInput = document.getElementById('book_petName');
         var bookPetId = document.getElementById('book_petId');
         var petTypeSelect = document.getElementById('book_petType');
         var phoneStatus = document.getElementById('book_phoneStatus');
         var form = document.getElementById('receptionistBookForm');
+        var NEW_PET_VALUE = '__new__';
         var serviceDropdownBtn = document.getElementById('book_serviceDropdownBtn');
         var serviceDropdown = document.getElementById('book_serviceDropdown');
         var serviceDropdownText = document.getElementById('book_serviceDropdownText');
@@ -133,14 +141,38 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
             var selectedDate = dateEl.value;
             var now = new Date();
             var hour = now.getHours();
+            var minutes = now.getMinutes();
+            // Time constants for booking rules (same-day only)
+            var NOON_HOUR_24 = 12; // 12:00
+            var EVENING_CUTOFF_HOUR_12 = 8; // 8PM
+            var EVENING_CUTOFF_HOUR_24 = 12 + EVENING_CUTOFF_HOUR_12; // 20:00
+            var currentTotalMinutes = hour * 60 + minutes;
+            var noonTotalMinutes = NOON_HOUR_24 * 60;
+            var cutoffTotalMinutes = EVENING_CUTOFF_HOUR_24 * 60;
             var amOpt = slotEl.querySelector('option[value="AM"]');
             var pmOpt = slotEl.querySelector('option[value="PM"]');
             if (amOpt) amOpt.disabled = false;
             if (pmOpt) pmOpt.disabled = false;
-            if (isToday(selectedDate) && hour >= 12) {
+
+            if (isToday(selectedDate)) {
+                // Disable AM after 12:00
                 if (amOpt) {
-                    amOpt.disabled = true;
-                    if (slotEl.value === 'AM') slotEl.value = 'PM';
+                    amOpt.disabled = currentTotalMinutes > noonTotalMinutes;
+                }
+
+                // Disable PM after 8:00 PM
+                if (pmOpt) {
+                    pmOpt.disabled = currentTotalMinutes > cutoffTotalMinutes;
+                }
+
+                // Ensure selected value is still enabled
+                if (slotEl.value === 'AM' && amOpt && amOpt.disabled) {
+                    if (pmOpt && !pmOpt.disabled) slotEl.value = 'PM';
+                    else slotEl.value = '';
+                }
+                if (slotEl.value === 'PM' && pmOpt && pmOpt.disabled) {
+                    if (amOpt && !amOpt.disabled) slotEl.value = 'AM';
+                    else slotEl.value = '';
                 }
             }
         }
@@ -149,6 +181,41 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
                 document.body.style.overflow = 'hidden';
+
+                // Reset state (so readOnly/disabled flags from lookup won't persist)
+                if (phoneInput) phoneInput.value = '';
+                if (phoneStatus) {
+                    phoneStatus.classList.add('hidden');
+                    phoneStatus.textContent = '';
+                }
+                if (ownerInput) {
+                    ownerInput.readOnly = false;
+                    ownerInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                    ownerInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+                    ownerInput.value = '';
+                }
+                if (emailInput) {
+                    emailInput.readOnly = false;
+                    emailInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                    emailInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+                    emailInput.value = '';
+                }
+                if (bookPetId) bookPetId.value = '';
+                if (petSelect) {
+                    petSelect.innerHTML = '<option value="' + NEW_PET_VALUE + '">Add a new pet</option>';
+                    petSelect.value = NEW_PET_VALUE;
+                }
+                if (newPetFields) newPetFields.classList.remove('hidden');
+                if (petNameInput) {
+                    petNameInput.disabled = false;
+                    petNameInput.required = true;
+                }
+                if (petTypeSelect) {
+                    petTypeSelect.disabled = false;
+                    petTypeSelect.classList.remove('bg-slate-100', 'dark:bg-slate-700');
+                    petTypeSelect.value = '';
+                }
+
                 var today = getTodayLocal();
                 var dateEl = document.getElementById('book_appointmentDate');
                 if (dateEl) {
@@ -202,54 +269,102 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
             }
             return 'Other';
         }
-        function setPetTypeFromPet(disabled, value) {
-            var pt = document.getElementById('book_petType');
-            if (!pt) return;
-            if (disabled) {
-                var v = matchPetType(value);
-                pt.value = v || '';
-                pt.disabled = true;
-                pt.classList.add('bg-slate-100', 'dark:bg-slate-700');
-                } else {
-                    pt.value = '';
-                    pt.disabled = false;
-                    pt.classList.remove('bg-slate-100', 'dark:bg-slate-700');
-                }
+
+        function setPetTypeFromSpecies(species, locked) {
+            if (!petTypeSelect) return;
+            if (locked) {
+                var v = matchPetType(species);
+                petTypeSelect.value = v || '';
+                petTypeSelect.disabled = true;
+                petTypeSelect.classList.add('bg-slate-100', 'dark:bg-slate-700');
+            } else {
+                petTypeSelect.value = '';
+                petTypeSelect.disabled = false;
+                petTypeSelect.classList.remove('bg-slate-100', 'dark:bg-slate-700');
             }
-            function switchToPetDropdown(pets) {
-                setPetTypeFromPet(false, '');
-                var html = '<label for="book_petSelect" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
-                html += '<select id="book_petSelect" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>';
-                html += '<option value="" data-species="">Choose a pet</option>';
+        }
+
+        function setPetUIFromSelection() {
+            if (!petSelect) return;
+            var value = petSelect.value;
+            var isNewPet = !value || value === NEW_PET_VALUE;
+
+            if (bookPetId) bookPetId.value = isNewPet ? '' : value;
+
+            if (newPetFields) {
+                if (isNewPet) newPetFields.classList.remove('hidden');
+                else newPetFields.classList.add('hidden');
+            }
+
+            if (petNameInput) {
+                petNameInput.disabled = !isNewPet;
+                petNameInput.required = isNewPet;
+            }
+
+            if (!isNewPet) {
+                var opt = petSelect.options[petSelect.selectedIndex];
+                var species = opt ? (opt.getAttribute('data-species') || '') : '';
+                setPetTypeFromSpecies(species, true);
+            } else {
+                setPetTypeFromSpecies('', false);
+            }
+        }
+
+        function renderPetSelectOptions(pets) {
+            if (!petSelect) return;
+
+            var html = '';
+            if (pets && pets.length > 0) {
                 for (var i = 0; i < pets.length; i++) {
-                    var species = (pets[i].species != null && pets[i].species !== undefined) ? String(pets[i].species) : '';
-                    html += '<option value="' + pets[i].petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (pets[i].name || '') + '</option>';
-                }
-                html += '</select>';
-                petNameWrapper.innerHTML = html;
-                petNameWrapper.appendChild(bookPetId);
-                bookPetId.name = 'petId';
-                bookPetId.value = '';
-                var sel = document.getElementById('book_petSelect');
-                if (sel) {
-                    sel.addEventListener('change', function() {
-                        bookPetId.value = this.value;
-                        var opt = this.options[this.selectedIndex];
-                        var species = opt ? (opt.getAttribute('data-species') || '') : '';
-                        setPetTypeFromPet(!!this.value, species);
-                    });
+                    var p = pets[i] || {};
+                    var species = p.species != null ? String(p.species) : '';
+                    html += '<option value="' + p.petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (p.name || '') + '</option>';
                 }
             }
-            
-            function switchToPetTextInput() {
-                setPetTypeFromPet(false, '');
-                var html = '<label for="book_petName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet Name *</label>';
-                html += '<input type="text" id="book_petName" name="petName" placeholder="Your pet\'s name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>';
-                petNameWrapper.innerHTML = html;
-                petNameWrapper.appendChild(bookPetId);
-                bookPetId.value = '';
-                bookPetId.name = 'petId';
+
+            html += '<option value="' + NEW_PET_VALUE + '">Add a new pet</option>';
+            petSelect.innerHTML = html;
+
+            if (pets && pets.length > 0) {
+                petSelect.value = String(pets[0].petId);
+            } else {
+                petSelect.value = NEW_PET_VALUE;
             }
+            setPetUIFromSelection();
+        }
+
+        function setOwnerEmailLocked(locked, fullName, email) {
+            if (ownerInput) {
+                if (locked) {
+                    ownerInput.value = fullName || '';
+                    ownerInput.readOnly = true;
+                    ownerInput.classList.remove('bg-slate-50', 'dark:bg-slate-800');
+                    ownerInput.classList.add('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                } else {
+                    ownerInput.readOnly = false;
+                    ownerInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                    ownerInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+                }
+            }
+            if (emailInput) {
+                if (locked) {
+                    emailInput.value = email || '';
+                    emailInput.readOnly = true;
+                    emailInput.classList.remove('bg-slate-50', 'dark:bg-slate-800');
+                    emailInput.classList.add('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                } else {
+                    emailInput.readOnly = false;
+                    emailInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                    emailInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+                }
+            }
+        }
+
+        if (petSelect) {
+            petSelect.addEventListener('change', function() {
+                setPetUIFromSelection();
+            });
+        }
             
             var lookupTimeout;
             function onPhoneChange() {
@@ -259,7 +374,8 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                     phoneStatus.textContent = '';
                 }
                 if (phone.length < 10) {
-                    switchToPetTextInput();
+                    setOwnerEmailLocked(false);
+                    renderPetSelectOptions([]);
                     return;
                 }
                 clearTimeout(lookupTimeout);
@@ -272,27 +388,24 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                             if (data.found) {
                                 phoneStatus.textContent = 'Customer found. Select pet below.';
                                 phoneStatus.className = 'text-xs mt-1 text-green-600 dark:text-green-400';
-                                if (ownerInput) ownerInput.value = data.customer.fullName || '';
-                                if (emailInput) emailInput.value = data.customer.email || '';
-                                if (data.pets && data.pets.length > 0) {
-                                    switchToPetDropdown(data.pets);
-                                    } else {
-                                        switchToPetTextInput();
-                                    }
-                                    } else {
-                                        phoneStatus.textContent = 'New customer. Enter pet details.';
-                                        phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
-                                        switchToPetTextInput();
-                                    }
-                                }
-                            })
+                                setOwnerEmailLocked(true, data.customer.fullName || '', data.customer.email || '');
+                                renderPetSelectOptions(data.pets || []);
+                            } else {
+                                phoneStatus.textContent = 'New customer. Enter pet details.';
+                                phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
+                                setOwnerEmailLocked(false);
+                                renderPetSelectOptions([]);
+                            }
+                        }
+                    })
                             .catch(function() {
                                 if (phoneStatus) {
                                     phoneStatus.classList.remove('hidden');
                                     phoneStatus.textContent = 'Could not lookup. Enter details manually.';
                                     phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
                                 }
-                                switchToPetTextInput();
+                                setOwnerEmailLocked(false);
+                                renderPetSelectOptions([]);
                             });
                         }, 400);
                     }
@@ -331,12 +444,11 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                             
                             var bookPetIdEl = document.getElementById('book_petId');
                             var petSelect = document.getElementById('book_petSelect');
-                            var petNameEl = document.getElementById('book_petName');
-                            if (petSelect && petSelect.value && bookPetIdEl) {
-                                bookPetIdEl.value = petSelect.value;
-                                } else if (petNameEl && bookPetIdEl) {
-                                    bookPetIdEl.value = '';
-                                }
+                            if (petSelect && bookPetIdEl) {
+                                bookPetIdEl.value = (petSelect.value && petSelect.value !== NEW_PET_VALUE)
+                                    ? petSelect.value
+                                    : '';
+                            }
                                 var fd = new FormData(form);
                                 fetch(ctx + '/Receptionist/BookAppointment', {
                                     method: 'POST',

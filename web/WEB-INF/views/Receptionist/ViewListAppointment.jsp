@@ -106,6 +106,38 @@
                     opacity: 1;
                 }
             }
+
+            /* Invoice modal: print only the invoice card */
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                #invoiceModal,
+                #invoiceModal #invoicePrintArea,
+                #invoiceModal #invoicePrintArea * {
+                    visibility: visible;
+                }
+                #invoiceModal {
+                    position: fixed !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100% !important;
+                    height: auto !important;
+                    background: #fff !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    z-index: 9999 !important;
+                    display: block !important;
+                }
+                #invoiceModal .invoice-modal-toolbar {
+                    display: none !important;
+                }
+                #invoiceModalBody {
+                    overflow: visible !important;
+                    max-height: none !important;
+                    padding: 1rem !important;
+                }
+            }
         </style>
         <script>
             tailwind.config = {
@@ -435,34 +467,6 @@
                 updateStatus(appointmentId, 'Checked-in', button);
             }
 
-            function rescheduleAppointment(appointmentId) {
-                const newDate = prompt('Enter new date (yyyy-MM-dd):');
-                if (!newDate) return;
-                const newTime = prompt('Enter new time (HH:mm):');
-                if (!newTime) return;
-                
-                fetch('RescheduleAppointment', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'appointmentId=' + appointmentId + '&newDate=' + newDate + '&newTime=' + newTime
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message);
-                        setTimeout(() => { location.reload(); }, 1500);
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while rescheduling the appointment');
-                });
-            }
-
             let currentCancelAppointmentId = null;
             let currentCancelButton = null;
 
@@ -517,28 +521,74 @@
                 });
             }
 
+            function closeInvoiceModal() {
+                var modal = document.getElementById('invoiceModal');
+                var body = document.getElementById('invoiceModalBody');
+                if (modal) modal.classList.add('hidden');
+                if (body) body.innerHTML = '';
+            }
+
+            function printInvoiceModal() {
+                window.print();
+            }
+
             function viewInvoice(appointmentId) {
-                window.open('ViewInvoice?appointmentId=' + appointmentId, '_blank');
+                if (!appointmentId) return;
+                var modal = document.getElementById('invoiceModal');
+                var body = document.getElementById('invoiceModalBody');
+                if (!modal || !body) return;
+                modal.classList.remove('hidden');
+                body.innerHTML = ''
+                    + '<div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">'
+                    + '<span class="material-symbols-outlined text-4xl animate-spin">progress_activity</span>'
+                    + '<p class="text-sm">Loading invoice...</p>'
+                    + '</div>';
+
+                var url = '<%= request.getContextPath() %>/Receptionist/ViewInvoice?appointmentId='
+                    + encodeURIComponent(appointmentId) + '&fragment=1';
+                fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+                    .then(function (r) {
+                        if (!r.ok) throw new Error('Request failed');
+                        return r.text();
+                    })
+                    .then(function (html) {
+                        if (html.indexOf('invoicePrintArea') === -1) {
+                            body.innerHTML = '<p class="text-center text-red-600 py-8">Could not load invoice.</p>';
+                            return;
+                        }
+                        body.innerHTML = html;
+                    })
+                    .catch(function () {
+                        body.innerHTML = '<p class="text-center text-red-600 py-8">Could not load invoice.</p>';
+                    });
             }
             
             // Live search by Pet, Owner, Phone (client-side)
             document.addEventListener('DOMContentLoaded', function () {
                 const searchInput = document.getElementById('appointmentSearchInput');
                 if (!searchInput) return;
-                searchInput.addEventListener('input', function () {
-                    const term = this.value.trim().toLowerCase();
-                    const rows = document.querySelectorAll('.appointment-row');
-                    rows.forEach(function (row) {
-                        const pet = (row.getAttribute('data-pet-name') || '').toLowerCase();
-                        const owner = (row.getAttribute('data-owner-name') || '').toLowerCase();
-                        const phone = (row.getAttribute('data-phone') || '').toLowerCase();
-                        const match = !term || pet.includes(term) || owner.includes(term) || phone.includes(term);
-                        row.closest('.appointment-grid-item, .bg-white, .dark\\:bg-slate-900')?.classList?.toggle('hidden', !match);
-                        if (!row.closest('.appointment-grid-item, .bg-white, .dark\\:bg-slate-900')) {
-                            row.parentElement.classList.toggle('hidden', !match);
+                const cards = document.querySelectorAll('.appointment-card');
+                const applySearch = function () {
+                    const value = (searchInput.value || '').trim().toLowerCase();
+                    cards.forEach(function (card) {
+                        const petCell = card.querySelector('h3.truncate');
+                        const ownerCell = card.querySelector('.owner-cell');
+                        const phoneCell = card.querySelector('.phone-cell');
+
+                        const petText = petCell ? (petCell.textContent || '').toLowerCase() : '';
+                        const ownerText = ownerCell ? (ownerCell.textContent || '').toLowerCase() : '';
+                        const phoneText = phoneCell ? (phoneCell.textContent || '').toLowerCase() : '';
+
+                        if (!value || petText.includes(value) || ownerText.includes(value) || phoneText.includes(value)) {
+                            card.style.display = '';
+                        } else {
+                            card.style.display = 'none';
                         }
                     });
-                });
+                };
+
+                searchInput.addEventListener('input', applySearch);
+                applySearch();
             });
         </script>
     </head>
@@ -625,13 +675,13 @@
                             <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Appointments</h1>
                             <p class="text-slate-500 dark:text-slate-400 text-sm">Manage and monitor today's scheduled visits</p>
                             <div class="mt-4">
-                                <div class="relative w-96 max-w-full">
+                                <div class="relative w-[560px] max-w-full">
                                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
                                     <input 
                                         class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 placeholder-slate-500 text-slate-800 dark:text-slate-100" 
                                         type="text" 
                                         id="appointmentSearchInput"
-                                        placeholder="Search patients, owners or records..."/>
+                                        placeholder="Search by pet name, owner name or phone number..."/>
                                 </div>
                             </div>
                         </div>
@@ -678,6 +728,7 @@
                             <a href="?status=In-Examination&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'In-Examination' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">In-Examination (${inExaminationCount})</a>
                             <a href="?status=Waiting-for-Payment&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Waiting-for-Payment' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Waiting for Payment (${waitingForPaymentCount})</a>
                             <a href="?status=Done&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Done' || statusFilter == 'Completed' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Done (${doneCount})</a>
+                            <a href="?status=Rejected&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Rejected' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Rejected (${rejectedCount})</a>
                             <a href="?status=Canceled&amp;fromDate=${fromDate}&amp;toDate=${toDate}" class="pb-4 text-sm font-medium ${statusFilter == 'Canceled' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}">Canceled (${canceledCount})</a>
                         </div>
                         <div class="flex items-center gap-3 pb-2"></div>
@@ -709,15 +760,18 @@
                             <c:set var="isDoctorChangeRequested" value="${status == 'Doctor-Change-Requested'}"/>
                             <c:set var="isInExamination" value="${status == 'In-Examination' || status == 'In Progress'}"/>
                             <c:set var="isCheckedIn" value="${status == 'Checked-in'}"/>
+                            <c:set var="isRejected" value="${status == 'Rejected'}"/>
                             <c:set var="isWaitingForPayment" value="${status == 'Waiting-for-Payment' || status == 'Waiting for Payment'}"/>
                             <c:set var="isCanceled" value="${status == 'Canceled' || status == 'Cancelled'}"/>
                             
                             <c:choose>
                                 <c:when test="${isCompleted}">
-                                    <div class="group bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 appointment-grid opacity-80">
+                                    <div class="group bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 appointment-grid appointment-card opacity-80"
+                                         data-search-text="${appointment.pet.name} ${appointment.customer.user.fullName} ${appointment.customer.user.phone}">
                                 </c:when>
                                 <c:otherwise>
-                                    <div class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 appointment-grid hover:shadow-md transition-shadow">
+                                    <div class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 appointment-grid appointment-card hover:shadow-md transition-shadow"
+                                         data-search-text="${appointment.pet.name} ${appointment.customer.user.fullName} ${appointment.customer.user.phone}">
                                 </c:otherwise>
                             </c:choose>
                             
@@ -766,6 +820,9 @@
                                             </c:when>
                                             <c:when test="${isCanceled}">
                                                 <span class="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[9px] font-bold rounded uppercase tracking-wider">Canceled</span>
+                                            </c:when>
+                                            <c:when test="${isRejected}">
+                                                <span class="inline-block px-1.5 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-[9px] font-bold rounded uppercase tracking-wider">Rejected</span>
                                             </c:when>
                                             <c:otherwise>
                                                 <span class="inline-block px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[9px] font-bold rounded uppercase tracking-wider">${status}</span>
@@ -1122,6 +1179,31 @@
                 </div>
             </div>
         </div>
+
+        <!-- Invoice modal -->
+        <div id="invoiceModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+             role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle"
+             onclick="if (event.target === this) closeInvoiceModal();">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700 overflow-hidden"
+                 onclick="event.stopPropagation();">
+                <div class="invoice-modal-toolbar flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700 shrink-0">
+                    <h2 id="invoiceModalTitle" class="text-lg font-semibold text-slate-800 dark:text-white">Appointment Invoice</h2>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="printInvoiceModal()"
+                                class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 shadow shadow-primary/20"
+                                style="background:#ff7b00;">Print</button>
+                        <button type="button" onclick="closeInvoiceModal()"
+                                class="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400"
+                                aria-label="Close">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="invoiceModalBody" class="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0"></div>
+            </div>
+        </div>
+
+    <jsp:include page="reschedule-appointment-modal.jsp"/>
     <jsp:include page="book-appointment-modal.jsp"/>
     <jsp:include page="emergency-appointment-modal.jsp"/>
     <script>

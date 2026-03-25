@@ -140,6 +140,8 @@ public class ViewListAppointmentServlet extends HttpServlet {
                                 return "Confirmed".equalsIgnoreCase(status);
                             case "Checked-in":
                                 return "Checked-in".equalsIgnoreCase(status);
+                            case "Rejected":
+                                return "Rejected".equalsIgnoreCase(status);
                             case "In-Examination":
                                 return "In-Examination".equalsIgnoreCase(status) || "In Progress".equalsIgnoreCase(status);
                             case "Done":
@@ -156,10 +158,32 @@ public class ViewListAppointmentServlet extends HttpServlet {
                     .collect(java.util.stream.Collectors.toList());
         }
 
-        // Sort by appointment time (upcoming first) when viewing "All" or no specific filter
-        if (statusFilter == null || statusFilter.isEmpty() || "All".equalsIgnoreCase(statusFilter)) {
-            list.sort(java.util.Comparator.comparing(Appointment::getAppointmentTime));
-        }
+        // Sort for ALL status filters:
+        // - nearest appointment first
+        // - for same date: AM before PM
+        list.sort((a, b) -> {
+            if (a == null && b == null) return 0;
+            if (a == null) return 1;
+            if (b == null) return -1;
+
+            java.time.LocalDateTime ta = a.getAppointmentTime();
+            java.time.LocalDateTime tb = b.getAppointmentTime();
+            if (ta == null && tb == null) return 0;
+            if (ta == null) return 1;
+            if (tb == null) return -1;
+
+            java.time.LocalDate da = ta.toLocalDate();
+            java.time.LocalDate db = tb.toLocalDate();
+            int byDate = da.compareTo(db);
+            if (byDate != 0) return byDate;
+
+            int slotA = "PM".equalsIgnoreCase(a.getTimeSlot()) ? 1 : 0; // AM first
+            int slotB = "PM".equalsIgnoreCase(b.getTimeSlot()) ? 1 : 0; // AM first
+            int bySlot = Integer.compare(slotA, slotB);
+            if (bySlot != 0) return bySlot;
+
+            return ta.compareTo(tb);
+        });
 
         // Count by status (within the selected date range)
         int totalCount = dateFiltered.size();
@@ -186,6 +210,10 @@ public class ViewListAppointmentServlet extends HttpServlet {
                 .count();
         int canceledCount = (int) dateFiltered.stream()
                 .filter(a -> a.getStatus() != null && ("Canceled".equalsIgnoreCase(a.getStatus()) || "Cancelled".equalsIgnoreCase(a.getStatus())))
+                .count();
+
+        int rejectedCount = (int) dateFiltered.stream()
+                .filter(a -> a.getStatus() != null && "Rejected".equalsIgnoreCase(a.getStatus()))
                 .count();
         
         // Pagination: 4 appointments per page
@@ -257,6 +285,7 @@ public class ViewListAppointmentServlet extends HttpServlet {
         request.setAttribute("doneCount", doneCount);
         request.setAttribute("waitingForPaymentCount", waitingForPaymentCount);
         request.setAttribute("canceledCount", canceledCount);
+        request.setAttribute("rejectedCount", rejectedCount);
         ServiceDAO serviceDAO = new ServiceJdbcDAO();
         request.setAttribute("services", serviceDAO.findAll());
         
