@@ -98,6 +98,10 @@ public class CustomerEditProfileServlet extends HttpServlet {
             response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Phone must be 10 digits starting with 0 (e.g. 0123456789).", StandardCharsets.UTF_8));
             return;
         }
+        if (phone != null && !phone.isEmpty() && userDAO.existsByPhoneExceptId(phone, user.getUserId())) {
+            response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Phone number is already in use. Please use a different phone number.", StandardCharsets.UTF_8));
+            return;
+        }
         if (!ValidationUtil.isValidAddress(address)) {
             response.sendRedirect(ctx + "/customer/edit-profile" + redirectSuffix + (redirectSuffix.isEmpty() ? "?" : "&") + "error=" + URLEncoder.encode("Address must be at most " + ValidationUtil.ADDRESS_MAX_LENGTH + " characters.", StandardCharsets.UTF_8));
             return;
@@ -129,7 +133,12 @@ public class CustomerEditProfileServlet extends HttpServlet {
                 response.sendRedirect(ctx + "/customer/profile?updated=1");
             }
         } else {
-            response.sendRedirect(ctx + "/customer/edit-profile" + (pendingPhone ? "?required=phone&" : "?") + "error=" + URLEncoder.encode("Could not save. Please try again.", StandardCharsets.UTF_8));
+            // If unique phone is violated (race-condition), show friendly error.
+            String msg = "Could not save. Please try again.";
+            if (UserJdbcDAO.getLastInsertError() != null && UserJdbcDAO.getLastInsertError().contains("UQ_Users_Phone")) {
+                msg = "Phone number is already in use. Please use a different phone number.";
+            }
+            response.sendRedirect(ctx + "/customer/edit-profile" + (pendingPhone ? "?required=phone&" : "?") + "error=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
         }
     }
 

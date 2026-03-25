@@ -123,6 +123,66 @@ public class UserJdbcDAO extends BaseDAO implements UserDAO {
         return false;
     }
 
+    private static String normalizePhoneForMatch(String phone) {
+        if (phone == null) return null;
+        String t = phone.trim();
+        if (t.isEmpty()) return null;
+        String normalized = t.replaceAll("[^0-9+]", "");
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    @Override
+    public boolean existsByPhone(String phone) {
+        String raw = phone == null ? null : phone.trim();
+        String normalized = normalizePhoneForMatch(phone);
+        if (normalized == null) return false;
+
+        String sql = """
+            SELECT 1
+            FROM dbo.Users u
+            WHERE (LTRIM(RTRIM(ISNULL(u.phone, ''))) = ?)
+               OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(u.phone,''))), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?)
+            """;
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, raw);
+            ps.setString(2, normalized.replace("+", ""));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean existsByPhoneExceptId(String phone, int userId) {
+        String raw = phone == null ? null : phone.trim();
+        String normalized = normalizePhoneForMatch(phone);
+        if (normalized == null) return false;
+
+        String sql = """
+            SELECT 1
+            FROM dbo.Users u
+            WHERE u.user_id <> ?
+              AND (
+                    (LTRIM(RTRIM(ISNULL(u.phone, ''))) = ?)
+                 OR (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(u.phone,''))), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?)
+                  )
+            """;
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, raw);
+            ps.setString(3, normalized.replace("+", ""));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
     @Override
     public Optional<Role> findRoleByName(String roleName) {
         String sql = "SELECT role_id, role_name FROM Roles WHERE LTRIM(RTRIM(role_name)) COLLATE SQL_Latin1_General_CP1_CI_AS = LTRIM(RTRIM(?))";

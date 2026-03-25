@@ -18,6 +18,12 @@ public interface UserDAO {
 
     boolean existsByEmail(String email);
 
+    /** Phone exists (normalized comparison) for any user. */
+    boolean existsByPhone(String phone);
+
+    /** Phone exists for any other user (excluding given userId). */
+    boolean existsByPhoneExceptId(String phone, int userId);
+
     Optional<Role> findRoleByName(String roleName);
 
     User createCustomerUser(User user);

@@ -121,6 +121,14 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
+        // Phone unique (logic-level pre-check)
+        if (new dao.impl.UserJdbcDAO().existsByPhone(phone)) {
+            request.setAttribute("error", "This phone number is already registered. Please use a different phone number.");
+            preserveFormData(request, fullName, email, phone);
+            request.getRequestDispatcher("register.jsp").forward(request, response);
+            return;
+        }
+
         User created = authService.registerCustomer(fullName, email, phone, password);
 
         if (created == null) {
