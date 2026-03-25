@@ -3,6 +3,7 @@ package model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * Domain model representing an Appointment, mapped to the Appointments table.
@@ -116,18 +117,52 @@ public class Appointment {
         return arrivalTime.format(DateTimeFormatter.ofPattern("HH:mm"));
     }
     
-    public String getFormattedTime() {
-        if (appointmentTime == null) {
-            return "N/A";
+    /**
+     * Human-readable period for booking slots (not a specific clock time).
+     */
+    public String getDisplayTimePeriodEnglish() {
+        if (timeSlot != null && !timeSlot.isBlank()) {
+            String t = timeSlot.trim().toLowerCase(Locale.ROOT);
+            if ("am".equals(t) || "morning".equals(t)) {
+                return "in the Morning";
+            }
+            if ("pm".equals(t) || "afternoon".equals(t)) {
+                return "in the Afternoon";
+            }
         }
-        return appointmentTime.format(DateTimeFormatter.ofPattern("hh:mm a"));
+        if (appointmentTime != null) {
+            return appointmentTime.getHour() < 12 ? "in the Morning" : "in the Afternoon";
+        }
+        return "N/A";
+    }
+
+    public String getFormattedTime() {
+        return getDisplayTimePeriodEnglish();
     }
     
     public String getFormattedDate() {
-        if (appointmentTime == null) {
+        if (appointmentDate != null) {
+            return appointmentDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"));
+        }
+        if (appointmentTime != null) {
+            return appointmentTime.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"));
+        }
+        return "N/A";
+    }
+
+    /** e.g. {@code February 26, 2026 in the Morning} */
+    public String getFormattedDateAndPeriod() {
+        LocalDate date = appointmentDate != null ? appointmentDate
+                : (appointmentTime != null ? appointmentTime.toLocalDate() : null);
+        if (date == null) {
             return "N/A";
         }
-        return appointmentTime.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"));
+        String period = getDisplayTimePeriodEnglish();
+        String datePart = date.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"));
+        if ("N/A".equals(period)) {
+            return datePart;
+        }
+        return datePart + " " + period;
     }
 
     public LocalDate getAppointmentDate() {
@@ -152,13 +187,17 @@ public class Appointment {
      * Falls back to the legacy appointmentTime field if needed.
      */
     public String getFormattedDateWithSlot() {
-        if (appointmentDate != null && timeSlot != null && !timeSlot.isBlank()) {
-            return appointmentDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " " + timeSlot.trim().toUpperCase();
+        LocalDate date = appointmentDate != null ? appointmentDate
+                : (appointmentTime != null ? appointmentTime.toLocalDate() : null);
+        if (date == null) {
+            return "N/A";
         }
-        if (appointmentTime != null) {
-            return appointmentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd a"));
+        String period = getDisplayTimePeriodEnglish();
+        String datePart = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        if ("N/A".equals(period)) {
+            return datePart;
         }
-        return "N/A";
+        return datePart + " " + period;
     }
 
     public String getStatus() {

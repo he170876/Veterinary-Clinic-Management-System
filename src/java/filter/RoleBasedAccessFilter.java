@@ -23,13 +23,13 @@ import java.util.Set;
  * - /owner/*     → Admin, ClinicOwner
  * - /admin/*     → Admin
  * - /vet/*       → Veterinarian
- * - /staff/*     → Receptionist
  * - /lab/*       → LabStaff
+ * - /Receptionist/* → Receptionist
  * Unauthenticated → redirect to /login. Wrong role → redirect to homepage with ?forbidden=1.
  */
 @WebFilter(
     filterName = "RoleBasedAccessFilter",
-    urlPatterns = { "/customer/*", "/owner/*", "/vet/*", "/staff/*", "/lab/*", "/Receptionist/*" }
+    urlPatterns = { "/customer/*", "/owner/*", "/vet/*", "/lab/*", "/Receptionist/*" }
 )
 public class RoleBasedAccessFilter implements Filter {
 

@@ -1,8 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="java.time.LocalDate" %>
-<%@ page import="java.time.LocalDateTime" %>
 <%@ page import="java.time.Period" %>
-<%@ page import="java.time.format.DateTimeFormatter" %>
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="java.util.LinkedHashSet" %>
 <%@ page import="java.util.List" %>
@@ -51,11 +49,7 @@
         statusClass = "bg-amber-100 text-amber-700";
     }
 
-    String appointmentDateTime = "N/A";
-    LocalDateTime appointmentTime = appointment.getAppointmentTime();
-    if (appointmentTime != null) {
-        appointmentDateTime = appointmentTime.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy 'at' hh:mm a"));
-    }
+    String appointmentDateTime = appointment.getFormattedDateAndPeriod();
 
     String petName = pet != null && pet.getName() != null ? pet.getName() : "N/A";
     String petSpecies = pet != null && pet.getSpecies() != null ? pet.getSpecies() : "N/A";

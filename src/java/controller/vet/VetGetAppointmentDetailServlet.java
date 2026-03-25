@@ -80,7 +80,7 @@ public class VetGetAppointmentDetailServlet extends HttpServlet {
         json.append("\"appointmentId\":").append(ap.getAppointmentId()).append(",");
         json.append("\"status\":\"").append(esc(ap.getStatus())).append("\",");
         json.append("\"date\":\"").append(ap.getAppointmentDate() != null ? ap.getAppointmentDate().format(dateFmt) : "").append("\",");
-        json.append("\"time\":\"").append(esc(ap.getTimeSlot())).append("\",");
+        json.append("\"time\":\"").append(esc(ap.getDisplayTimePeriodEnglish())).append("\",");
         json.append("\"service\":\"").append(esc(ap.getService())).append("\",");
         json.append("\"notes\":\"").append(esc(ap.getNotes())).append("\",");
         json.append("\"formattedDateWithSlot\":\"").append(esc(ap.getFormattedDateWithSlot())).append("\",");

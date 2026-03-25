@@ -28,6 +28,10 @@
                     <label for="em_ownerName" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Name *</label>
                     <input type="text" id="em_ownerName" name="ownerName" placeholder="Enter full name" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required/>
                 </div>
+                <div>
+                    <label for="em_email" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address *</label>
+                    <input type="email" id="em_email" name="email" placeholder="your@email.com" autocomplete="email" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20"/>
+                </div>
                 <div id="em_petNameWrapper">
                     <label for="em_petSelect" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Pet *</label>
                     <select id="em_petSelect" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>
@@ -69,6 +73,8 @@
     var modal = document.getElementById('emergencyAppointmentModal');
     var phoneInput = document.getElementById('em_phone');
     var ownerInput = document.getElementById('em_ownerName');
+    var emailInput = document.getElementById('em_email');
+    var customerFoundByPhone = false;
     var petSelect = document.getElementById('em_petSelect');
     var newPetFields = document.getElementById('em_newPetFields');
     var petNameInput = document.getElementById('em_petName');
@@ -148,6 +154,7 @@
         }
 
         setPetUIFromSelection();
+        refreshEmailRequirement();
     }
 
     function setOwnerNameLocked(locked, fullName) {
@@ -164,9 +171,33 @@
         }
     }
 
+    function setCustomerEmailLocked(locked, email) {
+        if (!emailInput) return;
+        if (locked) {
+            emailInput.value = email || '';
+            emailInput.readOnly = true;
+            emailInput.required = true;
+            emailInput.classList.remove('bg-slate-50', 'dark:bg-slate-800');
+            emailInput.classList.add('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+        } else {
+            emailInput.value = (email !== undefined && email !== null) ? email : '';
+            emailInput.readOnly = false;
+            emailInput.required = true;
+            emailInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+            emailInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+        }
+    }
+
+    function refreshEmailRequirement() {
+        if (!emailInput || !petSelect) return;
+        var isNewPet = !petSelect.value || petSelect.value === NEW_PET_VALUE;
+        emailInput.required = isNewPet;
+    }
+
     if (petSelect) {
         petSelect.addEventListener('change', function() {
             setPetUIFromSelection();
+            refreshEmailRequirement();
         });
     }
 
@@ -178,8 +209,14 @@
             phoneStatus.textContent = '';
         }
         if (phone.length < 10) {
+            customerFoundByPhone = false;
             setOwnerNameLocked(false);
+            if (emailInput) {
+                emailInput.value = '';
+            }
+            setCustomerEmailLocked(false, '');
             renderPetSelectOptions([]);
+            refreshEmailRequirement();
             return;
         }
         clearTimeout(lookupTimeout);
@@ -190,16 +227,22 @@
                     if (phoneStatus) {
                         phoneStatus.classList.remove('hidden');
                         if (data.found) {
+                            customerFoundByPhone = true;
                             phoneStatus.textContent = 'Customer found. Select pet below.';
                             phoneStatus.className = 'text-xs mt-1 text-green-600 dark:text-green-400';
                             setOwnerNameLocked(true, data.customer.fullName || '');
+                            setCustomerEmailLocked(true, data.customer.email || '');
                             renderPetSelectOptions(data.pets || []);
                         } else {
+                            customerFoundByPhone = false;
                             phoneStatus.textContent = 'New customer. Enter pet details.';
                             phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
                             setOwnerNameLocked(false);
+                            if (emailInput) emailInput.value = '';
+                            setCustomerEmailLocked(false, '');
                             renderPetSelectOptions([]);
                         }
+                        refreshEmailRequirement();
                     }
                 })
                 .catch(function() {
@@ -208,8 +251,12 @@
                         phoneStatus.textContent = 'Could not lookup. Enter details manually.';
                         phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
                     }
+                    customerFoundByPhone = false;
                     setOwnerNameLocked(false);
+                    if (emailInput) emailInput.value = '';
+                    setCustomerEmailLocked(false, '');
                     renderPetSelectOptions([]);
+                    refreshEmailRequirement();
                 });
         }, 400);
     }
@@ -221,6 +268,7 @@
 
     function showModal() {
         if (modal) {
+            customerFoundByPhone = false;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             document.body.style.overflow = 'hidden';
@@ -237,6 +285,13 @@
                 ownerInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
                 ownerInput.value = '';
             }
+            if (emailInput) {
+                emailInput.value = '';
+                emailInput.readOnly = false;
+                emailInput.required = true;
+                emailInput.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'cursor-not-allowed');
+                emailInput.classList.add('bg-slate-50', 'dark:bg-slate-800');
+            }
             if (bookPetId) bookPetId.value = '';
             if (petSelect) {
                 petSelect.innerHTML = '<option value="' + NEW_PET_VALUE + '">Add a new pet</option>';
@@ -252,6 +307,7 @@
                 petTypeSelect.classList.remove('bg-slate-100', 'dark:bg-slate-700');
                 petTypeSelect.value = '';
             }
+            refreshEmailRequirement();
         }
     }
     function hideModal() {
@@ -275,6 +331,14 @@
                 bookPetIdEl.value = (petSelect.value && petSelect.value !== NEW_PET_VALUE)
                     ? petSelect.value
                     : '';
+            }
+            var isNewPet = !petSelect || !petSelect.value || petSelect.value === NEW_PET_VALUE;
+            if (isNewPet && !customerFoundByPhone) {
+                var em = emailInput && emailInput.value ? emailInput.value.trim() : '';
+                if (!em) {
+                    alert('Please enter a valid email for the new customer.');
+                    return;
+                }
             }
             var fd = new FormData(form);
             fetch(ctx + '/Receptionist/EmergencyAppointment', {

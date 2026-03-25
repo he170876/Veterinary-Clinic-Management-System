@@ -50,8 +50,8 @@ Anipats landing page - VCMS (Tailwind design)
             case 2: // Veterinarian
             roleDashboardUrl = ctx + "/vet/dashboard";
             break;
-            case 3: // Receptionist
-            roleDashboardUrl = ctx + "/staff/dashboard";
+        case 3: // Receptionist
+            roleDashboardUrl = ctx + "/Receptionist/Dashboard";
             break;
             case 4: // LabStaff
             roleDashboardUrl = ctx + "/lab/labqueue";

@@ -85,8 +85,8 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                         <label for="book_timeSlot" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Preferred Time *</label>
                         <select id="book_timeSlot" name="timeSlot" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20" required>
                             <option value="">--:--</option>
-                            <option value="AM">AM</option>
-                            <option value="PM">PM</option>
+                            <option value="AM">in the Morning</option>
+                            <option value="PM">in the Afternoon</option>
                         </select>
                     </div>
                 </div>
@@ -449,12 +449,46 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                                     ? petSelect.value
                                     : '';
                             }
-                                var fd = new FormData(form);
-                                fetch(ctx + '/Receptionist/BookAppointment', {
-                                    method: 'POST',
-                                    body: new URLSearchParams(fd)
+                            // Build body so every checked serviceIds is sent (some browsers mishandle new URLSearchParams(FormData)).
+                            var params = new URLSearchParams();
+                            for (var i = 0; i < form.elements.length; i++) {
+                                var field = form.elements[i];
+                                if (!field.name || field.disabled) continue;
+                                var fType = (field.type || '').toLowerCase();
+                                if (fType === 'file') continue;
+                                if (fType === 'checkbox' || fType === 'radio') {
+                                    if (!field.checked) continue;
+                                }
+                                params.append(field.name, field.value);
+                            }
+
+                            fetch(ctx + '/Receptionist/BookAppointment', {
+                                method: 'POST',
+                                credentials: 'same-origin',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                                },
+                                body: params
+                            })
+                                .then(function(r) {
+                                    return r.text().then(function(text) {
+                                        var ct = (r.headers.get('Content-Type') || '').toLowerCase();
+                                        if (r.redirected || r.status === 302 || r.status === 301) {
+                                            throw new Error('Session expired or access denied. Please refresh the page and sign in again.');
+                                        }
+                                        if (text && !text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+                                            console.error('Book appointment non-JSON response', r.status, ct, text.substring(0, 400));
+                                            throw new Error('Server returned a non-JSON response. If you were signed out, log in again. Otherwise check the server log.');
+                                        }
+                                        try {
+                                            return JSON.parse(text);
+                                        } catch (parseErr) {
+                                            console.error('Book appointment raw response:', text);
+                                            throw new Error('Server did not return valid JSON (HTTP ' + r.status + '). See console or server log.');
+                                        }
+                                    });
                                 })
-                                .then(function(r) { return r.json(); })
                                 .then(function(data) {
                                     if (data.success) {
                                         hideModal();
@@ -468,22 +502,22 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                                                 toastEl.style.display = 'none';
                                                 window.location.reload();
                                             }, 1200);
-                                            } else if (typeof window.showToast === 'function') {
-                                                window.showToast(msg);
-                                                setTimeout(function() { window.location.reload(); }, 1200);
-                                                } else {
-                                                    alert(msg);
-                                                    window.location.reload();
-                                                }
-                                                } else {
-                                                    alert(data.message || 'Booking failed.');
-                                                }
-                                            })
-                                            .catch(function() {
-                                                alert('An error occurred. Please try again.');
-                                            });
-                                        });
+                                        } else if (typeof window.showToast === 'function') {
+                                            window.showToast(msg);
+                                            setTimeout(function() { window.location.reload(); }, 1200);
+                                        } else {
+                                            alert(msg);
+                                            window.location.reload();
+                                        }
+                                    } else {
+                                        alert(data.message || 'Booking failed.');
                                     }
+                                })
+                                .catch(function(err) {
+                                    alert(err && err.message ? err.message : 'An error occurred. Please try again.');
+                                });
+                        });
+                    }
                                     
                                     window.openBookAppointmentModal = showModal;
                                 })();

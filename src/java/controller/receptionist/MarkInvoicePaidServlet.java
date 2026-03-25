@@ -2,6 +2,7 @@ package controller.receptionist;
 
 import dao.AppointmentDAO;
 import dao.InvoiceDAO;
+import dao.NotificationDAO;
 import dao.VisitDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -95,6 +96,17 @@ public class MarkInvoicePaidServlet extends HttpServlet {
         }
 
         appDao.updateAppointmentStatus(appointmentId, "Done");
+
+        int customerUserId = appDao.getCustomerUserIdForAppointment(appointmentId);
+        if (customerUserId > 0) {
+            String title = "Visit completed";
+            String message = "Your visit for Appointment #" + appointmentId + " is complete. Thank you for choosing our clinic.";
+            final int maxLen = 255;
+            if (message.length() > maxLen) {
+                message = message.substring(0, maxLen - 3) + "...";
+            }
+            new NotificationDAO().create(customerUserId, title, message);
+        }
 
         sendJsonOrRedirect(request, response, true, "Payment confirmed successfully.",
                 request.getContextPath() + "/Receptionist/ViewListAppointment?status=Waiting-for-Payment&paid=1");

@@ -23,8 +23,8 @@
                 <select id="reschedule_timeSlot" name="timeSlot" required
                         class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-primary/20">
                     <option value="">--:--</option>
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
+                    <option value="AM">in the Morning</option>
+                    <option value="PM">in the Afternoon</option>
                 </select>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Morning slot closes after 12:00, afternoon after 8:00 PM</p>
             </div>

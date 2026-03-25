@@ -263,10 +263,10 @@
                                                     ${apt.formattedDateWithSlot}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-4">
-                                                <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
+                                            <td class="px-6 py-4 max-w-[14rem]">
+                                                <p class="text-sm text-slate-700 leading-snug break-words">
                                                     ${not empty apt.service ? apt.service : 'N/A'}
-                                                </span>
+                                                </p>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <c:choose>
@@ -334,11 +334,12 @@
                                                     </c:if>
                                                     <%-- Waiting for Payment: Mark as Paid --%>
                                                     <c:if test="${isWaitingForPayment}">
+                                                        <button onclick="viewInvoice(${apt.appointmentId}, true)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 text-green-600 hover:bg-green-50 transition-all">View Invoice</button>
                                                         <button onclick="markAsPaid(${apt.appointmentId}, this)" class="bg-purple-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Mark as Paid</button>
                                                     </c:if>
                                                     <%-- Done: View Invoice --%>
                                                     <c:if test="${isCompleted}">
-                                                        <button onclick="viewInvoice(${apt.appointmentId})" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 text-green-600 hover:bg-green-50 transition-all">View Invoice</button>
+                                                        <button onclick="viewInvoice(${apt.appointmentId}, false)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200 text-green-600 hover:bg-green-50 transition-all">View Invoice</button>
                                                     </c:if>
                                                     <%-- In-Examination and Canceled: Details button only --%>
                                                     <button onclick="openDetail(${apt.appointmentId})" class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-all">Details</button>
@@ -444,7 +445,7 @@
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-medium text-slate-500">Assigned Doctor</label>
+                            <label class="text-xs font-medium text-slate-500">Doctor</label>
                             <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm">
                                 <span class="material-symbols-outlined text-sm text-primary opacity-60">stethoscope</span>
                                 <span id="d-doctor-name">N/A</span>
@@ -465,13 +466,20 @@
                 <!-- Waiting for Payment -->
                 <button id="d-btn-markpaid" class="hidden px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all" onclick="markAsPaid(currentDetailAppointmentId, this)">Mark as Paid</button>
                 <!-- Done -->
-                <button id="d-btn-invoice" class="hidden px-4 py-2 border border-green-200 text-green-600 text-sm font-semibold rounded-xl hover:bg-green-50 transition-all" onclick="viewInvoice(currentDetailAppointmentId)">View Invoice</button>
+                <button id="d-btn-invoice" class="hidden px-4 py-2 border border-green-200 text-green-600 text-sm font-semibold rounded-xl hover:bg-green-50 transition-all" onclick="viewInvoice(currentDetailAppointmentId, detailInvoiceAllowMarkPaid)">View Invoice</button>
             </div>
         </div>
     </div>
 
     <script>
         let currentDetailAppointmentId = null;
+        let detailInvoiceAllowMarkPaid = false;
+        let currentConfirmAppointmentId = null;
+        let currentConfirmButton = null;
+        let currentCancelAppointmentId = null;
+        let currentCancelButton = null;
+        let currentRejectAppointmentId = null;
+        let currentRejectButton = null;
 
         function openDetail(appointmentId) {
             console.log('openDetail called with appointmentId:', appointmentId);
@@ -574,10 +582,13 @@
             }
             if (isWaiting) {
                 document.getElementById('d-btn-markpaid').classList.remove('hidden');
+                document.getElementById('d-btn-invoice').classList.remove('hidden');
             }
             if (isDone) {
                 document.getElementById('d-btn-invoice').classList.remove('hidden');
             }
+
+            detailInvoiceAllowMarkPaid = isWaiting;
 
             // Show footer only if there are visible buttons
             const hasButtons = isPending || isConfirmed || isCheckedIn || isWaiting || isDone;
@@ -694,18 +705,21 @@
         window.showToast = showToast;
 
         // Appointment action functions
-        function updateStatus(appointmentId, newStatus, button) {
+        function updateStatus(appointmentId, newStatus, button, reason) {
             if (button) {
                 button.disabled = true;
                 button.textContent = '...';
             }
-
+            var body = 'appointmentId=' + encodeURIComponent(appointmentId) + '&status=' + encodeURIComponent(newStatus);
+            if (reason != null && reason !== undefined && String(reason).trim() !== '') {
+                body += '&reason=' + encodeURIComponent(String(reason).trim());
+            }
             fetch('UpdateAppointmentStatus', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'appointmentId=' + appointmentId + '&status=' + newStatus
+                body: body
             })
             .then(response => response.json())
             .then(data => {
@@ -725,12 +739,33 @@
         }
 
         function confirmAppointment(appointmentId, button) {
-            updateStatus(appointmentId, 'Confirmed', button);
+            currentConfirmAppointmentId = appointmentId;
+            currentConfirmButton = button;
+            var ta = document.getElementById('appointmentConfirmReason');
+            if (ta) ta.value = '';
+            document.getElementById('appointmentConfirmPopup').style.display = 'flex';
+        }
+
+        function closeAppointmentConfirmPopup() {
+            document.getElementById('appointmentConfirmPopup').style.display = 'none';
+            currentConfirmAppointmentId = null;
+            currentConfirmButton = null;
+        }
+
+        function submitAppointmentConfirm() {
+            if (!currentConfirmAppointmentId) return;
+            var reason = (document.getElementById('appointmentConfirmReason').value || '').trim();
+            var appointmentId = currentConfirmAppointmentId;
+            var button = currentConfirmButton;
+            closeAppointmentConfirmPopup();
+            updateStatus(appointmentId, 'Confirmed', button, reason);
         }
 
         function rejectAppointment(appointmentId, button) {
             currentRejectAppointmentId = appointmentId;
             currentRejectButton = button;
+            var ta = document.getElementById('rejectReason');
+            if (ta) ta.value = '';
             document.getElementById('rejectPopup').style.display = 'flex';
         }
         
@@ -742,24 +777,26 @@
         
         function confirmReject() {
             if (!currentRejectAppointmentId) return;
+            var reason = (document.getElementById('rejectReason').value || '').trim();
+            if (!reason) {
+                alert('Please provide a reason.');
+                return;
+            }
             const appointmentId = currentRejectAppointmentId;
             const button = currentRejectButton;
             closeRejectPopup();
-            updateStatus(appointmentId, 'Rejected', button);
+            updateStatus(appointmentId, 'Rejected', button, reason);
         }
 
         function checkInAppointment(appointmentId, button) {
             updateStatus(appointmentId, 'Checked-in', button);
         }
 
-        let currentCancelAppointmentId = null;
-        let currentCancelButton = null;
-        let currentRejectAppointmentId = null;
-        let currentRejectButton = null;
-        
         function cancelAppointment(appointmentId, button) {
             currentCancelAppointmentId = appointmentId;
             currentCancelButton = button;
+            var ta = document.getElementById('cancelReason');
+            if (ta) ta.value = '';
             document.getElementById('cancelPopup').style.display = 'flex';
         }
         
@@ -771,10 +808,15 @@
         
         function confirmCancel() {
             if (!currentCancelAppointmentId) return;
+            var reason = (document.getElementById('cancelReason').value || '').trim();
+            if (!reason) {
+                alert('Please provide a reason.');
+                return;
+            }
             const appointmentId = currentCancelAppointmentId;
             const button = currentCancelButton;
             closeCancelPopup();
-            updateStatus(appointmentId, 'Canceled', button);
+            updateStatus(appointmentId, 'Canceled', button, reason);
         }
 
         function markAsPaid(appointmentId, button) {
@@ -808,8 +850,67 @@
             });
         }
 
-        function viewInvoice(appointmentId) {
-            window.open('<%= request.getContextPath() %>/Receptionist/ViewInvoice?appointmentId=' + appointmentId, '_blank');
+        function closeInvoiceModal() {
+            var modal = document.getElementById('invoiceModal');
+            var body = document.getElementById('invoiceModalBody');
+            var markBtn = document.getElementById('invoiceModalMarkPaid');
+            if (modal) {
+                modal.classList.add('hidden');
+                delete modal.dataset.invoiceAppointmentId;
+            }
+            if (body) body.innerHTML = '';
+            if (markBtn) {
+                markBtn.classList.add('hidden');
+                markBtn.disabled = false;
+                markBtn.textContent = 'Mark as Paid';
+            }
+        }
+
+        function printInvoiceModal() {
+            window.print();
+        }
+
+        function viewInvoice(appointmentId, allowMarkPaid) {
+            if (!appointmentId) return;
+            allowMarkPaid = !!allowMarkPaid;
+            var modal = document.getElementById('invoiceModal');
+            var body = document.getElementById('invoiceModalBody');
+            var markBtn = document.getElementById('invoiceModalMarkPaid');
+            if (!modal || !body) return;
+            modal.dataset.invoiceAppointmentId = String(appointmentId);
+            if (markBtn) {
+                if (allowMarkPaid) {
+                    markBtn.classList.remove('hidden');
+                    markBtn.disabled = false;
+                    markBtn.textContent = 'Mark as Paid';
+                } else {
+                    markBtn.classList.add('hidden');
+                }
+            }
+            modal.classList.remove('hidden');
+            body.innerHTML = ''
+                + '<div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">'
+                + '<span class="material-symbols-outlined text-4xl animate-spin">progress_activity</span>'
+                + '<p class="text-sm">Loading invoice...</p>'
+                + '</div>';
+
+            var url = '<%= request.getContextPath() %>/Receptionist/ViewInvoice?appointmentId='
+                + encodeURIComponent(appointmentId) + '&fragment=1';
+            fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('Request failed');
+                    return r.text();
+                })
+                .then(function (html) {
+                    if (html.indexOf('invoicePrintArea') === -1) {
+                        body.innerHTML = '<p class="text-center text-red-600 py-8">Could not load invoice.</p>';
+                        return;
+                    }
+                    body.innerHTML = html;
+                })
+                .catch(function () {
+                    body.innerHTML = '<p class="text-center text-red-600 py-8">Could not load invoice.</p>';
+                });
         }
 
         function processAppointmentRequest(appointmentId, requestType, decision) {
@@ -885,37 +986,97 @@
         <span id="toastMessage">Success!</span>
     </div>
 
+    <!-- Confirm appointment (pending → confirmed) -->
+    <div id="appointmentConfirmPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-start gap-3 mb-4">
+                <div class="w-11 h-11 shrink-0 bg-primary/15 rounded-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-2xl">event_available</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Confirm this appointment?</h3>
+                    <p class="text-slate-600 text-sm mt-1">Are you sure you want to confirm this appointment? The customer will be notified.</p>
+                </div>
+            </div>
+            <label for="appointmentConfirmReason" class="block text-xs font-semibold text-slate-600 mb-1">Reason / note to customer (optional)</label>
+            <textarea id="appointmentConfirmReason" rows="3"
+                class="w-full rounded-lg border border-slate-200 text-sm p-3 mb-4 resize-y min-h-[5rem]"
+                placeholder="Optional message shown in the customer notification."></textarea>
+            <div class="flex gap-3 justify-end">
+                <button type="button" onclick="closeAppointmentConfirmPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Cancel</button>
+                <button type="button" onclick="submitAppointmentConfirm()" class="px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 font-medium transition-all">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Cancel Confirmation Popup -->
-    <div id="cancelPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center" style="display: none;">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-            <div class="flex items-center gap-4 mb-4">
-                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+    <div id="cancelPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-start gap-3 mb-4">
+                <div class="w-11 h-11 shrink-0 bg-red-100 rounded-full flex items-center justify-center">
                     <span class="material-symbols-outlined text-red-600 text-2xl">warning</span>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800">Xác nhận hủy lịch hẹn</h3>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Cancel this appointment?</h3>
+                    <p class="text-slate-600 text-sm mt-1">Are you sure you want to cancel this appointment? The customer will be notified.</p>
+                </div>
             </div>
-            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn hủy lịch hẹn này?</p>
+            <label for="cancelReason" class="block text-xs font-semibold text-slate-600 mb-1">Reason (required)</label>
+            <textarea id="cancelReason" rows="3" required
+                class="w-full rounded-lg border border-slate-200 text-sm p-3 mb-4 resize-y min-h-[5rem]"
+                placeholder="Explain why this appointment is being canceled."></textarea>
             <div class="flex gap-3 justify-end">
-                <button onclick="closeCancelPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Hủy</button>
-                <button onclick="confirmCancel()" class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 font-medium transition-all">Xác nhận hủy</button>
+                <button type="button" onclick="closeCancelPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Cancel</button>
+                <button type="button" onclick="confirmCancel()" class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 font-medium transition-all">Confirm cancel</button>
             </div>
         </div>
     </div>
 
     <!-- Reject Confirmation Popup -->
-    <div id="rejectPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center" style="display: none;">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-            <div class="flex items-center gap-4 mb-4">
-                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+    <div id="rejectPopup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-start gap-3 mb-4">
+                <div class="w-11 h-11 shrink-0 bg-red-100 rounded-full flex items-center justify-center">
                     <span class="material-symbols-outlined text-red-600 text-2xl">warning</span>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800">Xác nhận từ chối lịch hẹn</h3>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Reject this appointment?</h3>
+                    <p class="text-slate-600 text-sm mt-1">Are you sure you want to reject this appointment? The customer will be notified.</p>
+                </div>
             </div>
-            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn từ chối lịch hẹn này?</p>
+            <label for="rejectReason" class="block text-xs font-semibold text-slate-600 mb-1">Reason (required)</label>
+            <textarea id="rejectReason" rows="3" required
+                class="w-full rounded-lg border border-slate-200 text-sm p-3 mb-4 resize-y min-h-[5rem]"
+                placeholder="Explain why this appointment cannot be accepted."></textarea>
             <div class="flex gap-3 justify-end">
-                <button onclick="closeRejectPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Hủy</button>
-                <button onclick="confirmReject()" class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 font-medium transition-all">Xác nhận từ chối</button>
+                <button type="button" onclick="closeRejectPopup()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-all">Cancel</button>
+                <button type="button" onclick="confirmReject()" class="px-4 py-2 rounded-lg bg-red-500 text-white hover:opacity-90 font-medium transition-all">Confirm reject</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Invoice modal -->
+    <div id="invoiceModal" class="hidden fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+         role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle"
+         onclick="if (event.target === this) closeInvoiceModal();">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-slate-200 overflow-hidden"
+             onclick="event.stopPropagation();">
+            <div class="invoice-modal-toolbar flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 shrink-0">
+                <h2 id="invoiceModalTitle" class="text-lg font-semibold text-slate-800">Appointment Invoice</h2>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="invoiceModalMarkPaid" class="hidden px-4 py-2 rounded-lg bg-purple-500 text-white text-sm font-semibold hover:opacity-90 transition-all"
+                            onclick="markAsPaid(document.getElementById('invoiceModal').dataset.invoiceAppointmentId, this)">Mark as Paid</button>
+                    <button type="button" onclick="printInvoiceModal()"
+                            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 shadow shadow-primary/20"
+                            style="background:#ff7b00;">Print</button>
+                    <button type="button" onclick="closeInvoiceModal()"
+                            class="p-2 rounded-full text-slate-500 hover:bg-slate-100"
+                            aria-label="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div id="invoiceModalBody" class="flex-1 overflow-y-auto custom-scrollbar p-4 min-h-0"></div>
         </div>
     </div>
 
@@ -925,6 +1086,38 @@
             to { transform: translateX(0); opacity: 1; }
         }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
+
+        /* Invoice modal: print only the invoice card */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #invoiceModal,
+            #invoiceModal #invoicePrintArea,
+            #invoiceModal #invoicePrintArea * {
+                visibility: visible;
+            }
+            #invoiceModal {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                z-index: 9999 !important;
+                display: block !important;
+            }
+            #invoiceModal .invoice-modal-toolbar {
+                display: none !important;
+            }
+            #invoiceModalBody {
+                overflow: visible !important;
+                max-height: none !important;
+                padding: 1rem !important;
+            }
+        }
     </style>
     <jsp:include page="reschedule-appointment-modal.jsp"/>
     <jsp:include page="book-appointment-modal.jsp"/>

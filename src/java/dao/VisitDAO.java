@@ -63,6 +63,48 @@ public class VisitDAO extends DBContext {
         return null;
     }
 
+    /**
+     * Creates a visit row if none exists yet (e.g. Emergency was Checked-in without a receptionist check-in step).
+     * {@code staff_id} is NULL so FK to receptionists is not required.
+     */
+    public Visit ensureVisitForAppointment(int appointmentId, int petId, int customerId, Integer veterinarianId) {
+        Visit existing = getByAppointmentId(appointmentId);
+        if (existing != null) {
+            return existing;
+        }
+        String sql = """
+            INSERT INTO Visits (appointment_id, pet_id, customer_id, check_in_time, visit_status, staff_id, veterinarian_id)
+            OUTPUT INSERTED.visit_id
+            VALUES (?, ?, ?, GETDATE(), 'Checked-in', NULL, ?)
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            ps.setInt(2, petId);
+            ps.setInt(3, customerId);
+            if (veterinarianId != null && veterinarianId > 0) {
+                ps.setInt(4, veterinarianId);
+            } else {
+                ps.setNull(4, java.sql.Types.INTEGER);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Visit v = new Visit();
+                    v.setVisitId(rs.getInt(1));
+                    v.setAppointmentId(appointmentId);
+                    v.setPetId(petId);
+                    v.setCustomerId(customerId);
+                    v.setStaffId(null);
+                    v.setVeterinarianId(veterinarianId);
+                    v.setVisitStatus("Checked-in");
+                    return v;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /** Creates a visit when receptionist checks in: status Checked-in, staff_id set. */
     public Visit createForCheckIn(int appointmentId, int petId, int customerId, Integer veterinarianId, int staffId) {
         String sql = "INSERT INTO Visits (appointment_id, pet_id, customer_id, check_in_time, visit_status, staff_id, veterinarian_id) OUTPUT INSERTED.visit_id VALUES (?, ?, ?, GETDATE(), 'Checked-in', ?, ?)";

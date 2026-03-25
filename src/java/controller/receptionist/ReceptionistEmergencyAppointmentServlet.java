@@ -4,6 +4,7 @@ import dao.AppointmentDAO;
 import dao.CustomerDAO;
 import dao.PetDAO;
 import dao.UserDAO;
+import dao.VisitDAO;
 import dao.impl.CustomerJdbcDAO;
 import dao.impl.PetJdbcDAO;
 import dao.impl.UserJdbcDAO;
@@ -12,6 +13,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import model.Customer;
 import model.Pet;
 import model.Role;
@@ -27,7 +29,7 @@ import java.util.Optional;
  * POST from receptionist Emergency modal.
  * Creates appointment with type=Emergency, status=Checked-In, service_id=null,
  * appointment_date=today, time_slot=AM/PM from current time.
- * Params: ownerName, phone, petId (optional), petName, petType.
+ * Params: ownerName, email (new customers only), phone, petId (optional), petName, petType.
  */
 @WebServlet("/Receptionist/EmergencyAppointment")
 public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
@@ -40,6 +42,7 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
 
         String ownerName = ValidationUtil.trim(request.getParameter("ownerName"));
+        String email = ValidationUtil.trim(request.getParameter("email"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
         String petIdStr = ValidationUtil.trim(request.getParameter("petId"));
         String petName = ValidationUtil.trim(request.getParameter("petName"));
@@ -103,7 +106,11 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
                     customerId = custOpt.get().getCustomerId();
                 }
             } else {
-                String emergencyEmail = (phone + "@emergency.local").trim();
+                if (email == null || email.isEmpty() || !ValidationUtil.isValidEmailFormat(email)) {
+                    response.getWriter().print("{\"success\":false,\"message\":\"Please enter a valid email address for the new customer.\"}");
+                    return;
+                }
+                String emergencyEmail = email;
                 user = createCustomerUser(ownerName, emergencyEmail, phone);
                 if (user == null) {
                     response.getWriter().print("{\"success\":false,\"message\":\"Could not create customer account.\"}");
@@ -135,6 +142,17 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
 
         int appointmentId = appointmentDAO.createEmergencyAppointment(petId, customerId, phone);
         if (appointmentId > 0) {
+            VisitDAO visitDAO = new VisitDAO();
+            if (visitDAO.getByAppointmentId(appointmentId) == null) {
+                HttpSession session = request.getSession(false);
+                User sessionUser = session != null ? (User) session.getAttribute("currentUser") : null;
+                int receptionistId = sessionUser != null ? appointmentDAO.getReceptionistIdByUserId(sessionUser.getUserId()) : 0;
+                if (receptionistId > 0) {
+                    visitDAO.createForCheckIn(appointmentId, petId, customerId, null, receptionistId);
+                } else {
+                    visitDAO.ensureVisitForAppointment(appointmentId, petId, customerId, null);
+                }
+            }
             response.getWriter().print("{\"success\":true,\"message\":\"Emergency appointment created. Status: Checked-In.\",\"appointmentId\":" + appointmentId + "}");
         } else {
             response.getWriter().print("{\"success\":false,\"message\":\"Could not create emergency appointment. Please try again.\"}");

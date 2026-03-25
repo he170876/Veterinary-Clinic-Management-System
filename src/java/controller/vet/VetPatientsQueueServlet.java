@@ -38,12 +38,14 @@ public class VetPatientsQueueServlet extends HttpServlet {
         int currentVetId = dao.getVeterinarianIdByUserId(user.getUserId());
         // Shared queue for today + resumable in-examination owned by current vet.
         List<Appointment> appointments = dao.getVetQueueAppointmentsForDate(today, currentVetId);
+        boolean vetHasActiveExamination = currentVetId > 0 && dao.hasActiveInExamination(currentVetId);
 
         request.setAttribute("user", user);
         NotificationDAO ndao = new NotificationDAO();
         request.setAttribute("notifications", ndao.getRecentForUser(user.getUserId(), 10));
         request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("appointments", appointments);
+        request.setAttribute("vetHasActiveExamination", vetHasActiveExamination);
         request.setAttribute("currentVetId", currentVetId);
         request.setAttribute("queueDate", today);
         request.getRequestDispatcher("/WEB-INF/views/vet/patients-queue.jsp").forward(request, response);

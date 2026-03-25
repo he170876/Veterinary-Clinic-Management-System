@@ -308,11 +308,11 @@
                                         <div class="flex gap-3">
                                             <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors" id="morning-label" style="border-color: <%= "morning".equals(selectedTimeSlot) ? "#ff7b00" : "#e2e8f0" %>; background-color: <%= "morning".equals(selectedTimeSlot) ? "rgba(255, 123, 0, 0.05)" : "transparent" %>;">
                                                 <input type="radio" name="timeSlot" value="morning" class="w-4 h-4" <%= "morning".equals(selectedTimeSlot) ? "checked" : "" %> onchange="document.getElementById('morning-label').style.borderColor='#ff7b00'; document.getElementById('morning-label').style.backgroundColor='rgba(255, 123, 0, 0.05)'; document.getElementById('afternoon-label').style.borderColor='#e2e8f0'; document.getElementById('afternoon-label').style.backgroundColor='transparent';"/>
-                                                <span class="text-sm font-semibold">Morning </span>
+                                                <span class="text-sm font-semibold">in the Morning</span>
                                             </label>
                                             <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors" id="afternoon-label" style="border-color: <%= "afternoon".equals(selectedTimeSlot) ? "#ff7b00" : "#e2e8f0" %>; background-color: <%= "afternoon".equals(selectedTimeSlot) ? "rgba(255, 123, 0, 0.05)" : "transparent" %>;">
                                                 <input type="radio" name="timeSlot" value="afternoon" class="w-4 h-4" <%= "afternoon".equals(selectedTimeSlot) ? "checked" : "" %> onchange="document.getElementById('afternoon-label').style.borderColor='#ff7b00'; document.getElementById('afternoon-label').style.backgroundColor='rgba(255, 123, 0, 0.05)'; document.getElementById('morning-label').style.borderColor='#e2e8f0'; document.getElementById('morning-label').style.backgroundColor='transparent';"/>
-                                                <span class="text-sm font-semibold">Afternoon </span>
+                                                <span class="text-sm font-semibold">in the Afternoon</span>
                                             </label>
                                         </div>
                                     </div>

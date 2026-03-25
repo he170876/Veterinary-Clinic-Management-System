@@ -301,11 +301,13 @@ Booking form fragment - included in index.jsp modal.
                     </select>
                 </div>
             </div>
-            <div class="form-row full">
-                <div class="form-group">
-                    <label for="notes">Additional Notes</label>
-                    <textarea class="form-control" id="notes" name="notes" placeholder="Any concerns or medical history we should know about?" rows="3" maxlength="1000"></textarea>
-                </div>
+            <div class="form-group">
+                <label for="timeSlot">Preferred Slot *</label>
+                <select class="form-control form-select" id="timeSlot" name="timeSlot" required>
+                    <option value="">Choose a slot</option>
+                    <option value="morning">in the Morning</option>
+                    <option value="afternoon">in the Afternoon</option>
+                </select>
             </div>
             <div class="book-form-actions">
                 <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancel</button>

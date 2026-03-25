@@ -14,6 +14,7 @@
     List<Appointment> appointments = (List<Appointment>) request.getAttribute("appointments");
     if (appointments == null) appointments = java.util.Collections.emptyList();
     int currentVetId = request.getAttribute("currentVetId") != null ? (Integer) request.getAttribute("currentVetId") : 0;
+    boolean vetHasActiveExamination = Boolean.TRUE.equals(request.getAttribute("vetHasActiveExamination"));
     String roleTitle = (user.getRole() != null && user.getRole().getRoleName() != null)
         ? user.getRole().getRoleName() : "Veterinarian";
     DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
@@ -62,10 +63,6 @@
                         <h2 class="text-xl font-bold tracking-tight">Arrived Patients Queue</h2>
                     </div>
                     <div class="flex items-center gap-6">
-                        <div class="relative max-w-xs">
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-                            <input class="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/50" placeholder="Search patients..." type="text" id="searchQueue"/>
-                        </div>
                         <%@ include file="/WEB-INF/includes/vet-header-right.jspf" %>
                     </div>
                 </header>
@@ -91,17 +88,17 @@
                     <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">You can only schedule follow-ups for your own patients.</div>
                     <% } else if ("notcheckedin".equals(request.getParameter("error"))) { %>
                     <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">Patient must be checked in by receptionist first. They will appear here after check-in.</div>
+                    <% } else if ("busy".equals(examError)) { %>
+                    <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">You already have an examination in progress. Complete it before starting another one.</div>
                     <% } %>
-                    <div class="mb-6 flex justify-between items-end">
+                    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <h3 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Checked-in Today</h3>
                             <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Patients currently in the waiting room. Start examination when ready.</p>
                         </div>
-                        <div class="flex gap-2">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
-                                <span class="size-1.5 rounded-full bg-green-500 mr-2"></span>
-                                <%= appointments.size() %> Active Now
-                            </span>
+                        <div class="relative w-full sm:w-72 sm:shrink-0">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">search</span>
+                            <input class="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm w-full focus:ring-2 focus:ring-primary/50" placeholder="Search owner, pet, or phone..." type="text" id="searchQueue"/>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -109,10 +106,10 @@
                             <thead>
                                 <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Queue No.</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Patient ID</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pet Name</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Species/Breed</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Owner Name</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Arrival Time</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Service/Reason</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
@@ -123,17 +120,20 @@
                                 <%
                                     int rowNum = 1;
                                     for (Appointment ap : appointments) {
-                                        String ownerName = ap.getCustomer() != null && ap.getCustomer().getUser() != null ? ap.getCustomer().getUser().getFullName() : "â€”";
-                                        String petName = ap.getPet() != null ? ap.getPet().getName() : "â€”";
+                                        String ownerName = ap.getCustomer() != null && ap.getCustomer().getUser() != null ? ap.getCustomer().getUser().getFullName() : "—";
+                                        String phone = ap.getCustomerPhone() != null && !ap.getCustomerPhone().isEmpty()
+                                                ? ap.getCustomerPhone()
+                                                : (ap.getCustomer() != null && ap.getCustomer().getUser() != null && ap.getCustomer().getUser().getPhone() != null
+                                                    ? ap.getCustomer().getUser().getPhone()
+                                                    : "—");
+                                        String petName = ap.getPet() != null ? ap.getPet().getName() : "—";
                                         String species = ap.getPet() != null && ap.getPet().getSpecies() != null ? ap.getPet().getSpecies() : "";
                                         String breed = ap.getPet() != null && ap.getPet().getBreed() != null ? ap.getPet().getBreed() : "";
                                         String speciesBreed = (species + " / " + breed).trim();
-                                        if (speciesBreed.equals("/")) speciesBreed = "â€”";
-                                        String timeStr = ap.getArrivalTime() != null ? ap.getArrivalTime().format(timeFmt) : "â€”";
-                                        String service = ap.getService() != null ? ap.getService() : "â€”";
-                                        String status = ap.getStatus() != null ? ap.getStatus() : "â€”";
-                                        int petId = ap.getPet() != null ? ap.getPet().getPetId() : 0;
-                                        String patientId = "P-" + petId;
+                                        if (speciesBreed.equals("/")) speciesBreed = "—";
+                                        String timeStr = ap.getArrivalTime() != null ? ap.getArrivalTime().format(timeFmt) : "—";
+                                        String service = ap.getService() != null ? ap.getService() : "—";
+                                        String status = ap.getStatus() != null ? ap.getStatus() : "—";
                                         String queueNo = String.format("%03d", rowNum);
                                         String statusClass = "Checked-in".equalsIgnoreCase(status)
                                             ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
@@ -144,12 +144,12 @@
                                         Integer rowVetId = ap.getVeterinarianId();
                                         boolean lockedByOtherVet = isInExam && rowVetId != null && rowVetId > 0 && rowVetId != currentVetId;
                                 %>
-                                <tr class="queue-row hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors <%= lockedByOtherVet ? "opacity-40" : "" %>" data-pet-name="<%= petName %>" data-owner="<%= ownerName %>" data-id="<%= patientId %>">
+                                <tr class="queue-row hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors <%= lockedByOtherVet ? "opacity-45 grayscale-[0.35]" : "" %>" data-pet-name="<%= petName %>" data-owner-name="<%= ownerName %>" data-phone="<%= phone %>">
                                     <td class="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100"><%= queueNo %></td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= patientId %></td>
                                     <td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-100"><%= petName %></td>
                                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= speciesBreed %></td>
                                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= ownerName %></td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= phone %></td>
                                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= timeStr %></td>
                                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400"><%= service %></td>
                                     <td class="px-6 py-4">
@@ -159,11 +159,11 @@
                                         <% if (lockedByOtherVet) { %>
                                         <span class="inline-block bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-4 py-2 rounded-lg text-sm font-bold">In Progress</span>
                                         <% } else { %>
-                                        <a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" class="inline-block bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm"><%= isInExam ? "Continue" : "Start Examination" %></a>
+                                        <a href="<%= ctx %>/vet/examination?id=<%= ap.getAppointmentId() %>" data-exam-action="<%= isInExam ? "continue" : "start" %>" class="vet-exam-action-link inline-block bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm"><%= isInExam ? "Continue" : "Start Examination" %></a>
                                         <% } %>
                                         <button type="button" class="inline-block bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm"
                                             data-appointment-id="<%= ap.getAppointmentId() %>"
-                                            onclick="openAppointmentDetail(this.getAttribute('data-appointment-id'))">
+                                            onclick="openVetAppointmentDetail(this.getAttribute('data-appointment-id'))">
                                             Details
                                         </button>
                                     </td>
@@ -189,109 +189,61 @@
             </main>
         </div>
 
-        <!-- Appointment Detail Modal -->
-        <div id="vetAppointmentDetailModal" class="fixed inset-0 bg-black/40 z-[2000] items-center justify-center px-4 hidden">
-            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6">
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100" id="v-detail-pet-name">Pet name</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="v-detail-status">Status</p>
-                    </div>
-                    <button type="button" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onclick="closeVetDetailModal()">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                <div class="space-y-4 text-sm">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-xs text-slate-400">Owner</p>
-                            <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-name"></p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-slate-400">Phone</p>
-                            <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-phone"></p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-xs text-slate-400">Date</p>
-                            <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-date"></p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-slate-400">Service</p>
-                            <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-service"></p>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400">Address</p>
-                        <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-address"></p>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400">Notes</p>
-                        <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-notes"></p>
-                    </div>
-                </div>
-                <div class="mt-6 flex justify-end">
-                    <button type="button" class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90" onclick="closeVetDetailModal()">Close</button>
-                </div>
-            </div>
+        <div id="vetQueueToast" class="fixed top-6 right-6 bg-amber-500 text-white px-6 py-3 rounded-xl shadow-lg hidden items-center gap-2 z-[3000] max-w-md">
+            <span class="material-symbols-outlined shrink-0">info</span>
+            <span id="vetQueueToastMessage" class="text-sm font-medium">Message</span>
         </div>
 
+        <%@ include file="/WEB-INF/includes/vet-appointment-detail-modal.jspf" %>
         <script>
+            var VET_HAS_ACTIVE_EXAMINATION = <%= vetHasActiveExamination ? "true" : "false" %>;
+            function showVetQueueToast(message) {
+                var toast = document.getElementById('vetQueueToast');
+                var span = document.getElementById('vetQueueToastMessage');
+                if (!toast || !span) return;
+                span.textContent = message || '';
+                toast.classList.remove('hidden');
+                toast.classList.add('flex');
+                setTimeout(function () {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('flex');
+                }, 3200);
+            }
+            (function () {
+                var params = new URLSearchParams(window.location.search);
+                if (params.get('error') === 'busy') {
+                    showVetQueueToast('You already have an examination in progress. Complete it before starting another one.');
+                }
+            })();
+            document.querySelectorAll('a.vet-exam-action-link').forEach(function (a) {
+                a.addEventListener('click', function (e) {
+                    if (VET_HAS_ACTIVE_EXAMINATION && a.getAttribute('data-exam-action') === 'start') {
+                        e.preventDefault();
+                        showVetQueueToast('You already have an examination in progress. Complete it before starting another one.');
+                    }
+                });
+            });
             (function () {
                 var search = document.getElementById('searchQueue');
                 var rows = document.querySelectorAll('.queue-row');
                 if (search && rows.length) {
                     search.addEventListener('input', function () {
-                        var q = (this.value || '').toLowerCase();
+                        var q = (this.value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                        var qDigits = q.replace(/\D/g, '');
                         rows.forEach(function (row) {
                             var name = (row.getAttribute('data-pet-name') || '').toLowerCase();
-                            var owner = (row.getAttribute('data-owner') || '').toLowerCase();
-                            var id = (row.getAttribute('data-id') || '').toLowerCase();
-                            var show = !q || name.indexOf(q) >= 0 || owner.indexOf(q) >= 0 || id.indexOf(q) >= 0;
+                            var owner = (row.getAttribute('data-owner-name') || '').toLowerCase();
+                            var phoneRaw = row.getAttribute('data-phone') || '';
+                            var phone = phoneRaw.toLowerCase();
+                            var phoneDigits = phoneRaw.replace(/\D/g, '');
+                            var inPhone = phone.indexOf(q) >= 0
+                                || (qDigits.length > 0 && phoneDigits.indexOf(qDigits) >= 0);
+                            var show = !q || name.indexOf(q) >= 0 || owner.indexOf(q) >= 0 || inPhone;
                             row.style.display = show ? '' : 'none';
                         });
                     });
                 }
             })();
-
-            function openAppointmentDetail(appointmentId) {
-                fetch('<%= ctx %>/Receptionist/GetAppointmentDetail?appointmentId=' + appointmentId)
-                        .then(function (r) {
-                            return r.json();
-                        })
-                        .then(function (data) {
-                            if (!data.success) {
-                                alert(data.message || 'Could not load appointment detail.');
-                                return;
-                            }
-                            var d = data.data || {};
-                            var pet = d.pet || {};
-                            var customer = d.customer || {};
-                            var user = customer.user || {};
-
-                            document.getElementById('v-detail-pet-name').textContent = pet.name || 'N/A';
-                            document.getElementById('v-detail-status').textContent = d.status || 'N/A';
-                            document.getElementById('v-detail-owner-name').textContent = user.fullName || 'N/A';
-                            document.getElementById('v-detail-owner-phone').textContent = user.phone || 'N/A';
-                            document.getElementById('v-detail-owner-address').textContent = user.address || 'N/A';
-                            document.getElementById('v-detail-date').textContent = d.formattedDateWithSlot || 'N/A';
-                            document.getElementById('v-detail-service').textContent = d.service || 'N/A';
-                            document.getElementById('v-detail-notes').textContent = d.notes || 'N/A';
-
-                            document.getElementById('vetAppointmentDetailModal').classList.remove('hidden');
-                            document.getElementById('vetAppointmentDetailModal').classList.add('flex');
-                        })
-                        .catch(function () {
-                            alert('An error occurred while loading details.');
-                        });
-            }
-
-            function closeVetDetailModal() {
-                var modal = document.getElementById('vetAppointmentDetailModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
         </script>
         <%@ include file="/WEB-INF/includes/vet-header-right-script.jspf" %>
     </body>
