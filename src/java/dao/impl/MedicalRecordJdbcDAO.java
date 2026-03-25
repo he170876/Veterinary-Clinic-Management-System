@@ -30,7 +30,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.veterinarian_id,
                 u.full_name AS veterinarian_name,
                 mr.diagnosis,
-                mr.treatment,
+                mr.conclusion,
                 mr.note,
                 v.check_in_time AS visit_date,
                 v.visit_status,
@@ -73,7 +73,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.veterinarian_id,
                 u.full_name AS veterinarian_name,
                 mr.diagnosis,
-                mr.treatment,
+                mr.conclusion,
                 mr.note,
                 v.check_in_time AS visit_date,
                 v.visit_status,
@@ -119,7 +119,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.veterinarian_id,
                 u.full_name AS veterinarian_name,
                 mr.diagnosis,
-                mr.treatment,
+                mr.conclusion,
                 mr.note,
                 v.check_in_time AS visit_date,
                 v.visit_status,
@@ -160,7 +160,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.veterinarian_id,
                 u.full_name AS veterinarian_name,
                 mr.diagnosis,
-                mr.treatment,
+                mr.conclusion,
                 mr.note,
                 v.check_in_time AS visit_date,
                 v.visit_status,
@@ -204,7 +204,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.veterinarian_id,
                 u.full_name AS veterinarian_name,
                 mr.diagnosis,
-                mr.treatment,
+                mr.conclusion,
                 mr.note,
                 v.check_in_time AS visit_date,
                 v.visit_status,
@@ -248,7 +248,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.veterinarian_id,
                 u.full_name AS veterinarian_name,
                 mr.diagnosis,
-                mr.treatment,
+                mr.conclusion,
                 mr.note,
                 v.check_in_time AS visit_date,
                 v.visit_status,
@@ -292,7 +292,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
         record.setVeterinarianId(rs.getInt("veterinarian_id"));
         record.setVeterinarianName(rs.getString("veterinarian_name"));
         record.setDiagnosis(rs.getString("diagnosis"));
-        record.setTreatment(rs.getString("treatment"));
+        record.setConclusion(rs.getString("conclusion"));
         record.setNote(rs.getString("note"));
         
         Timestamp visitDate = rs.getTimestamp("visit_date");
@@ -330,7 +330,7 @@ public class MedicalRecordJdbcDAO extends BaseDAO implements MedicalRecordDAO {
                 mr.veterinarian_id,
                 u.full_name AS veterinarian_name,
                 mr.diagnosis,
-                mr.treatment,
+                mr.conclusion,
                 mr.note,
                 v.check_in_time AS visit_date,
                 v.visit_status,

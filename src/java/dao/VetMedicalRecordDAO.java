@@ -49,11 +49,34 @@ public class VetMedicalRecordDAO extends DBContext {
         return false;
     }
 
+    private boolean hasOnlyConclusionColumn(Connection con) {
+        String sql = """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = 'MedicalRecords' AND COLUMN_NAME = 'conclusion'
+            """;
+        try (PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     public MedicalRecord getByVisitId(int visitId) {
-        String sqlWithCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE visit_id = ?";
-        String sqlLegacy = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, created_at FROM MedicalRecords WHERE visit_id = ?";
+        String sqlWithCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, conclusion, note, clinical_condition, created_at FROM MedicalRecords WHERE visit_id = ?";
+        String sqlWithConditionLegacyTreat = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment AS conclusion, note, clinical_condition, created_at FROM MedicalRecords WHERE visit_id = ?";
+        String sqlWithoutCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, conclusion, note, created_at FROM MedicalRecords WHERE visit_id = ?";
+        String sqlWithoutConditionLegacyTreat = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment AS conclusion, note, created_at FROM MedicalRecords WHERE visit_id = ?";
         try (Connection con = getConnection()) {
-            String sql = hasClinicalConditionColumn(con) ? sqlWithCondition : sqlLegacy;
+            boolean hasCondition = hasClinicalConditionColumn(con);
+            boolean hasConclusion = hasOnlyConclusionColumn(con);
+            String sql;
+            if (hasCondition) {
+                sql = hasConclusion ? sqlWithCondition : sqlWithConditionLegacyTreat;
+            } else {
+                sql = hasConclusion ? sqlWithoutCondition : sqlWithoutConditionLegacyTreat;
+            }
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, visitId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -67,10 +90,19 @@ public class VetMedicalRecordDAO extends DBContext {
     }
 
     public MedicalRecord getByRecordId(int recordId) {
-        String sqlWithCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at FROM MedicalRecords WHERE record_id = ?";
-        String sqlLegacy = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment, note, created_at FROM MedicalRecords WHERE record_id = ?";
+        String sqlWithCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, conclusion, note, clinical_condition, created_at FROM MedicalRecords WHERE record_id = ?";
+        String sqlWithConditionLegacyTreat = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment AS conclusion, note, clinical_condition, created_at FROM MedicalRecords WHERE record_id = ?";
+        String sqlWithoutCondition = "SELECT record_id, visit_id, veterinarian_id, diagnosis, conclusion, note, created_at FROM MedicalRecords WHERE record_id = ?";
+        String sqlWithoutConditionLegacyTreat = "SELECT record_id, visit_id, veterinarian_id, diagnosis, treatment AS conclusion, note, created_at FROM MedicalRecords WHERE record_id = ?";
         try (Connection con = getConnection()) {
-            String sql = hasClinicalConditionColumn(con) ? sqlWithCondition : sqlLegacy;
+            boolean hasCondition = hasClinicalConditionColumn(con);
+            boolean hasConclusion = hasOnlyConclusionColumn(con);
+            String sql;
+            if (hasCondition) {
+                sql = hasConclusion ? sqlWithCondition : sqlWithConditionLegacyTreat;
+            } else {
+                sql = hasConclusion ? sqlWithoutCondition : sqlWithoutConditionLegacyTreat;
+            }
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, recordId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -83,17 +115,25 @@ public class VetMedicalRecordDAO extends DBContext {
         return null;
     }
 
-    public MedicalRecord create(int visitId, int veterinarianId, String diagnosis, String treatment, String note, String clinicalCondition) {
-        String sqlWithCondition = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
-        String sqlLegacy = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, GETDATE())";
+    public MedicalRecord create(int visitId, int veterinarianId, String diagnosis, String conclusion, String note, String clinicalCondition) {
+        String sqlWithCondition = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note, clinical_condition, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+        String sqlWithConditionLegacyTreat = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, clinical_condition, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+        String sqlWithoutCondition = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, GETDATE())";
+        String sqlWithoutConditionLegacyTreat = "INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note, created_at) OUTPUT INSERTED.record_id VALUES (?, ?, ?, ?, ?, GETDATE())";
         try (Connection con = getConnection()) {
             boolean hasCondition = hasClinicalConditionColumn(con);
-            String sql = hasCondition ? sqlWithCondition : sqlLegacy;
+            boolean hasConclusion = hasOnlyConclusionColumn(con);
+            String sql;
+            if (hasCondition) {
+                sql = hasConclusion ? sqlWithCondition : sqlWithConditionLegacyTreat;
+            } else {
+                sql = hasConclusion ? sqlWithoutCondition : sqlWithoutConditionLegacyTreat;
+            }
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, visitId);
                 ps.setInt(2, veterinarianId);
                 ps.setString(3, diagnosis);
-                ps.setString(4, treatment);
+                ps.setString(4, conclusion);
                 ps.setString(5, note);
                 if (hasCondition) {
                     ps.setString(6, clinicalCondition);
@@ -105,7 +145,7 @@ public class VetMedicalRecordDAO extends DBContext {
                         r.setVisitId(visitId);
                         r.setVeterinarianId(veterinarianId);
                         r.setDiagnosis(diagnosis);
-                        r.setTreatment(treatment);
+                        r.setConclusion(conclusion);
                         r.setNote(note);
                         r.setClinicalCondition(clinicalCondition);
                         return r;
@@ -118,15 +158,23 @@ public class VetMedicalRecordDAO extends DBContext {
         return null;
     }
 
-    public boolean update(int recordId, String diagnosis, String treatment, String note, String clinicalCondition) {
-        String sqlWithCondition = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ?, clinical_condition = ? WHERE record_id = ?";
-        String sqlLegacy = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ? WHERE record_id = ?";
+    public boolean update(int recordId, String diagnosis, String conclusion, String note, String clinicalCondition) {
+        String sqlWithCondition = "UPDATE MedicalRecords SET diagnosis = ?, conclusion = ?, note = ?, clinical_condition = ? WHERE record_id = ?";
+        String sqlWithConditionLegacyTreat = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ?, clinical_condition = ? WHERE record_id = ?";
+        String sqlWithoutCondition = "UPDATE MedicalRecords SET diagnosis = ?, conclusion = ?, note = ? WHERE record_id = ?";
+        String sqlWithoutConditionLegacyTreat = "UPDATE MedicalRecords SET diagnosis = ?, treatment = ?, note = ? WHERE record_id = ?";
         try (Connection con = getConnection()) {
             boolean hasCondition = hasClinicalConditionColumn(con);
-            String sql = hasCondition ? sqlWithCondition : sqlLegacy;
+            boolean hasConclusion = hasOnlyConclusionColumn(con);
+            String sql;
+            if (hasCondition) {
+                sql = hasConclusion ? sqlWithCondition : sqlWithConditionLegacyTreat;
+            } else {
+                sql = hasConclusion ? sqlWithoutCondition : sqlWithoutConditionLegacyTreat;
+            }
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setString(1, diagnosis);
-                ps.setString(2, treatment);
+                ps.setString(2, conclusion);
                 ps.setString(3, note);
                 if (hasCondition) {
                     ps.setString(4, clinicalCondition);
@@ -492,7 +540,8 @@ public class VetMedicalRecordDAO extends DBContext {
         r.setVisitId(rs.getInt("visit_id"));
         r.setVeterinarianId(rs.getInt("veterinarian_id"));
         r.setDiagnosis(rs.getString("diagnosis"));
-        r.setTreatment(rs.getString("treatment"));
+        // Select either real 'conclusion' or aliased legacy 'treatment AS conclusion'
+        r.setConclusion(rs.getString("conclusion"));
         r.setNote(rs.getString("note"));
         if (hasColumn(rs, "clinical_condition")) {
             r.setClinicalCondition(rs.getString("clinical_condition"));

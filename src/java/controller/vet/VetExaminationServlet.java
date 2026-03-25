@@ -184,6 +184,9 @@ public class VetExaminationServlet extends HttpServlet {
         if ("pendingLab".equals(request.getParameter("error"))) {
             request.setAttribute("examCompleteBlocked",
                     "Cannot complete examination while lab requests are still pending. Complete them in the lab queue first.");
+        } else if ("missingDiagnosisObservation".equals(request.getParameter("error"))) {
+            request.setAttribute("examCompleteBlocked",
+                    "Diagnosis and Observation are required to complete the examination.");
         }
         request.getRequestDispatcher("/WEB-INF/views/vet/examination.jsp").forward(request, response);
     }
@@ -230,12 +233,18 @@ public class VetExaminationServlet extends HttpServlet {
         Visit visit = visitDao.getByAppointmentId(appointmentId);
 //  lưu lại diagnosis, treatment, note
         String diagnosis = request.getParameter("diagnosis");
-        String treatment = request.getParameter("treatment");
+        String conclusion = request.getParameter("conclusion");
         String note = request.getParameter("note");
         String clinicalCondition = normalizeClinicalCondition(request.getParameter("clinicalCondition"));
         if (diagnosis == null) diagnosis = "";
-        if (treatment == null) treatment = "";
+        if (conclusion == null) conclusion = "";
         if (note == null) note = "";
+
+        // UI requirement: Diagnosis & Observation are the same textarea.
+        // If note is missing, fallback to diagnosis to keep server-side guard consistent.
+        if (note.trim().isEmpty() && diagnosis != null && !diagnosis.trim().isEmpty()) {
+            note = diagnosis;
+        }
 // tạo ra medical record theo visitid, nếu đã có sẽ update
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         MedicalRecord record = null;
@@ -245,9 +254,9 @@ public class VetExaminationServlet extends HttpServlet {
                     : vetId;
             record = recordDao.getByVisitId(visit.getVisitId());
             if (record == null) {
-                record = recordDao.create(visit.getVisitId(), effectiveVetId, diagnosis, treatment, note, clinicalCondition);
+                record = recordDao.create(visit.getVisitId(), effectiveVetId, diagnosis, conclusion, note, clinicalCondition);
             } else {
-                recordDao.update(record.getRecordId(), diagnosis, treatment, note, clinicalCondition);
+                recordDao.update(record.getRecordId(), diagnosis, conclusion, note, clinicalCondition);
             }
         }
 
@@ -288,6 +297,14 @@ public class VetExaminationServlet extends HttpServlet {
         }
 //sau khi hoàn thành examation sẽ xóa cái recordservices đi và tính số tiền 
         String action = request.getParameter("action");
+
+        // Server-side guard for required fields when user completes the examination.
+        if ("complete".equals(action) && (diagnosis.trim().isEmpty() || note.trim().isEmpty())) {
+            response.sendRedirect(request.getContextPath()
+                    + "/vet/examination?id=" + appointmentId + "&error=missingDiagnosisObservation");
+            return;
+        }
+
         if ("complete".equals(action) && visit != null) {
             LabTestRequestDAO labDao = new LabTestRequestDAO();
             if (labDao.countPendingByVisitId(visit.getVisitId()) > 0) {

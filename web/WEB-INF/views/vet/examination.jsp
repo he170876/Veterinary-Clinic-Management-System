@@ -66,7 +66,7 @@
     List<LabResultSummary> recentLabResults = (List<LabResultSummary>) request.getAttribute("recentLabResults");
     if (recentLabResults == null) recentLabResults = java.util.Collections.emptyList();
     String diagnosisText = (medicalRecord != null && medicalRecord.getDiagnosis() != null) ? medicalRecord.getDiagnosis() : "";
-    String treatmentText = (medicalRecord != null && medicalRecord.getTreatment() != null) ? medicalRecord.getTreatment() : "";
+    String conclusionText = (medicalRecord != null && medicalRecord.getConclusion() != null) ? medicalRecord.getConclusion() : "";
     String noteText = (medicalRecord != null && medicalRecord.getNote() != null) ? medicalRecord.getNote() : "";
     String clinicalCondition = (medicalRecord != null && medicalRecord.getClinicalCondition() != null && !medicalRecord.getClinicalCondition().isEmpty())
             ? medicalRecord.getClinicalCondition().trim() : "follow_up";
@@ -187,8 +187,21 @@
 <textarea id="diagnosis-textarea" name="diagnosis" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-primary focus:border-primary placeholder:text-slate-400 p-4 transition-colors" placeholder="Describe symptoms, physical exam findings, and preliminary diagnosis..." rows="6"><%= diagnosisText %></textarea>
 <p id="diagnosis-error" class="hidden mt-1.5 text-xs text-red-500 font-semibold flex items-center gap-1">
     <span class="material-symbols-outlined text-sm">error</span>
-    Diagnosis &amp; Observation is required to complete the examination.
+    Diagnosis is required to complete the examination.
 </p>
+
+<!-- Hidden field: Observation is the same as the Diagnosis textarea (per UI requirement). -->
+<textarea id="observation-textarea" name="note" class="hidden" rows="1"><%= diagnosisText %></textarea>
+
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+<h4 class="text-md font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">vaccines</span>
+                                Conclusion
+                            </h4>
+<div class="space-y-3">
+<textarea name="conclusion" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm" placeholder="Kết luận / conclusion for this visit..." rows="3"><%= conclusionText %></textarea>
+</div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -279,15 +292,6 @@
                                     + ADD MEDICATION
                                 </button>
 </div>
-<div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm md:col-span-2 lg:col-span-1">
-<h4 class="text-md font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-<span class="material-symbols-outlined text-primary text-xl">vaccines</span>
-                                Treatment Plan
-                            </h4>
-<div class="space-y-3">
-<textarea name="treatment" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm" placeholder="Step-by-step treatment instructions..." rows="3"><%= treatmentText %></textarea>
-</div>
-    </div>
 </div>
 <div class="space-y-6">
 <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -671,7 +675,8 @@
         const STORAGE_KEY = 'exam_draft_<%= ap.getAppointmentId() %>';
 
         const diagnosisEl     = document.querySelector('textarea[name="diagnosis"]');
-        const treatmentEl     = document.querySelector('textarea[name="treatment"]');
+        const conclusionEl    = document.querySelector('textarea[name="conclusion"]');
+        const noteEl          = document.querySelector('textarea[name="note"]');
         const prescriptionsList = document.getElementById('prescriptions-list');
         const examForm        = document.getElementById('examination-form');
         const labForm         = document.getElementById('lab-request-form');
@@ -709,7 +714,8 @@
             }
             return {
                 diagnosis:     diagnosisEl  ? diagnosisEl.value  : '',
-                treatment:     treatmentEl  ? treatmentEl.value  : '',
+                conclusion:    conclusionEl ? conclusionEl.value : '',
+                note:          noteEl       ? noteEl.value       : '',
                 prescriptions: prescriptions
             };
         }
@@ -731,8 +737,11 @@
 
                 if (diagnosisEl && draft.diagnosis !== undefined)
                     diagnosisEl.value = draft.diagnosis;
-                if (treatmentEl && draft.treatment !== undefined)
-                    treatmentEl.value = draft.treatment;
+                if (conclusionEl && draft.conclusion !== undefined)
+                    conclusionEl.value = draft.conclusion;
+                // Observation is the same as Diagnosis.
+                if (noteEl && diagnosisEl)
+                    noteEl.value = diagnosisEl.value;
 
                 if (Array.isArray(draft.prescriptions) && draft.prescriptions.length > 0 && prescriptionsList) {
                     prescriptionsList.querySelectorAll('.prescription-row').forEach(function (r) { r.remove(); });
@@ -751,7 +760,8 @@
         }
 
         if (diagnosisEl)      diagnosisEl.addEventListener('input', debouncedSave);
-        if (treatmentEl)      treatmentEl.addEventListener('input', debouncedSave);
+        if (conclusionEl)    conclusionEl.addEventListener('input', debouncedSave);
+        if (noteEl)           noteEl.addEventListener('input', debouncedSave);
         if (prescriptionsList) prescriptionsList.addEventListener('input', debouncedSave);
 
         /* track which exam-form button was clicked */
@@ -883,9 +893,14 @@
     })();
 </script>
 
+<input type="hidden" id="pending-lab-count" value="<%= pendingLabCount %>"/>
+
 <script>
 (function () {
-    const PENDING_LAB_COUNT = <%= pendingLabCount %>;
+    const PENDING_LAB_COUNT = parseInt(
+        (document.getElementById('pending-lab-count') || {}).value || '0',
+        10
+    );
     const completeBtn   = document.getElementById('complete-exam-btn');
     const examForm      = document.getElementById('examination-form');
     const completeError = document.getElementById('complete-error');
@@ -984,6 +999,9 @@
     function doComplete() {
         if (!runValidations()) return;
 
+        // Ensure backend "note/observation" is not empty (same field as diagnosis).
+        if (noteEl && diagnosisEl) noteEl.value = diagnosisEl.value;
+
         var serviceIdsInput = document.getElementById('serviceIds');
         if (serviceIdsInput) {
             var ids = [];
@@ -1024,6 +1042,8 @@
                 setFieldError(this, false);
                 if (errEl) errEl.classList.add('hidden');
             }
+            // Observation is the same field (hidden) as Diagnosis.
+            if (noteEl) noteEl.value = this.value;
         });
     }
 

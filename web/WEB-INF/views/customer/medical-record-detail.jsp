@@ -27,8 +27,8 @@
             ? record.getVeterinarianName() : "N/A";
     String diagnosis = (record.getDiagnosis() != null && !record.getDiagnosis().trim().isEmpty())
             ? record.getDiagnosis() : "No diagnosis recorded";
-    String treatment = (record.getTreatment() != null && !record.getTreatment().trim().isEmpty())
-            ? record.getTreatment() : "No treatment recorded";
+    String conclusion = (record.getConclusion() != null && !record.getConclusion().trim().isEmpty())
+            ? record.getConclusion() : "No conclusion recorded";
     String note = (record.getNote() != null && !record.getNote().trim().isEmpty())
             ? record.getNote() : "No additional notes";
     String visitStatus = record.getVisitStatus() != null ? record.getVisitStatus() : "Unknown";
@@ -205,7 +205,7 @@
                     <h3 class="text-lg font-bold">4. Treatment Plan</h3>
                 </div>
                 <div class="rounded-lg border border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 p-4 mb-4">
-                    <p class="text-sm leading-relaxed whitespace-pre-line"><%= treatment %></p>
+                    <p class="text-sm leading-relaxed whitespace-pre-line"><%= conclusion %></p>
                 </div>
                 <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] overflow-hidden">
                     <% if (services.isEmpty()) { %>

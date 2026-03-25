@@ -112,7 +112,7 @@ BEGIN
     SET @visit1 = SCOPE_IDENTITY();
 
     DECLARE @record1 INT;
-    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note)
+    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note)
     VALUES (@visit1, @vetSarahId,
             'Chronic otitis externa (ear infection), mild flare-up',
             'Clean ear canal, prescribe topical antibiotic drops for 7 days',
@@ -168,7 +168,7 @@ BEGIN
     SET @visit2 = SCOPE_IDENTITY();
 
     DECLARE @record2 INT;
-    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, treatment, note)
+    INSERT INTO MedicalRecords (visit_id, veterinarian_id, diagnosis, conclusion, note)
     VALUES (@visit2, @vetJamesId,
             'Acute gastroenteritis, likely dietary indiscretion',
             'Prescribe bland diet and antiemetic for 3 days; recheck if no improvement.',
