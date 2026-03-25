@@ -2392,17 +2392,53 @@ public class AppointmentDAO extends DBContext {
         return value == null ? "" : value.trim().toLowerCase();
     }
 
-    public boolean rescheduleAppointment(int appointmentId, java.util.Date newDate, java.sql.Time newTime) {
-        String sql = "UPDATE appointments SET appointment_time = ?, status = 'Pending' WHERE appointment_id = ?";
-        try (
-            Connection con = getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)
-        ) {
-            // Combine date and time into a timestamp
-            java.sql.Timestamp timestamp = new java.sql.Timestamp(newDate.getTime() + newTime.getTime());
-            ps.setTimestamp(1, timestamp);
-            ps.setInt(2, appointmentId);
-            return ps.executeUpdate() > 0;
+    /**
+     * Moves a confirmed/pending appointment to a new calendar date and AM/PM slot.
+     * Does not change status. Supports {@code appointment_date}/{@code time_slot} and legacy {@code appointment_time}.
+     */
+    public boolean rescheduleAppointment(int appointmentId, LocalDate newDate, String timeSlot) {
+        if (appointmentId <= 0 || newDate == null) {
+            return false;
+        }
+        String normalizedSlot = (timeSlot != null && timeSlot.equalsIgnoreCase("PM")) ? "PM" : "AM";
+
+        try (Connection con = getConnection()) {
+            Set<String> columns = getAppointmentsTableColumns(con);
+            boolean hasAppointmentDate = columns.contains("appointment_date");
+            boolean hasTimeSlot = columns.contains("time_slot");
+            boolean hasAppointmentTime = columns.contains("appointment_time");
+
+            int hour = "PM".equalsIgnoreCase(normalizedSlot) ? 14 : 8;
+            Timestamp derivedTs = Timestamp.valueOf(newDate.atTime(hour, 0));
+            java.sql.Date sqlDate = java.sql.Date.valueOf(newDate);
+
+            if (hasAppointmentDate && hasTimeSlot) {
+                if (hasAppointmentTime) {
+                    String sql = "UPDATE appointments SET appointment_date = ?, time_slot = ?, appointment_time = ? WHERE appointment_id = ?";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setDate(1, sqlDate);
+                        ps.setString(2, normalizedSlot);
+                        ps.setTimestamp(3, derivedTs);
+                        ps.setInt(4, appointmentId);
+                        return ps.executeUpdate() > 0;
+                    }
+                } else {
+                    String sql = "UPDATE appointments SET appointment_date = ?, time_slot = ? WHERE appointment_id = ?";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setDate(1, sqlDate);
+                        ps.setString(2, normalizedSlot);
+                        ps.setInt(3, appointmentId);
+                        return ps.executeUpdate() > 0;
+                    }
+                }
+            } else if (hasAppointmentTime) {
+                String sql = "UPDATE appointments SET appointment_time = ? WHERE appointment_id = ?";
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setTimestamp(1, derivedTs);
+                    ps.setInt(2, appointmentId);
+                    return ps.executeUpdate() > 0;
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

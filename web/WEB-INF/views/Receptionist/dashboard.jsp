@@ -752,34 +752,6 @@
             updateStatus(appointmentId, 'Checked-in', button);
         }
 
-        function rescheduleAppointment(appointmentId) {
-            const newDate = prompt('Enter new date (yyyy-MM-dd):');
-            if (!newDate) return;
-            const newTime = prompt('Enter new time (HH:mm):');
-            if (!newTime) return;
-
-            fetch('RescheduleAppointment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'appointmentId=' + appointmentId + '&newDate=' + newDate + '&newTime=' + newTime
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(data.message);
-                    setTimeout(() => { location.reload(); }, 1500);
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error rescheduling');
-            });
-        }
-
         let currentCancelAppointmentId = null;
         let currentCancelButton = null;
         let currentRejectAppointmentId = null;
@@ -837,7 +809,7 @@
         }
 
         function viewInvoice(appointmentId) {
-            window.open('ViewInvoice?appointmentId=' + appointmentId, '_blank');
+            window.open('<%= request.getContextPath() %>/Receptionist/ViewInvoice?appointmentId=' + appointmentId, '_blank');
         }
 
         function processAppointmentRequest(appointmentId, requestType, decision) {
@@ -954,6 +926,7 @@
         }
         .animate-slide-in { animation: slide-in 0.3s ease-out; }
     </style>
+    <jsp:include page="reschedule-appointment-modal.jsp"/>
     <jsp:include page="book-appointment-modal.jsp"/>
     <jsp:include page="emergency-appointment-modal.jsp"/>
     <script>

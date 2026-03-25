@@ -188,4 +188,17 @@
         <url-pattern>/book</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>ViewInvoiceServlet</servlet-name>
+        <servlet-class>controller.receptionist.ViewInvoiceServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ViewInvoiceServlet</servlet-name>
+        <url-pattern>/Receptionist/ViewInvoice</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ViewInvoiceServlet</servlet-name>
+        <url-pattern>/ViewInvoice</url-pattern>
+    </servlet-mapping>
+
 </web-app>
