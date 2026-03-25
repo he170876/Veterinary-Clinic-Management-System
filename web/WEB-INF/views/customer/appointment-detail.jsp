@@ -232,7 +232,7 @@
 
                     <section class="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-5">
                         <h4 class="font-bold mb-2">Need to make changes?</h4>
-                        <p class="text-sm text-slate-600 dark:text-slate-300">Go back to appointment list to request reschedule or doctor change.</p>
+                        <p class="text-sm text-slate-600 dark:text-slate-300">Go back to appointment list to request reschedule.</p>
                         <a href="<%= ctx %>/customer/appointments?tab=upcoming" class="inline-flex mt-4 w-full items-center justify-center px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90">Manage Appointment</a>
                     </section>
                 </aside>

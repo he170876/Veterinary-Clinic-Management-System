@@ -198,30 +198,64 @@
                 <% } %>
             </div>
 
-            <!-- 4. Conclusion -->
-            <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-primary">assignment</span>
-                    <h3 class="text-lg font-bold">4. Conclusion</h3>
-                </div>
-                <div class="rounded-lg border border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 p-4 mb-4">
-                    <p class="text-sm leading-relaxed whitespace-pre-line"><%= conclusion %></p>
-                </div>
-                <div class="rounded-lg border border-[#f5f2f0] dark:border-[#3d2f23] overflow-hidden">
-                    <% if (services.isEmpty()) { %>
-                        <p class="p-4 text-sm text-[#8d755e]">No procedure lines attached.</p>
-                    <% } else {
-                        for (RecordServiceLine line : services) {
-                            String serviceName = line.getServiceName() != null ? line.getServiceName() : "Service";
-                            int qty = line.getQuantity();
-                    %>
-                    <div class="p-3 border-b border-[#f5f2f0] dark:border-[#3d2f23] bg-[#fcfbf9] dark:bg-[#34281d] last:border-b-0">
-                        <p class="text-sm"><%= serviceName %><% if (qty > 1) { %> (x<%= qty %>)<% } %></p>
-                    </div>
-                    <%  }
-                       } %>
-                </div>
-            </div>
+                        <!-- 4. Conclusion -->
+                        <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
+                                <div class="flex items-center gap-2 mb-4">
+                                        <span class="material-symbols-outlined text-primary">assignment</span>
+                                        <h3 class="text-lg font-bold">4. Conclusion</h3>
+                                </div>
+                                <div class="rounded-lg border border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 p-4">
+                                        <p class="text-sm leading-relaxed whitespace-pre-line"><%= conclusion %></p>
+                                </div>
+                        </div>
+
+                        <!-- 5. Invoice & Services Used -->
+                        <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
+                                <div class="flex items-center gap-2 mb-4">
+                                        <span class="material-symbols-outlined text-primary">receipt_long</span>
+                                        <h3 class="text-lg font-bold">5. Invoice & Services Used</h3>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <% if (services.isEmpty()) { %>
+                                        <p class="p-4 text-sm text-[#8d755e]">No services used in this record.</p>
+                                    <% } else { %>
+                                    <table class="min-w-full divide-y divide-[#f5f2f0] dark:divide-[#3d2f23] text-sm">
+                                        <thead class="bg-primary/10 dark:bg-[#34281d]">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left font-bold">Service</th>
+                                                <th class="px-4 py-2 text-right font-bold">Quantity</th>
+                                                <th class="px-4 py-2 text-right font-bold">Unit Price</th>
+                                                <th class="px-4 py-2 text-right font-bold">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white dark:bg-[#2d2116]">
+                                            <% double totalAmount = 0.0;
+                                                 java.text.NumberFormat currencyFmt = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.US);
+                                                 for (RecordServiceLine line : services) {
+                                                     String serviceName = line.getServiceName() != null ? line.getServiceName() : "Service";
+                                                     int qty = line.getQuantity();
+                                                     double price = line.getPrice() != null ? line.getPrice() : 0.0;
+                                                     double amount = price * qty;
+                                                     totalAmount += amount;
+                                            %>
+                                            <tr class="border-b border-[#f5f2f0] dark:border-[#3d2f23]">
+                                                <td class="px-4 py-2"><%= serviceName %></td>
+                                                <td class="px-4 py-2 text-right"><%= "x" + qty %></td>
+                                                <td class="px-4 py-2 text-right"><%= currencyFmt.format(price) %></td>
+                                                <td class="px-4 py-2 text-right font-semibold"><%= currencyFmt.format(amount) %></td>
+                                            </tr>
+                                            <% } %>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="3" class="px-4 py-2 text-right font-bold">Total</td>
+                                                <td class="px-4 py-2 text-right font-bold text-primary"><%= currencyFmt.format(totalAmount) %></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                    <% } %>
+                                </div>
+                        </div>
 
             <!-- Actions -->
             <div class="flex justify-between items-center pt-4">

@@ -218,36 +218,61 @@
                         </div>
                 </div>
 
-                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-primary mb-4">4. Conclusion</h3>
-                        <%
-                            String conclusion = record != null && record.getConclusion() != null ? record.getConclusion() : "No conclusion recorded.";
-                        %>
-                        <div class="mb-4 p-4 border border-primary/20 bg-primary/5 rounded-lg">
-                            <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line"><%= conclusion %></p>
-                        </div>
-                        <ul class="divide-y divide-slate-100 dark:divide-slate-900">
-                            <%
-                                if (services.isEmpty()) {
-                            %>
-                            <li class="py-3 text-sm text-slate-500 dark:text-slate-400">No procedure lines were attached to this record.</li>
-                            <%
-                                } else {
-                                    for (RecordServiceLine line : services) {
-                                        String svcName = line.getServiceName() != null ? line.getServiceName() : "Service";
-                                        int qty = line.getQuantity();
-                            %>
-                            <li class="py-2 text-sm">
-                                <span class="text-slate-600 dark:text-slate-400">
-                                    <%= svcName %><% if (qty > 1) { %> (x<%= qty %>)<% } %>
-                                </span>
-                            </li>
-                            <%
-                                    }
-                                }
-                            %>
-                        </ul>
-                </div>
+                                <!-- 4. Conclusion -->
+                                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                                        <h3 class="text-lg font-bold text-primary mb-4">4. Conclusion</h3>
+                                                <%
+                                                        String conclusion = record != null && record.getConclusion() != null ? record.getConclusion() : "No conclusion recorded.";
+                                                %>
+                                                <div class="p-4 border border-primary/20 bg-primary/5 rounded-lg">
+                                                        <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line"><%= conclusion %></p>
+                                                </div>
+                                </div>
+
+                                <!-- 5. Invoice & Services Used -->
+                                <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                                        <h3 class="text-lg font-bold text-primary mb-4">5. Invoice & Services Used</h3>
+                                                <div class="overflow-x-auto">
+                                                    <% if (services.isEmpty()) { %>
+                                                        <p class="p-4 text-sm text-slate-500 dark:text-slate-400">No services used in this record.</p>
+                                                    <% } else { %>
+                                                    <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-900 text-sm">
+                                                        <thead class="bg-primary/10 dark:bg-slate-900/30">
+                                                            <tr>
+                                                                <th class="px-4 py-2 text-left font-bold">Service</th>
+                                                                <th class="px-4 py-2 text-right font-bold">Quantity</th>
+                                                                <th class="px-4 py-2 text-right font-bold">Unit Price</th>
+                                                                <th class="px-4 py-2 text-right font-bold">Amount</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="bg-white dark:bg-slate-950">
+                                                            <% double totalAmount = 0.0;
+                                                                 java.text.NumberFormat currencyFmt = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.US);
+                                                                 for (RecordServiceLine line : services) {
+                                                                     String serviceName = line.getServiceName() != null ? line.getServiceName() : "Service";
+                                                                     int qty = line.getQuantity();
+                                                                     double price = line.getPrice() != null ? line.getPrice() : 0.0;
+                                                                     double amount = price * qty;
+                                                                     totalAmount += amount;
+                                                            %>
+                                                            <tr class="border-b border-slate-100 dark:border-slate-900">
+                                                                <td class="px-4 py-2"><%= serviceName %></td>
+                                                                <td class="px-4 py-2 text-right"><%= "x" + qty %></td>
+                                                                <td class="px-4 py-2 text-right"><%= currencyFmt.format(price) %></td>
+                                                                <td class="px-4 py-2 text-right font-semibold"><%= currencyFmt.format(amount) %></td>
+                                                            </tr>
+                                                            <% } %>
+                                                        </tbody>
+                                                        <tfoot>
+                                                            <tr>
+                                                                <td colspan="3" class="px-4 py-2 text-right font-bold">Total</td>
+                                                                <td class="px-4 py-2 text-right font-bold text-primary"><%= currencyFmt.format(totalAmount) %></td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                    <% } %>
+                                                </div>
+                                </div>
                 <div class="text-center pb-12">
                     <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Official Medical Document - Confidential</p>
                     <p class="text-[10px] text-slate-400 mt-1">
