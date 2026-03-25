@@ -91,6 +91,10 @@ public class LabEditProfileServlet extends HttpServlet {
             response.sendRedirect(ctx + "/lab/edit-profile?error=" + URLEncoder.encode("Phone must be 10 digits starting with 0 (e.g. 0123456789).", StandardCharsets.UTF_8));
             return;
         }
+        if (phone != null && !phone.isEmpty() && userDAO.existsByPhoneExceptId(phone, user.getUserId())) {
+            response.sendRedirect(ctx + "/lab/edit-profile?error=" + URLEncoder.encode("Phone number is already in use. Please use a different phone number.", StandardCharsets.UTF_8));
+            return;
+        }
         if (!ValidationUtil.isValidAddress(address)) {
             response.sendRedirect(ctx + "/lab/edit-profile?error=" + URLEncoder.encode("Address must be at most " + ValidationUtil.ADDRESS_MAX_LENGTH + " characters.", StandardCharsets.UTF_8));
             return;

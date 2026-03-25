@@ -48,6 +48,32 @@ BEGIN
 END
 GO
 
+/* Phone must be unique per account (ignore NULL/empty) */
+IF EXISTS (
+    SELECT phone
+    FROM dbo.Users
+    WHERE phone IS NOT NULL AND phone <> ''
+    GROUP BY phone
+    HAVING COUNT(*) > 1
+)
+BEGIN
+    RAISERROR('Duplicate phone numbers exist in dbo.Users. Please clean duplicates before enforcing unique phone.', 16, 1);
+    RETURN;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE object_id = OBJECT_ID('dbo.Users') AND name = 'UQ_Users_Phone'
+)
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_Users_Phone
+    ON dbo.Users(phone)
+    WHERE phone IS NOT NULL AND phone <> '';
+END
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PasswordResetTokens' AND schema_id = SCHEMA_ID('dbo'))
 BEGIN
     CREATE TABLE dbo.PasswordResetTokens (

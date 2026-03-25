@@ -68,6 +68,10 @@ public class AuthServiceImpl implements AuthService {
         if (userDAO.existsByEmail(email.trim().toLowerCase())) {
             return null; // Email taken
         }
+        if (phone != null && !phone.trim().isEmpty() && userDAO.existsByPhone(phone)) {
+            lastRegistrationError = "Phone number is already in use. Please use a different phone number.";
+            return null;
+        }
 
         User user = new User();
         user.setFullName(fullName.trim());
@@ -83,7 +87,15 @@ public class AuthServiceImpl implements AuthService {
         }
         user.setRole(customerRole.get());
 
-        return userDAO.createCustomerUser(user);
+        User created = userDAO.createCustomerUser(user);
+        if (created == null) {
+            // Handle unique constraint race-condition (email/phone)
+            String dbErr = dao.impl.UserJdbcDAO.getLastInsertError();
+            if (dbErr != null && (dbErr.contains("UQ_Users_Phone") || dbErr.contains("UQ_Users_Phone".toLowerCase()))) {
+                lastRegistrationError = "Phone number is already in use. Please use a different phone number.";
+            }
+        }
+        return created;
     }
 
     @Override
