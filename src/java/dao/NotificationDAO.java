@@ -24,7 +24,7 @@ public class NotificationDAO extends DBContext {
         if (userId <= 0) return false;
         if (title == null) title = "";
         if (message == null) message = "";
-        String sql = "INSERT INTO Notifications (user_id, title, message) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO Notifications (user_id, title, message, created_at) VALUES (?, ?, ?, GETDATE())";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, userId);
             ps.setString(2, title);

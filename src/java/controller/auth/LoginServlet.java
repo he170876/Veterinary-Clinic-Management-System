@@ -114,7 +114,7 @@ public class LoginServlet extends HttpServlet {
                 path = contextPath + "/vet/dashboard";
                 break;
             case 3:  // Receptionist
-                path = contextPath + "/staff/dashboard";
+                path = contextPath + "/Receptionist/Dashboard";
                 break;
             case 4:  // LabStaff
                 path = contextPath + "/lab/labqueue";

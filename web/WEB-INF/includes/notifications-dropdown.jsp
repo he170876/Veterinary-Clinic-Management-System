@@ -100,8 +100,11 @@
                                 + "&appointmentId=" + appointmentId;
                     } else if ("customer".equals(notifRoleNormalized)
                             && appointmentId > 0
-                            && (titleLower.contains("reschedule") || titleLower.contains("doctor") || titleLower.contains("appointment"))) {
-                        itemHref = notifCtx + "/customer/appointments?tab=upcoming&appointmentId=" + appointmentId;
+                            && (titleLower.contains("reschedule") || titleLower.contains("doctor") || titleLower.contains("appointment")
+                            || titleLower.contains("confirm") || titleLower.contains("reject") || titleLower.contains("cancel")
+                            || titleLower.contains("visit") || titleLower.contains("complete") || titleLower.contains("done")
+                            || titleLower.contains("paid"))) {
+                        itemHref = notifCtx + "/customer/appointments/detail?id=" + appointmentId;
                     }
                 %>
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -207,8 +210,11 @@
                         && (role === 'receptionist' || role === 'frontdesk')) {
                         itemHref = base + '/Receptionist/ManageAppointmentRequests?requestType=' + encodeURIComponent(requestType) + '&appointmentId=' + encodeURIComponent(appointmentId);
                     } else if (role === 'customer' && appointmentId
-                        && (rawTitle.indexOf('reschedule') !== -1 || rawTitle.indexOf('doctor') !== -1 || rawTitle.indexOf('appointment') !== -1)) {
-                        itemHref = base + '/customer/appointments?tab=upcoming&appointmentId=' + encodeURIComponent(appointmentId);
+                        && (rawTitle.indexOf('reschedule') !== -1 || rawTitle.indexOf('doctor') !== -1 || rawTitle.indexOf('appointment') !== -1
+                        || rawTitle.indexOf('confirm') !== -1 || rawTitle.indexOf('reject') !== -1 || rawTitle.indexOf('cancel') !== -1
+                        || rawTitle.indexOf('visit') !== -1 || rawTitle.indexOf('complete') !== -1 || rawTitle.indexOf('done') !== -1
+                        || rawTitle.indexOf('paid') !== -1)) {
+                        itemHref = base + '/customer/appointments/detail?id=' + encodeURIComponent(appointmentId);
                     }
 
                     html += '<div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">';

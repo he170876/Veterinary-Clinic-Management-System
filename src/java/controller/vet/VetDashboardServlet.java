@@ -56,6 +56,7 @@ public class VetDashboardServlet extends HttpServlet {
         int pendingLab = vetId > 0 ? labDao.countPendingByVeterinarian(vetId) : 0;
         int followUps = vetId > 0 ? appDao.countFollowUpsThisWeek(vetId) : 0;
         List<LabResultSummary> recentLabResults = vetId > 0 ? labDao.getRecentResultsForVeterinarian(vetId, 5) : Collections.emptyList();
+        boolean vetHasActiveExamination = vetId > 0 && appDao.hasActiveInExamination(vetId);
 
         request.setAttribute("user", user);
         NotificationDAO ndao = new NotificationDAO();
@@ -68,6 +69,7 @@ public class VetDashboardServlet extends HttpServlet {
         request.setAttribute("pendingLab", pendingLab);
         request.setAttribute("followUps", followUps);
         request.setAttribute("recentLabResults", recentLabResults);
+        request.setAttribute("vetHasActiveExamination", vetHasActiveExamination);
         request.getRequestDispatcher("/WEB-INF/views/vet/dashboard.jsp").forward(request, response);
     }
 }

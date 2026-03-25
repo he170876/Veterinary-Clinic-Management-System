@@ -129,6 +129,16 @@ public class VetExaminationServlet extends HttpServlet {
 
         VisitDAO visitDao = new VisitDAO();
         Visit visit = visitDao.getByAppointmentId(appointmentId);
+        if (visit == null && ap.getPet() != null && ap.getCustomer() != null) {
+            String apStatusGet = ap.getStatus() != null ? ap.getStatus() : "";
+            if ("Checked-in".equalsIgnoreCase(apStatusGet) || "In-Examination".equalsIgnoreCase(apStatusGet)) {
+                visit = visitDao.ensureVisitForAppointment(
+                        appointmentId,
+                        ap.getPet().getPetId(),
+                        ap.getCustomer().getCustomerId(),
+                        ap.getVeterinarianId());
+            }
+        }
 
         MedicalRecord record = null;
         List<RecordServiceLine> recordServices = List.of();
@@ -228,6 +238,16 @@ public class VetExaminationServlet extends HttpServlet {
 
         VisitDAO visitDao = new VisitDAO();
         Visit visit = visitDao.getByAppointmentId(appointmentId);
+        if (visit == null && ap.getPet() != null && ap.getCustomer() != null) {
+            String apStatus = ap.getStatus() != null ? ap.getStatus() : "";
+            if ("Checked-in".equalsIgnoreCase(apStatus) || "In-Examination".equalsIgnoreCase(apStatus)) {
+                visit = visitDao.ensureVisitForAppointment(
+                        appointmentId,
+                        ap.getPet().getPetId(),
+                        ap.getCustomer().getCustomerId(),
+                        ap.getVeterinarianId());
+            }
+        }
 //  lưu lại diagnosis, treatment, note
         String diagnosis = request.getParameter("diagnosis");
         String treatment = request.getParameter("treatment");
@@ -301,20 +321,30 @@ public class VetExaminationServlet extends HttpServlet {
             // Record amount spent (from medical record services)
             if (record != null && visit != null) {
                 List<RecordServiceLine> lines = recordDao.getServicesForRecord(record.getRecordId());
+                java.util.Map<String, int[]> aggregated = new java.util.LinkedHashMap<>();
                 double total = 0;
                 for (RecordServiceLine line : lines) {
-                    if (line.getPrice() != null && line.getQuantity() > 0) {
-                        total += line.getPrice() * line.getQuantity();
+                    if (line.getPrice() == null || line.getQuantity() <= 0 || line.getServiceName() == null) {
+                        continue;
                     }
+                    double unit = line.getPrice();
+                    int qty = line.getQuantity();
+                    String key = line.getServiceName().trim() + "\0" + unit;
+                    int[] bucket = aggregated.computeIfAbsent(key, k -> new int[]{0});
+                    bucket[0] += qty;
+                    total += unit * qty;
                 }
                 if (total > 0) {
                     InvoiceDAO invoiceDao = new InvoiceDAO();
                     int invoiceId = invoiceDao.create(visit.getVisitId(), total, "Recorded");
                     if (invoiceId > 0) {
-                        for (RecordServiceLine line : lines) {
-                            if (line.getPrice() != null && line.getQuantity() > 0 && line.getServiceName() != null) {
-                                invoiceDao.addItem(invoiceId, "Service", line.getServiceName(),
-                                        line.getPrice(), line.getQuantity(), line.getPrice() * line.getQuantity());
+                        for (java.util.Map.Entry<String, int[]> e : aggregated.entrySet()) {
+                            int sep = e.getKey().indexOf('\0');
+                            String name = sep >= 0 ? e.getKey().substring(0, sep) : e.getKey();
+                            double unit = sep >= 0 ? Double.parseDouble(e.getKey().substring(sep + 1)) : 0;
+                            int qty = e.getValue()[0];
+                            if (qty > 0 && unit > 0) {
+                                invoiceDao.addItem(invoiceId, "Service", name, unit, qty, unit * qty);
                             }
                         }
                     }

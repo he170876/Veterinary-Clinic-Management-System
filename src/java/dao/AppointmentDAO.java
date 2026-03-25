@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -28,6 +29,25 @@ public class AppointmentDAO extends DBContext {
     private static final int DEFAULT_SERVICE_DURATION_MINUTES = 30;
     private static final int DEFAULT_BOOKING_BUFFER_MINUTES = 5;
     public static final int MAX_BOOKINGS_PER_DAY = 3;
+
+    /** Merge extra {@code appointment_service} join rows into one comma-separated label (deduped, stable order). */
+    private static void appendDistinctServiceName(Appointment ap, String serviceName) {
+        if (ap == null || serviceName == null || serviceName.isBlank()) {
+            return;
+        }
+        String trimmed = serviceName.trim();
+        String cur = ap.getService();
+        if (cur == null || cur.isBlank()) {
+            ap.setService(trimmed);
+            return;
+        }
+        for (String part : cur.split("\\s*,\\s*")) {
+            if (part.trim().equalsIgnoreCase(trimmed)) {
+                return;
+            }
+        }
+        ap.setService(cur + ", " + trimmed);
+    }
 
     public List<Appointment> getAllAppointments() {
         List<Appointment> list = new ArrayList<>();
@@ -100,63 +120,62 @@ public class AppointmentDAO extends DBContext {
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
+            Map<Integer, Appointment> merged = new LinkedHashMap<>();
             while (rs.next()) {
-                Appointment ap = new Appointment();
-                ap.setAppointmentId(rs.getInt("appointment_id"));
+                int apptId = rs.getInt("appointment_id");
+                if (!merged.containsKey(apptId)) {
+                    Appointment ap = new Appointment();
+                    ap.setAppointmentId(apptId);
 
-                java.sql.Date apptDate = rs.getDate("appointment_date");
-                String timeSlot = rs.getString("time_slot");
+                    java.sql.Date apptDate = rs.getDate("appointment_date");
+                    String timeSlot = rs.getString("time_slot");
 
-                if (apptDate != null) {
-                    ap.setAppointmentDate(apptDate.toLocalDate());
-                }
-                ap.setTimeSlot(timeSlot);
-
-                // Derive a legacy appointmentTime value from date + slot so that
-                // existing code that still relies on appointmentTime continues to work.
-                if (apptDate != null) {
-                    java.time.LocalTime defaultTime;
-                    if (timeSlot != null && timeSlot.equalsIgnoreCase("AM")) {
-                        defaultTime = java.time.LocalTime.of(9, 0);
-                    } else if (timeSlot != null && timeSlot.equalsIgnoreCase("PM")) {
-                        defaultTime = java.time.LocalTime.of(15, 0);
-                    } else {
-                        // If slot is missing, default to midday so it still falls on the correct date
-                        defaultTime = java.time.LocalTime.of(12, 0);
+                    if (apptDate != null) {
+                        ap.setAppointmentDate(apptDate.toLocalDate());
                     }
-                    ap.setAppointmentTime(java.time.LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+                    ap.setTimeSlot(timeSlot);
+
+                    if (apptDate != null) {
+                        java.time.LocalTime defaultTime;
+                        if (timeSlot != null && timeSlot.equalsIgnoreCase("AM")) {
+                            defaultTime = java.time.LocalTime.of(9, 0);
+                        } else if (timeSlot != null && timeSlot.equalsIgnoreCase("PM")) {
+                            defaultTime = java.time.LocalTime.of(15, 0);
+                        } else {
+                            defaultTime = java.time.LocalTime.of(12, 0);
+                        }
+                        ap.setAppointmentTime(java.time.LocalDateTime.of(apptDate.toLocalDate(), defaultTime));
+                    }
+                    ap.setStatus(rs.getString("status"));
+                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+
+                    Pet pet = new Pet();
+                    pet.setPetId(rs.getInt("pet_id"));
+                    pet.setName(rs.getString("pet_name"));
+                    pet.setPhotoURL(rs.getString("pet_photo"));
+                    ap.setPet(pet);
+
+                    Customer cus = new Customer();
+                    cus.setCustomerId(rs.getInt("customer_id"));
+                    User customerUser = new User();
+                    customerUser.setFullName(rs.getString("customer_name"));
+                    customerUser.setPhone(rs.getString("customer_phone"));
+                    cus.setUser(customerUser);
+                    ap.setCustomer(cus);
+                    ap.setCustomerPhone(rs.getString("customer_phone"));
+
+                    String vetName = rs.getString("veterinarian_name");
+                    if (vetName != null) {
+                        ap.setVeterinarianName(vetName);
+                    }
+
+                    merged.put(apptId, ap);
                 }
-                ap.setStatus(rs.getString("status"));
-                ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                ap.setService(rs.getString("service_name"));
-
-                // Pet
-                Pet pet = new Pet();
-                pet.setPetId(rs.getInt("pet_id"));
-                pet.setName(rs.getString("pet_name"));
-                pet.setPhotoURL(rs.getString("pet_photo"));
-                ap.setPet(pet);
-
-                // Customer with User
-                Customer cus = new Customer();
-                cus.setCustomerId(rs.getInt("customer_id"));
-                User customerUser = new User();
-                customerUser.setFullName(rs.getString("customer_name"));
-                customerUser.setPhone(rs.getString("customer_phone"));
-                cus.setUser(customerUser);
-                ap.setCustomer(cus);
-                ap.setCustomerPhone(rs.getString("customer_phone"));
-                
-                String vetName = rs.getString("veterinarian_name");
-                if (vetName != null) {
-                    ap.setVeterinarianName(vetName);
-                }
-
-                list.add(ap);
+                appendDistinctServiceName(merged.get(apptId), rs.getString("service_name"));
             }
-
-            return list;
+            if (!merged.isEmpty()) {
+                return new ArrayList<>(merged.values());
+            }
         } catch (Exception ignored) {
             // Fallback for legacy schema using appointment_time.
             list.clear();
@@ -167,43 +186,48 @@ public class AppointmentDAO extends DBContext {
             PreparedStatement ps = con.prepareStatement(legacySql);
             ResultSet rs = ps.executeQuery()
         ) {
+            Map<Integer, Appointment> merged = new LinkedHashMap<>();
             while (rs.next()) {
-                Appointment ap = new Appointment();
-                ap.setAppointmentId(rs.getInt("appointment_id"));
+                int apptId = rs.getInt("appointment_id");
+                if (!merged.containsKey(apptId)) {
+                    Appointment ap = new Appointment();
+                    ap.setAppointmentId(apptId);
 
-                Timestamp appointmentTs = rs.getTimestamp("appointment_time");
-                if (appointmentTs != null) {
-                    LocalDateTime appointmentTime = appointmentTs.toLocalDateTime();
-                    ap.setAppointmentTime(appointmentTime);
-                    ap.setAppointmentDate(appointmentTime.toLocalDate());
-                    ap.setTimeSlot(appointmentTime.getHour() < 12 ? "AM" : "PM");
+                    Timestamp appointmentTs = rs.getTimestamp("appointment_time");
+                    if (appointmentTs != null) {
+                        LocalDateTime appointmentTime = appointmentTs.toLocalDateTime();
+                        ap.setAppointmentTime(appointmentTime);
+                        ap.setAppointmentDate(appointmentTime.toLocalDate());
+                        ap.setTimeSlot(appointmentTime.getHour() < 12 ? "AM" : "PM");
+                    }
+                    ap.setStatus(rs.getString("status"));
+                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+
+                    Pet pet = new Pet();
+                    pet.setPetId(rs.getInt("pet_id"));
+                    pet.setName(rs.getString("pet_name"));
+                    pet.setPhotoURL(rs.getString("pet_photo"));
+                    ap.setPet(pet);
+
+                    Customer cus = new Customer();
+                    cus.setCustomerId(rs.getInt("customer_id"));
+                    User customerUser = new User();
+                    customerUser.setFullName(rs.getString("customer_name"));
+                    customerUser.setPhone(rs.getString("customer_phone"));
+                    cus.setUser(customerUser);
+                    ap.setCustomer(cus);
+                    ap.setCustomerPhone(rs.getString("customer_phone"));
+
+                    String vetName = rs.getString("veterinarian_name");
+                    if (vetName != null) {
+                        ap.setVeterinarianName(vetName);
+                    }
+
+                    merged.put(apptId, ap);
                 }
-                ap.setStatus(rs.getString("status"));
-                ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                ap.setService(rs.getString("service_name"));
-
-                Pet pet = new Pet();
-                pet.setPetId(rs.getInt("pet_id"));
-                pet.setName(rs.getString("pet_name"));
-                pet.setPhotoURL(rs.getString("pet_photo"));
-                ap.setPet(pet);
-
-                Customer cus = new Customer();
-                cus.setCustomerId(rs.getInt("customer_id"));
-                User customerUser = new User();
-                customerUser.setFullName(rs.getString("customer_name"));
-                customerUser.setPhone(rs.getString("customer_phone"));
-                cus.setUser(customerUser);
-                ap.setCustomer(cus);
-                ap.setCustomerPhone(rs.getString("customer_phone"));
-
-                String vetName = rs.getString("veterinarian_name");
-                if (vetName != null) {
-                    ap.setVeterinarianName(vetName);
-                }
-
-                list.add(ap);
+                appendDistinctServiceName(merged.get(apptId), rs.getString("service_name"));
             }
+            return new ArrayList<>(merged.values());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -549,6 +573,7 @@ public class AppointmentDAO extends DBContext {
      * Shared veterinarian queue:
      * - Today's Checked-in appointments (actionable)
      * - In-Examination appointments owned by current vet (resume even across days)
+     * - Today's In-Examination assigned to another vet (read-only / dimmed in UI)
      * Ordered by arrival_time.
      */
     public List<Appointment> getVetQueueAppointmentsForDate(LocalDate date, int veterinarianId) {
@@ -585,6 +610,13 @@ public class AppointmentDAO extends DBContext {
                     (a.appointment_date = ? AND a.status = 'Checked-in')
                     OR
                     (a.status = 'In-Examination' AND a.veterinarian_id = ?)
+                    OR
+                    (
+                      a.appointment_date = ?
+                      AND a.status = 'In-Examination'
+                      AND a.veterinarian_id IS NOT NULL
+                      AND (? <= 0 OR a.veterinarian_id <> ?)
+                    )
                   )
             ORDER BY COALESCE(
                 a.arrival_time,
@@ -594,53 +626,80 @@ public class AppointmentDAO extends DBContext {
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setObject(1, date);
             ps.setInt(2, veterinarianId);
+            ps.setObject(3, date);
+            ps.setInt(4, veterinarianId);
+            ps.setInt(5, veterinarianId);
             try (ResultSet rs = ps.executeQuery()) {
+                Map<Integer, Appointment> merged = new LinkedHashMap<>();
                 while (rs.next()) {
-                    Appointment ap = new Appointment();
-                    ap.setAppointmentId(rs.getInt("appointment_id"));
-                    java.sql.Timestamp at = rs.getTimestamp("arrival_time");
-                    java.sql.Date d = rs.getDate("appointment_date");
-                    String slot = rs.getString("time_slot");
-                    if (at != null) {
-                        ap.setArrivalTime(at.toLocalDateTime());
-                    } else if (d != null) {
-                        boolean isPm = slot != null && slot.equalsIgnoreCase("PM");
-                        ap.setArrivalTime(d.toLocalDate().atTime(isPm ? 15 : 9, 0));
+                    int apptId = rs.getInt("appointment_id");
+                    if (!merged.containsKey(apptId)) {
+                        merged.put(apptId, mapVetQueueAppointmentCoreRow(rs));
                     }
-                    ap.setStatus(rs.getString("status"));
-                    ap.setType(rs.getString("type"));
-                    ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                    ap.setService(rs.getString("service_name"));
-                    if (d != null) ap.setAppointmentDate(d.toLocalDate());
-                    ap.setTimeSlot(slot);
-
-                    Pet pet = new Pet();
-                    pet.setPetId(rs.getInt("pet_id"));
-                    pet.setName(rs.getString("pet_name"));
-                    pet.setPhotoURL(rs.getString("pet_photo"));
-                    pet.setSpecies(rs.getString("species"));
-                    pet.setBreed(rs.getString("breed"));
-                    ap.setPet(pet);
-
-                    Customer cus = new Customer();
-                    cus.setCustomerId(rs.getInt("customer_id"));
-                    User customerUser = new User();
-                    customerUser.setFullName(rs.getString("customer_name"));
-                    customerUser.setPhone(rs.getString("customer_phone"));
-                    cus.setUser(customerUser);
-                    ap.setCustomer(cus);
-                    ap.setCustomerPhone(rs.getString("customer_phone"));
-
-                    String vetName = rs.getString("veterinarian_name");
-                    if (vetName != null) ap.setVeterinarianName(vetName);
-
-                    list.add(ap);
+                    appendDistinctServiceName(merged.get(apptId), rs.getString("service_name"));
                 }
+                list.addAll(merged.values());
+                list.sort(Comparator.comparing(AppointmentDAO::vetQueueArrivalSortKey));
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return list;
+    }
+
+    private static Appointment mapVetQueueAppointmentCoreRow(ResultSet rs) throws SQLException {
+        Appointment ap = new Appointment();
+        ap.setAppointmentId(rs.getInt("appointment_id"));
+        java.sql.Timestamp at = rs.getTimestamp("arrival_time");
+        java.sql.Date d = rs.getDate("appointment_date");
+        String slot = rs.getString("time_slot");
+        if (at != null) {
+            ap.setArrivalTime(at.toLocalDateTime());
+        } else if (d != null) {
+            boolean isPm = slot != null && slot.equalsIgnoreCase("PM");
+            ap.setArrivalTime(d.toLocalDate().atTime(isPm ? 15 : 9, 0));
+        }
+        ap.setStatus(rs.getString("status"));
+        ap.setType(rs.getString("type"));
+        ap.setVeterinarianId(rs.getInt("veterinarian_id"));
+        if (d != null) {
+            ap.setAppointmentDate(d.toLocalDate());
+        }
+        ap.setTimeSlot(slot);
+
+        Pet pet = new Pet();
+        pet.setPetId(rs.getInt("pet_id"));
+        pet.setName(rs.getString("pet_name"));
+        pet.setPhotoURL(rs.getString("pet_photo"));
+        pet.setSpecies(rs.getString("species"));
+        pet.setBreed(rs.getString("breed"));
+        ap.setPet(pet);
+
+        Customer cus = new Customer();
+        cus.setCustomerId(rs.getInt("customer_id"));
+        User customerUser = new User();
+        customerUser.setFullName(rs.getString("customer_name"));
+        customerUser.setPhone(rs.getString("customer_phone"));
+        cus.setUser(customerUser);
+        ap.setCustomer(cus);
+        ap.setCustomerPhone(rs.getString("customer_phone"));
+
+        String vetName = rs.getString("veterinarian_name");
+        if (vetName != null) {
+            ap.setVeterinarianName(vetName);
+        }
+        return ap;
+    }
+
+    private static LocalDateTime vetQueueArrivalSortKey(Appointment ap) {
+        if (ap.getArrivalTime() != null) {
+            return ap.getArrivalTime();
+        }
+        if (ap.getAppointmentDate() != null) {
+            boolean isPm = ap.getTimeSlot() != null && ap.getTimeSlot().equalsIgnoreCase("PM");
+            return ap.getAppointmentDate().atTime(isPm ? 15 : 9, 0);
+        }
+        return LocalDateTime.MIN;
     }
 
     private List<Appointment> getAppointmentsForDateByVeterinarianAllStatuses(LocalDate date, int veterinarianId) {
@@ -649,7 +708,9 @@ public class AppointmentDAO extends DBContext {
         String legacySql = """
             SELECT a.appointment_id, a.appointment_time, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
                    p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
-                   c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
+                   c.customer_id, u.full_name AS customer_name,
+                   COALESCE(a.phone, u.phone) AS customer_phone,
+                   vet_user.full_name AS veterinarian_name
             FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
             JOIN customers c ON a.customer_id = c.customer_id
@@ -666,7 +727,9 @@ public class AppointmentDAO extends DBContext {
         String dateSlotSql = """
             SELECT a.appointment_id, a.appointment_date, a.time_slot, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
                    p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
-                   c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
+                   c.customer_id, u.full_name AS customer_name,
+                   COALESCE(a.phone, u.phone) AS customer_phone,
+                   vet_user.full_name AS veterinarian_name
             FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
             JOIN customers c ON a.customer_id = c.customer_id
@@ -689,12 +752,21 @@ public class AppointmentDAO extends DBContext {
                 ps.setDate(1, java.sql.Date.valueOf(date));
                 ps.setInt(2, veterinarianId);
                 try (ResultSet rs = ps.executeQuery()) {
+                    Map<Integer, Appointment> merged = new LinkedHashMap<>();
                     while (rs.next()) {
-                        Appointment ap = hasDateSlot
-                                ? mapAppointmentFromDateSlotRs(rs)
-                                : mapAppointmentFromRs(rs);
-                        list.add(ap);
+                        int apptId = rs.getInt("appointment_id");
+                        if (!merged.containsKey(apptId)) {
+                            Appointment ap = hasDateSlot
+                                    ? mapAppointmentFromDateSlotRs(rs)
+                                    : mapAppointmentFromRs(rs);
+                            ap.setService(null);
+                            merged.put(apptId, ap);
+                        }
+                        appendDistinctServiceName(merged.get(apptId), rs.getString("service_name"));
                     }
+                    list.addAll(merged.values());
+                    list.sort(Comparator.comparing(a ->
+                            a.getAppointmentTime() != null ? a.getAppointmentTime() : LocalDateTime.MAX));
                 }
             }
         } catch (Exception e) {
@@ -734,8 +806,10 @@ public class AppointmentDAO extends DBContext {
         cus.setCustomerId(rs.getInt("customer_id"));
         User customerUser = new User();
         customerUser.setFullName(rs.getString("customer_name"));
+        customerUser.setPhone(rs.getString("customer_phone"));
         cus.setUser(customerUser);
         ap.setCustomer(cus);
+        ap.setCustomerPhone(rs.getString("customer_phone"));
 
         String vetName = rs.getString("veterinarian_name");
         if (vetName != null) {
@@ -769,7 +843,9 @@ public class AppointmentDAO extends DBContext {
         cus.setCustomerId(rs.getInt("customer_id"));
         User customerUser = new User();
         customerUser.setFullName(rs.getString("customer_name"));
+        customerUser.setPhone(rs.getString("customer_phone"));
         cus.setUser(customerUser);
+        ap.setCustomerPhone(rs.getString("customer_phone"));
         String vetName = rs.getString("veterinarian_name");
         if (vetName != null) ap.setVeterinarianName(vetName);
         return ap;
@@ -991,6 +1067,7 @@ public class AppointmentDAO extends DBContext {
                 a.time_slot,
                 a.status,
                 a.veterinarian_id,
+                a.notes,
                 aps.service_id,
                 s.name AS service_name,
 
@@ -1028,6 +1105,7 @@ public class AppointmentDAO extends DBContext {
                 a.appointment_time,
                 a.status,
                 a.veterinarian_id,
+                a.notes,
                 aps.service_id,
                 s.name AS service_name,
 
@@ -1089,8 +1167,6 @@ public class AppointmentDAO extends DBContext {
                     }
                     ap.setStatus(rs.getString("status"));
                     ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                    ap.setService(rs.getString("service_name"));
-                    ap.setServiceId(rs.getObject("service_id") != null ? rs.getInt("service_id") : null);
                     ap.setVeterinarianName(rs.getString("veterinarian_name"));
 
                     Pet pet = new Pet();
@@ -1115,6 +1191,25 @@ public class AppointmentDAO extends DBContext {
                     customerUser.setAddress(rs.getString("customer_address"));
                     cus.setUser(customerUser);
                     ap.setCustomer(cus);
+                    ap.setNotes(rs.getString("notes"));
+
+                    LinkedHashSet<String> serviceNames = new LinkedHashSet<>();
+                    Integer primaryServiceId = null;
+                    do {
+                        String serviceName = rs.getString("service_name");
+                        if (serviceName != null && !serviceName.trim().isEmpty()) {
+                            serviceNames.add(serviceName.trim());
+                        }
+                        if (primaryServiceId == null) {
+                            Integer sid = rs.getObject("service_id") != null ? rs.getInt("service_id") : null;
+                            if (sid != null && sid > 0) {
+                                primaryServiceId = sid;
+                            }
+                        }
+                    } while (rs.next());
+
+                    ap.setService(serviceNames.isEmpty() ? null : String.join(", ", serviceNames));
+                    ap.setServiceId(primaryServiceId);
 
                     return ap;
                 }
@@ -1142,8 +1237,6 @@ public class AppointmentDAO extends DBContext {
                     }
                     ap.setStatus(rs.getString("status"));
                     ap.setVeterinarianId(rs.getInt("veterinarian_id"));
-                    ap.setService(rs.getString("service_name"));
-                    ap.setServiceId(rs.getObject("service_id") != null ? rs.getInt("service_id") : null);
                     ap.setVeterinarianName(rs.getString("veterinarian_name"));
 
                     Pet pet = new Pet();
@@ -1172,6 +1265,25 @@ public class AppointmentDAO extends DBContext {
                     customerUser.setAddress(rs.getString("customer_address"));
                     cus.setUser(customerUser);
                     ap.setCustomer(cus);
+                    ap.setNotes(rs.getString("notes"));
+
+                    LinkedHashSet<String> serviceNames = new LinkedHashSet<>();
+                    Integer primaryServiceId = null;
+                    do {
+                        String serviceName = rs.getString("service_name");
+                        if (serviceName != null && !serviceName.trim().isEmpty()) {
+                            serviceNames.add(serviceName.trim());
+                        }
+                        if (primaryServiceId == null) {
+                            Integer sid = rs.getObject("service_id") != null ? rs.getInt("service_id") : null;
+                            if (sid != null && sid > 0) {
+                                primaryServiceId = sid;
+                            }
+                        }
+                    } while (rs.next());
+
+                    ap.setService(serviceNames.isEmpty() ? null : String.join(", ", serviceNames));
+                    ap.setServiceId(primaryServiceId);
 
                     return ap;
                 }
@@ -1483,6 +1595,29 @@ public class AppointmentDAO extends DBContext {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /** Customer's {@code Users.user_id} for notifications tied to an appointment. */
+    public int getCustomerUserIdForAppointment(int appointmentId) {
+        if (appointmentId <= 0) return 0;
+        String sql = """
+            SELECT u.user_id
+            FROM appointments a
+            INNER JOIN customers c ON a.customer_id = c.customer_id
+            INNER JOIN users u ON c.user_id = u.user_id
+            WHERE a.appointment_id = ?
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("user_id");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     /** Sets arrival_time = NOW for check-in flow. */

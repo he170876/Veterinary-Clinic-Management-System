@@ -13,9 +13,13 @@
     String bookedAt = invoiceData.getBookedAt() != null ? invoiceData.getBookedAt().format(dtFmt) : "N/A";
     String appointmentSlot = "N/A";
     if (invoiceData.getAppointmentDate() != null && invoiceData.getTimeSlot() != null && !invoiceData.getTimeSlot().isBlank()) {
-        appointmentSlot = invoiceData.getAppointmentDate().format(dFmt) + " " + invoiceData.getTimeSlot().toUpperCase();
+        String ts = invoiceData.getTimeSlot().trim().toLowerCase();
+        String period = ("pm".equals(ts) || "afternoon".equals(ts)) ? "in the Afternoon" : "in the Morning";
+        appointmentSlot = invoiceData.getAppointmentDate().format(dFmt) + " " + period;
     } else if (invoiceData.getAppointmentTimeLegacy() != null) {
-        appointmentSlot = invoiceData.getAppointmentTimeLegacy().format(dtFmt);
+        java.time.LocalDateTime leg = invoiceData.getAppointmentTimeLegacy();
+        String period = leg.getHour() < 12 ? "in the Morning" : "in the Afternoon";
+        appointmentSlot = leg.toLocalDate().format(dFmt) + " " + period;
     }
     String checkInAt = invoiceData.getCheckInAt() != null ? invoiceData.getCheckInAt().format(dtFmt) : "N/A";
 %>

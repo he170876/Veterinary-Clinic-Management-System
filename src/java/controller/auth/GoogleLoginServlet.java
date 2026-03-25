@@ -326,7 +326,7 @@ public class GoogleLoginServlet extends HttpServlet {
                 response.sendRedirect(ctx + "/vet/dashboard");
                 break;
             case 3:  // Receptionist
-                response.sendRedirect(ctx + "/staff/dashboard");
+                response.sendRedirect(ctx + "/Receptionist/Dashboard");
                 break;
             case 4:  // LabStaff
                 response.sendRedirect(ctx + "/lab/labqueue");

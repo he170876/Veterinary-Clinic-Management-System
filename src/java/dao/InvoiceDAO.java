@@ -251,10 +251,11 @@ public class InvoiceDAO extends DBContext {
                 SELECT
                     ii.name_snapshot,
                     ii.unit_price,
-                    ii.quantity
+                    SUM(ii.quantity) AS quantity
                 FROM InvoiceItems ii
                 WHERE ii.invoice_id = ?
-                ORDER BY ii.item_id
+                GROUP BY ii.name_snapshot, ii.unit_price
+                ORDER BY MIN(ii.item_id)
             """;
             try (Connection con = getConnection();
                  PreparedStatement ps = con.prepareStatement(itemsSql)) {

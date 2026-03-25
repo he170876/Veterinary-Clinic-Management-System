@@ -201,19 +201,7 @@
                                             boolean isPast = appointmentDate != null && appointmentDate.isBefore(LocalDate.now());
                                             boolean hasPendingRequest = pendingRescheduleIds.contains(appointment.getAppointmentId());
                                             boolean canRequest = !isCancelled && !isCompleted && !isPast && requestableStatus && !hasPendingRequest;
-                                            String timeSlotText = "N/A";
-                                            String rawTimeSlot = appointment.getTimeSlot();
-                                            if (rawTimeSlot != null) {
-                                                String normalizedSlot = rawTimeSlot.trim().toLowerCase(Locale.ENGLISH);
-                                                if ("am".equals(normalizedSlot) || "morning".equals(normalizedSlot)) {
-                                                    timeSlotText = "AM";
-                                                } else if ("pm".equals(normalizedSlot) || "afternoon".equals(normalizedSlot)) {
-                                                    timeSlotText = "PM";
-                                                }
-                                            }
-                                            if ("N/A".equals(timeSlotText) && appointment.getAppointmentTime() != null) {
-                                                timeSlotText = appointment.getAppointmentTime().getHour() < 12 ? "AM" : "PM";
-                                            }
+                                            String timeSlotText = appointment.getDisplayTimePeriodEnglish();
                                             String detail = (appointment.getPet() != null ? appointment.getPet().getName() : "Pet")
                                                     + " with "
                                                     + (appointment.getVeterinarianName() != null && !appointment.getVeterinarianName().isEmpty() ? "Dr. " + appointment.getVeterinarianName() : "Unassigned doctor");
@@ -381,8 +369,8 @@
                     <div class="flex flex-col gap-2">
                         <label class="text-sm font-semibold">Preferred Time Slot</label>
                         <select class="w-full rounded-xl border-slate-200 dark:border-slate-800 dark:bg-slate-900 focus:border-primary focus:ring-primary" name="requestedTimeSlot" required>
-                            <option value="morning">Morning (08:00)</option>
-                            <option value="afternoon">Afternoon (14:00)</option>
+                            <option value="morning">in the Morning</option>
+                            <option value="afternoon">in the Afternoon</option>
                         </select>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 package controller.receptionist;
 
 import dao.AppointmentDAO;
+import dao.NotificationDAO;
 import dao.VisitDAO;
 import model.Appointment;
 import model.User;
@@ -31,7 +32,11 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
 
             int appointmentId = Integer.parseInt(request.getParameter("appointmentId"));
             String status = request.getParameter("status");
-            
+            String reason = request.getParameter("reason");
+            if (reason != null) {
+                reason = reason.trim();
+            }
+
             AppointmentDAO dao = new AppointmentDAO();
             boolean success = dao.updateAppointmentStatus(appointmentId, status);
             
@@ -72,6 +77,7 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
                         }
                     }
                 }
+                notifyCustomerIfNeeded(appointmentId, status, reason, dao);
                 response.getWriter().write("{\"success\": true, \"message\": \"Status updated successfully!\"}");
             } else {
                 response.getWriter().write("{\"success\": false, \"message\": \"Unable to update status\"}");
@@ -80,5 +86,33 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
             e.printStackTrace();
             response.getWriter().write("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }
+    }
+
+    private void notifyCustomerIfNeeded(int appointmentId, String status, String reason, AppointmentDAO dao) {
+        if (status == null || appointmentId <= 0) {
+            return;
+        }
+        String s = status.trim();
+        String title;
+        if (s.equalsIgnoreCase("Confirmed")) {
+            title = "Appointment Confirmed";
+        } else if (s.equalsIgnoreCase("Rejected")) {
+            title = "Appointment Rejected";
+        } else if (s.equalsIgnoreCase("Canceled") || s.equalsIgnoreCase("Cancelled")) {
+            title = "Appointment Canceled";
+        } else {
+            return;
+        }
+        int userId = dao.getCustomerUserIdForAppointment(appointmentId);
+        if (userId <= 0) {
+            return;
+        }
+        String reasonText = (reason != null && !reason.isBlank()) ? reason.trim() : "No reason provided.";
+        String message = "Appointment #" + appointmentId + ". Reason: " + reasonText;
+        final int maxMsg = 255;
+        if (message.length() > maxMsg) {
+            message = message.substring(0, maxMsg - 3) + "...";
+        }
+        new NotificationDAO().create(userId, title, message);
     }
 }

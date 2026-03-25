@@ -104,8 +104,8 @@ Booking form fragment - included in index.jsp modal.
                 <label for="timeSlot">Preferred Slot *</label>
                 <select class="form-control form-select" id="timeSlot" name="timeSlot" required>
                     <option value="">Choose a slot</option>
-                    <option value="morning">Morning (08:00)</option>
-                    <option value="afternoon">Afternoon (14:00)</option>
+                    <option value="morning">in the Morning</option>
+                    <option value="afternoon">in the Afternoon</option>
                 </select>
             </div>
         </div>

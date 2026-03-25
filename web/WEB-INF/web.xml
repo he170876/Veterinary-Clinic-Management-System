@@ -69,10 +69,6 @@
     </filter-mapping>
     <filter-mapping>
         <filter-name>RoleBasedAccessFilter</filter-name>
-        <url-pattern>/staff/*</url-pattern>
-    </filter-mapping>
-    <filter-mapping>
-        <filter-name>RoleBasedAccessFilter</filter-name>
         <url-pattern>/lab/*</url-pattern>
     </filter-mapping>
     <filter-mapping>

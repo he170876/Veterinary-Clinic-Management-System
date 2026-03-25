@@ -80,7 +80,7 @@ public class GetAppointmentDetailServlet extends HttpServlet {
         json.append("\"status\":\"").append(esc(ap.getStatus())).append("\",");
         // Use new date + slot representation
         json.append("\"date\":\"").append(ap.getAppointmentDate() != null ? ap.getAppointmentDate().format(dateFmt) : "").append("\",");
-        json.append("\"time\":\"").append(esc(ap.getTimeSlot())).append("\",");
+        json.append("\"time\":\"").append(esc(ap.getDisplayTimePeriodEnglish())).append("\",");
         json.append("\"service\":\"").append(esc(ap.getService())).append("\",");
         json.append("\"veterinarianId\":").append(ap.getVeterinarianId()).append(",");
         json.append("\"veterinarianName\":\"").append(esc(ap.getVeterinarianName())).append("\",");

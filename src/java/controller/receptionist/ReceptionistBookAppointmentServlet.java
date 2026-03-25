@@ -20,6 +20,7 @@ import org.mindrot.jbcrypt.BCrypt;
 import utils.ValidationUtil;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -39,9 +40,27 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setContentType("application/json");
+        response.resetBuffer();
+        response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
 
+        try {
+            handleBookPost(request, response);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            try {
+                if (!response.isCommitted()) {
+                    response.resetBuffer();
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().print("{\"success\":false,\"message\":\"Server error while booking. Please try again.\"}");
+                    response.getWriter().flush();
+                }
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private void handleBookPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String ownerName = ValidationUtil.trim(request.getParameter("ownerName"));
         String email = ValidationUtil.trim(request.getParameter("email"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
@@ -57,28 +76,28 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
                 || phone == null || phone.isEmpty()
                 || appointmentDateStr == null || appointmentDateStr.isEmpty()
                 || timeSlot == null || timeSlot.isEmpty()) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Please fill in all required fields.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Please fill in all required fields.\"}");
             return;
         }
 
         if (serviceIdValues == null || serviceIdValues.length == 0) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Please select at least one service.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Please select at least one service.\"}");
             return;
         }
 
         boolean useExistingPet = petIdStr != null && !petIdStr.isEmpty() && !"0".equals(petIdStr);
         if (!useExistingPet && (petName == null || petName.isEmpty() || petType == null || petType.isEmpty())) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Pet name and type are required for new customers.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Pet name and type are required for new customers.\"}");
             return;
         }
 
         if (!ValidationUtil.isValidPhone(phone)) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Phone must be 10 digits starting with 0.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Phone must be 10 digits starting with 0.\"}");
             return;
         }
 
         if (!ValidationUtil.isValidEmailFormat(email)) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Please enter a valid email address.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Please enter a valid email address.\"}");
             return;
         }
 
@@ -99,21 +118,21 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             }
             appointmentDate = LocalDate.parse(appointmentDateStr);
         } catch (NumberFormatException | DateTimeParseException e) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Invalid date or service.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Invalid date or service.\"}");
             return;
         } catch (IllegalArgumentException e) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Invalid service selection.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Invalid service selection.\"}");
             return;
         }
 
         String normalizedSlot = ValidationUtil.normalizeBookingSlot(timeSlot);
         if (normalizedSlot == null) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Invalid time slot selected.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Invalid time slot selected.\"}");
             return;
         }
 
-        if (!ValidationUtil.isBookableDateSlot(appointmentDate, normalizedSlot)) {
-            response.getWriter().print("{\"success\":false,\"message\":\"Selected time slot has passed. Please choose a different slot or date.\"}");
+        if (!ValidationUtil.isBookableDateSlot(appointmentDate, timeSlot)) {
+            writeJson(response, "{\"success\":false,\"message\":\"Selected time slot has passed. Please choose a different slot or date.\"}");
             return;
         }
 
@@ -132,18 +151,18 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
                 petId = Integer.parseInt(petIdStr);
                 Optional<Pet> petOpt = petDAO.findById(petId);
                 if (petOpt.isEmpty()) {
-                    response.getWriter().print("{\"success\":false,\"message\":\"Selected pet not found.\"}");
+                    writeJson(response, "{\"success\":false,\"message\":\"Selected pet not found.\"}");
                     return;
                 }
                 Pet pet = petOpt.get();
                 petId = pet.getPetId();
                 customerId = pet.getOwner() != null ? pet.getOwner().getCustomerId() : 0;
                 if (customerId == 0) {
-                    response.getWriter().print("{\"success\":false,\"message\":\"Invalid pet data.\"}");
+                    writeJson(response, "{\"success\":false,\"message\":\"Invalid pet data.\"}");
                     return;
                 }
             } catch (NumberFormatException e) {
-                response.getWriter().print("{\"success\":false,\"message\":\"Invalid pet selection.\"}");
+                writeJson(response, "{\"success\":false,\"message\":\"Invalid pet selection.\"}");
                 return;
             }
         } else {
@@ -166,12 +185,12 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             } else {
                 user = createCustomerUser(ownerName, email, phone);
                 if (user == null) {
-                    response.getWriter().print("{\"success\":false,\"message\":\"Could not create customer account.\"}");
+                    writeJson(response, "{\"success\":false,\"message\":\"Could not create customer account.\"}");
                     return;
                 }
                 Optional<Customer> newCustOpt = customerDAO.findByUserId(user.getUserId());
                 if (newCustOpt.isEmpty()) {
-                    response.getWriter().print("{\"success\":false,\"message\":\"Customer record not found after signup.\"}");
+                    writeJson(response, "{\"success\":false,\"message\":\"Customer record not found after signup.\"}");
                     return;
                 }
                 customerId = newCustOpt.get().getCustomerId();
@@ -190,21 +209,30 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
                 newPet.setOwner(c);
                 newPet = petDAO.create(newPet);
                 petId = newPet.getPetId();
+                if (petId <= 0) {
+                    writeJson(response, "{\"success\":false,\"message\":\"Could not save pet. Please check details and try again.\"}");
+                    return;
+                }
             }
         }
 
-        System.out.println("[RECP_BOOK_DEBUG] services selected=" + serviceIds.size() + " values=" + serviceIds);
         int appointmentId = appointmentDAO.createWithDateAndSlot(petId, customerId, serviceIds.get(0), appointmentDate, slot, notes, phone);
         if (appointmentId > 0) {
             boolean servicesSaved = appointmentDAO.insertAppointmentServices(appointmentId, serviceIds);
             if (!servicesSaved) {
-                response.getWriter().print("{\"success\":false,\"message\":\"Appointment saved but services could not be linked.\"}");
+                writeJson(response, "{\"success\":false,\"message\":\"Appointment saved but services could not be linked.\"}");
                 return;
             }
-            response.getWriter().print("{\"success\":true,\"message\":\"Appointment booked successfully.\",\"appointmentId\":" + appointmentId + "}");
+            writeJson(response, "{\"success\":true,\"message\":\"Appointment booked successfully.\",\"appointmentId\":" + appointmentId + "}");
         } else {
-            response.getWriter().print("{\"success\":false,\"message\":\"Could not save appointment. Please try again.\"}");
+            writeJson(response, "{\"success\":false,\"message\":\"Could not save appointment. Please try again.\"}");
         }
+    }
+
+    private static void writeJson(HttpServletResponse response, String json) throws IOException {
+        PrintWriter w = response.getWriter();
+        w.print(json);
+        w.flush();
     }
 
     private User createCustomerUser(String fullName, String email, String phone) {

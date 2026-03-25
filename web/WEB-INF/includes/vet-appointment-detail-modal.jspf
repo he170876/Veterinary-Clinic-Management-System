@@ -1,0 +1,84 @@
+<%-- Shared vet appointment detail modal (queue + dashboard). Requires page request. --%>
+<div id="vetAppointmentDetailModal" class="fixed inset-0 bg-black/40 z-[2000] items-center justify-center px-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100" id="v-detail-pet-name">Pet name</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="v-detail-status">Status</p>
+            </div>
+            <button type="button" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onclick="closeVetDetailModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="space-y-4 text-sm">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-slate-400">Owner</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-name"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400">Phone</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-phone"></p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-slate-400">Date / slot</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-date"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400">Service</p>
+                    <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-service"></p>
+                </div>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Address</p>
+                <p class="font-semibold text-slate-800 dark:text-slate-100" id="v-detail-owner-address"></p>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Notes</p>
+                <p class="font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap" id="v-detail-notes"></p>
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end">
+            <button type="button" class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90" onclick="closeVetDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+<script>
+    function openVetAppointmentDetail(appointmentId) {
+        if (!appointmentId) return;
+        fetch('<%= request.getContextPath() %>/vet/GetAppointmentDetail?appointmentId=' + encodeURIComponent(appointmentId))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success) {
+                    alert(data.message || 'Could not load appointment detail.');
+                    return;
+                }
+                var pet = data.pet || {};
+                var owner = data.owner || {};
+                document.getElementById('v-detail-pet-name').textContent = pet.name || 'N/A';
+                document.getElementById('v-detail-status').textContent = data.status || 'N/A';
+                document.getElementById('v-detail-owner-name').textContent = owner.name || 'N/A';
+                document.getElementById('v-detail-owner-phone').textContent = owner.phone || 'N/A';
+                document.getElementById('v-detail-owner-address').textContent = owner.address || 'N/A';
+                document.getElementById('v-detail-date').textContent = data.formattedDateWithSlot || 'N/A';
+                document.getElementById('v-detail-service').textContent = data.service || 'N/A';
+                document.getElementById('v-detail-notes').textContent = data.notes || '—';
+
+                var modal = document.getElementById('vetAppointmentDetailModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            })
+            .catch(function () {
+                alert('An error occurred while loading details.');
+            });
+    }
+
+    function closeVetDetailModal() {
+        var modal = document.getElementById('vetAppointmentDetailModal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+</script>

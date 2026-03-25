@@ -2,7 +2,6 @@
 <%@ page import="model.User" %>
 <%@ page import="model.Appointment" %>
 <%@ page import="java.util.List" %>
-<%@ page import="java.time.format.DateTimeFormatter" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%
     User user = (User) request.getAttribute("user");
@@ -16,7 +15,6 @@
     if (appointments == null) appointments = java.util.Collections.emptyList();
     String roleTitle = (user.getRole() != null && user.getRole().getRoleName() != null)
         ? user.getRole().getRoleName() : "Receptionist";
-    DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -176,7 +174,7 @@
         String breed = ap.getPet() != null && ap.getPet().getBreed() != null ? ap.getPet().getBreed() : "";
         String speciesBreed = (species + " / " + breed).trim();
         if (speciesBreed.equals("/")) speciesBreed = "—";
-        String timeStr = ap.getAppointmentTime() != null ? ap.getAppointmentTime().format(timeFmt) : "—";
+        String timeStr = "N/A".equals(ap.getDisplayTimePeriodEnglish()) ? "—" : ap.getDisplayTimePeriodEnglish();
         String service = ap.getService() != null ? ap.getService() : "—";
         String status = ap.getStatus() != null ? ap.getStatus() : "—";
         int petId = ap.getPet() != null ? ap.getPet().getPetId() : 0;
