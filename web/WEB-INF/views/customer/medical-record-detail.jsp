@@ -198,11 +198,11 @@
                 <% } %>
             </div>
 
-            <!-- 4. Treatment Plan -->
+            <!-- 4. Conclusion -->
             <div class="bg-white dark:bg-[#2d2116] rounded-xl border border-[#f5f2f0] dark:border-[#3d2f23] p-6">
                 <div class="flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-primary">assignment</span>
-                    <h3 class="text-lg font-bold">4. Treatment Plan</h3>
+                    <h3 class="text-lg font-bold">4. Conclusion</h3>
                 </div>
                 <div class="rounded-lg border border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 p-4 mb-4">
                     <p class="text-sm leading-relaxed whitespace-pre-line"><%= conclusion %></p>

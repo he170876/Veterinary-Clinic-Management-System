@@ -219,7 +219,7 @@
                 </div>
 
                 <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-primary mb-4">4. Treatment Plan</h3>
+                    <h3 class="text-lg font-bold text-primary mb-4">4. Conclusion</h3>
                         <%
                             String conclusion = record != null && record.getConclusion() != null ? record.getConclusion() : "No conclusion recorded.";
                         %>
