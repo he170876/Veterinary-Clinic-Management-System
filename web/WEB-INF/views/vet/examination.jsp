@@ -999,8 +999,10 @@
     function doComplete() {
         if (!runValidations()) return;
 
-        // Ensure backend "note/observation" is not empty (same field as diagnosis).
-        if (noteEl && diagnosisEl) noteEl.value = diagnosisEl.value;
+        // Ensure backend "note/observation" (hidden textarea) matches Diagnosis.
+        var diagnosisEl = document.getElementById('diagnosis-textarea');
+        var noteHiddenEl = document.getElementById('observation-textarea');
+        if (noteHiddenEl && diagnosisEl) noteHiddenEl.value = diagnosisEl.value;
 
         var serviceIdsInput = document.getElementById('serviceIds');
         if (serviceIdsInput) {
