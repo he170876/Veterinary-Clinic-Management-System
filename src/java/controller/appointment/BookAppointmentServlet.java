@@ -95,7 +95,7 @@ public class BookAppointmentServlet extends HttpServlet {
         }
         if (!ValidationUtil.isValidOwnerOrPetName(petName)) {
             response.sendRedirect(redirect + "?bookError=1&bookMessage="
-                    + URLEncoder.encode("Pet name must be 1-100 letters and spaces only.", StandardCharsets.UTF_8));
+                    + URLEncoder.encode("Pet name must be 1-100 characters using letters (including Vietnamese), spaces, apostrophes, hyphens, or dots.", StandardCharsets.UTF_8));
             return;
         }
         if (!ValidationUtil.isDateNotInPast(appointmentDate)) {
@@ -154,12 +154,24 @@ public class BookAppointmentServlet extends HttpServlet {
             Integer userId = null;
             Integer customerId = null;
 
-            // Check if user exists by email
-            try (PreparedStatement psFindUser = conn.prepareStatement("SELECT user_id FROM dbo.Users WHERE email = ?")) {
-                psFindUser.setString(1, email);
+            // Check if user exists by phone first (same approach as receptionist booking flow)
+            try (PreparedStatement psFindUser = conn.prepareStatement("SELECT user_id FROM dbo.Users WHERE phone = ?")) {
+                psFindUser.setString(1, phone);
                 try (ResultSet rs = psFindUser.executeQuery()) {
                     if (rs.next()) {
                         userId = rs.getInt("user_id");
+                    }
+                }
+            }
+
+            // Fallback by email if phone does not exist in system.
+            if (userId == null) {
+                try (PreparedStatement psFindUserByEmail = conn.prepareStatement("SELECT user_id FROM dbo.Users WHERE email = ?")) {
+                    psFindUserByEmail.setString(1, email);
+                    try (ResultSet rs = psFindUserByEmail.executeQuery()) {
+                        if (rs.next()) {
+                            userId = rs.getInt("user_id");
+                        }
                     }
                 }
             }
