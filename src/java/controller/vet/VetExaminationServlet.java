@@ -265,19 +265,43 @@ public class VetExaminationServlet extends HttpServlet {
             String serviceIdsParam = request.getParameter("serviceIds");
             if (serviceIdsParam != null && !serviceIdsParam.trim().isEmpty()) {
                 ServiceService svc = new ServiceServiceImpl();
+                java.util.LinkedHashSet<Integer> distinctIds = new java.util.LinkedHashSet<>();
                 for (String s : serviceIdsParam.split(",")) {
                     s = s.trim();
                     if (s.isEmpty()) continue;
                     try {
-                        int sid = Integer.parseInt(s);
-                        var services = svc.getAllServices();
+                        distinctIds.add(Integer.parseInt(s));
+                    } catch (NumberFormatException ignored) {}
+                }
+
+                if (!distinctIds.isEmpty()) {
+                    var services = svc.getAllServices();
+                    java.util.Set<String> seenServiceNameKeys = new java.util.HashSet<>();
+
+                    for (Integer sid : distinctIds) {
+                        if (sid == null) continue;
+                        // find service by id (small list, acceptable)
+                        var matched = (Object) null;
+                        Double price = null;
+                        String name = null;
                         for (var sv : services) {
                             if (sv.getServiceId() == sid) {
-                                recordDao.addService(record.getRecordId(), sid, 1, sv.getPrice());
+                                price = sv.getPrice();
+                                name = sv.getName();
+                                matched = sv;
                                 break;
                             }
                         }
-                    } catch (NumberFormatException ignored) {}
+                        if (matched == null) continue;
+
+                        String normName = (name != null) ? name.trim().toLowerCase() : "";
+                        String key = !normName.isEmpty() ? normName : ("id:" + sid);
+                        if (seenServiceNameKeys.contains(key)) continue;
+                        seenServiceNameKeys.add(key);
+
+                        double safePrice = price != null ? price : 0.0;
+                        recordDao.addService(record.getRecordId(), sid, 1, safePrice);
+                    }
                 }
             }
 //Prescriptions validation
