@@ -534,6 +534,10 @@ if (isWaiting) {
             }
 
             function markAsPaid(appointmentId, button) {
+                // "Mark as Paid" is the final step after vet completion:
+                // - marks invoice Paid (creates placeholder invoice if missing)
+                // - updates appointment status to Done
+                // - notifies customer "Visit completed"
                 if (button) {
                     button.disabled = true;
                     button.textContent = '...';
@@ -585,6 +589,10 @@ if (isWaiting) {
             }
 
             function viewInvoice(appointmentId, allowMarkPaid) {
+                // Loads invoice HTML into a modal:
+                // - GET /Receptionist/ViewInvoice?appointmentId=...&fragment=1
+                // - The response is HTML (invoice-inner.jsp), not JSON.
+                // - allowMarkPaid toggles visibility of "Mark as Paid" button.
                 if (!appointmentId) return;
                 allowMarkPaid = !!allowMarkPaid;
                 var modal = document.getElementById('invoiceModal');

@@ -97,12 +97,28 @@ public class VetExaminationServlet extends HttpServlet {
         }
 
         String apStatus = ap.getStatus() != null ? ap.getStatus() : "";
-        // Shared queue flow:
-        // - First vet who starts from Checked-in will atomically claim and move to In-Examination.
-        // - If already In-Examination and assigned to another vet, deny.
+        // ============================================================
+        // Shared queue flow (Queue + Dashboard use the same behavior)
+        // ============================================================
+        //
+        // There are only two valid entry statuses for the examination page:
+        //
+        // 1) Checked-in  -> "Start Examination"
+        //    - first vet who opens the exam tries to atomically claim the appointment
+        //      (AppointmentDAO.startExamination) and transition it to "In-Examination"
+        //    - server rejects if the vet already has another "In-Examination" appointment (busy)
+        //    - server rejects if another vet has already claimed it (locked)
+        //
+        // 2) In-Examination -> "Continue"
+        //    - allowed only for the vet who owns the appointment (appointments.veterinarian_id)
+        //    - any other vet gets redirected with error=locked
+        //
+        // Any other status is considered invalid for this page.
         if ("Checked-in".equalsIgnoreCase(apStatus)) {
             boolean claimed = appDao.startExamination(appointmentId, vetId);
             if (!claimed) {
+                // Claim failed. We need to distinguish "busy" (this vet already has an active exam)
+                // from "locked" (someone else claimed this appointment).
                 if (appDao.hasActiveInExamination(vetId)) {
                     response.sendRedirect(request.getContextPath() + "/vet/queue?error=busy");
                     return;
@@ -116,6 +132,7 @@ public class VetExaminationServlet extends HttpServlet {
                     return;
                 }
             }
+            // Reload after potential status/vet assignment change.
             ap = appDao.getAppointmentDetail(appointmentId);
         } else if ("In-Examination".equalsIgnoreCase(apStatus)) {
             if (ap.getVeterinarianId() != null && ap.getVeterinarianId() > 0 && ap.getVeterinarianId() != vetId) {
@@ -132,6 +149,8 @@ public class VetExaminationServlet extends HttpServlet {
         if (visit == null && ap.getPet() != null && ap.getCustomer() != null) {
             String apStatusGet = ap.getStatus() != null ? ap.getStatus() : "";
             if ("Checked-in".equalsIgnoreCase(apStatusGet) || "In-Examination".equalsIgnoreCase(apStatusGet)) {
+                // Safety net for emergency / legacy data: if a Visit row does not exist yet,
+                // create it so the rest of the examination flow (medical record, lab requests, invoice) can work.
                 visit = visitDao.ensureVisitForAppointment(
                         appointmentId,
                         ap.getPet().getPetId(),
@@ -235,6 +254,8 @@ public class VetExaminationServlet extends HttpServlet {
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
         Integer appointmentVetId = ap.getVeterinarianId();
         if (vetId <= 0 || (appointmentVetId != null && appointmentVetId > 0 && appointmentVetId != vetId)) {
+            // Server-side ownership guard: only the assigned vet can submit POST updates.
+            // (The UI also hides "Start/Continue" for locked rows, but we never rely on UI.)
             response.sendRedirect(request.getContextPath() + "/vet/queue");
             return;
         }
@@ -244,6 +265,7 @@ public class VetExaminationServlet extends HttpServlet {
         if (visit == null && ap.getPet() != null && ap.getCustomer() != null) {
             String apStatus = ap.getStatus() != null ? ap.getStatus() : "";
             if ("Checked-in".equalsIgnoreCase(apStatus) || "In-Examination".equalsIgnoreCase(apStatus)) {
+                // Safety net: ensure there is a Visit row before saving medical record / completing exam.
                 visit = visitDao.ensureVisitForAppointment(
                         appointmentId,
                         ap.getPet().getPetId(),
@@ -251,7 +273,8 @@ public class VetExaminationServlet extends HttpServlet {
                         ap.getVeterinarianId());
             }
         }
-//  lưu lại diagnosis, treatment, note
+        // Read user inputs for the medical record.
+        // (Existing code uses Vietnamese inline comments; we keep logic intact.)
         String diagnosis = request.getParameter("diagnosis");
         String conclusion = request.getParameter("conclusion");
         String note = request.getParameter("note");
@@ -265,7 +288,7 @@ public class VetExaminationServlet extends HttpServlet {
         if (note.trim().isEmpty() && diagnosis != null && !diagnosis.trim().isEmpty()) {
             note = diagnosis;
         }
-// tạo ra medical record theo visitid, nếu đã có sẽ update
+        // Create or update the medical record for this visit.
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         MedicalRecord record = null;
         if (visit != null) {
@@ -339,7 +362,10 @@ public class VetExaminationServlet extends HttpServlet {
                 }
             }
         }
-//sau khi hoàn thành examation sẽ xóa cái recordservices đi và tính số tiền 
+        // Action routing:
+        // - default: save + reload the examination page
+        // - complete: perform server-side guards (required fields + no pending labs),
+        //   close the visit, move appointment to "Waiting-for-Payment", generate invoice lines, notify receptionist.
         String action = request.getParameter("action");
 
         // Server-side guard for required fields when user completes the examination.
@@ -351,6 +377,8 @@ public class VetExaminationServlet extends HttpServlet {
 
         if ("complete".equals(action) && visit != null) {
             LabTestRequestDAO labDao = new LabTestRequestDAO();
+            // Do not allow completion while lab requests are still pending.
+            // This prevents billing/closing the case before lab workflow is finished.
             if (labDao.countPendingByVisitId(visit.getVisitId()) > 0) {
                 response.sendRedirect(request.getContextPath() + "/vet/examination?id=" + appointmentId + "&error=pendingLab");
                 return;
@@ -362,6 +390,8 @@ public class VetExaminationServlet extends HttpServlet {
             // Record amount spent (from medical record services)
             if (record != null && visit != null) {
                 List<RecordServiceLine> lines = recordDao.getServicesForRecord(record.getRecordId());
+                // Aggregate services by (name, unit price) so the invoice does not show duplicates.
+                // Key format uses a null separator to avoid accidental collisions.
                 java.util.Map<String, int[]> aggregated = new java.util.LinkedHashMap<>();
                 double total = 0;
                 for (RecordServiceLine line : lines) {
@@ -379,6 +409,7 @@ public class VetExaminationServlet extends HttpServlet {
                     InvoiceDAO invoiceDao = new InvoiceDAO();
                     int invoiceId = invoiceDao.create(visit.getVisitId(), total, "Recorded");
                     if (invoiceId > 0) {
+                        // Create invoice line items based on the aggregated map.
                         for (java.util.Map.Entry<String, int[]> e : aggregated.entrySet()) {
                             int sep = e.getKey().indexOf('\0');
                             String name = sep >= 0 ? e.getKey().substring(0, sep) : e.getKey();

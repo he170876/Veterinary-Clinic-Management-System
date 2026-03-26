@@ -49,6 +49,25 @@
     var slotEl = document.getElementById('reschedule_timeSlot');
     var submitBtn = document.getElementById('reschedule_submitBtn');
 
+    /**
+     * ==============================
+     * Receptionist Reschedule Modal
+     * ==============================
+     *
+     * UI rules (same-day only):
+     * - AM disabled after 12:00
+     * - PM disabled after 20:00
+     *
+     * Submit:
+     * - POST /Receptionist/RescheduleAppointment
+     * - Body: appointmentId, newDate (yyyy-MM-dd), timeSlot (AM/PM)
+     * - Response: JSON { success, message }
+     *
+     * Server-side side effects:
+     * - Updates appointment_date/time_slot (and appointment_time in legacy schema)
+     * - Sends customer notification with title "Reschedule Confirmed"
+     */
+
     function getTodayLocal() {
         var d = new Date();
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');

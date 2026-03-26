@@ -26,6 +26,15 @@ public class VetPatientsQueueServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Vet queue page controller.
+        //
+        // Responsibilities:
+        // - ensure the user is authenticated (session currentUser)
+        // - compute current veterinarianId from currentUser.userId
+        // - load the shared queue model for TODAY:
+        //   - Checked-in appointments (actionable)
+        //   - In-Examination appointments (including resumable by current vet, plus read-only for other vets)
+        // - compute a boolean flag used by UI to prevent starting a second exam in parallel
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("currentUser") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
@@ -35,9 +44,12 @@ public class VetPatientsQueueServlet extends HttpServlet {
         User user = (User) session.getAttribute("currentUser");
         AppointmentDAO dao = new AppointmentDAO();
         LocalDate today = LocalDate.now();
+        // Map logged-in user → veterinarian_id (FK on appointments.veterinarian_id).
         int currentVetId = dao.getVeterinarianIdByUserId(user.getUserId());
-        // Shared queue for today + resumable in-examination owned by current vet.
+        // Shared queue model: see AppointmentDAO.getVetQueueAppointmentsForDate() for the exact rules.
         List<Appointment> appointments = dao.getVetQueueAppointmentsForDate(today, currentVetId);
+        // Used in the UI to block "Start Examination" if the vet already has an In-Examination case.
+        // Note: This is a UI guard only. Server-side still enforces the rule in VetExaminationServlet/AppointmentDAO.
         boolean vetHasActiveExamination = currentVetId > 0 && dao.hasActiveInExamination(currentVetId);
 
         request.setAttribute("user", user);

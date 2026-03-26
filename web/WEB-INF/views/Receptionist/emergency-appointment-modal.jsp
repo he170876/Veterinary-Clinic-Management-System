@@ -84,6 +84,26 @@
     var form = document.getElementById('emergencyAppointmentForm');
     var NEW_PET_VALUE = '__new__';
 
+    /**
+     * ==============================
+     * Receptionist Emergency Modal
+     * ==============================
+     *
+     * UX intent:
+     * - Fastest possible check-in style flow (no Pending/Confirmed stage)
+     * - Use phone lookup to reuse existing customer & pets
+     * - When customer exists: lock owner/email, allow selecting existing pet
+     * - When new customer: require email (server validates), allow entering new pet info
+     *
+     * Endpoints used:
+     * - GET  /Receptionist/LookupCustomerByPhone?phone=...   (auto-fill + pet list)
+     * - POST /Receptionist/EmergencyAppointment             (creates Checked-in emergency appointment)
+     *
+     * Server guarantees:
+     * - appointment created with status Checked-in
+     * - Visits row is ensured so vet can complete examination
+     */
+
     var petTypeValues = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Other'];
     function matchPetType(dbSpecies) {
         var v = (dbSpecies || '').trim().toLowerCase();

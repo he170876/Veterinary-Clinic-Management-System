@@ -23,7 +23,8 @@ public class ReceptionistDashboardServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+        // Receptionist dashboard shows today's high-level stats + recent appointment list.
+        // It also provides entry points to modals (Book Appointment, Emergency Appointment, Invoice view).
         AppointmentDAO dao = new AppointmentDAO();
         
         // Get today's date range (only today)
@@ -34,7 +35,7 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         final LocalDate rangeStart = fromDate;
         final LocalDate rangeEnd = toDate;
         
-        // Get all appointments and filter by today
+        // Load all appointments, then filter to today for dashboard counters.
         List<Appointment> allAppointments = dao.getAllAppointments();
         
         List<Appointment> todayAppointments = allAppointments.stream()
@@ -47,7 +48,10 @@ public class ReceptionistDashboardServlet extends HttpServlet {
                 })
                 .collect(java.util.stream.Collectors.toList());
         
-        // Count statistics - include all appointments (including Canceled) to match ViewListAppointment
+        // Count statistics:
+        // - Total includes everything within today's range
+        // - "Normal" vs "Emergency" depends on the appointment type/status fields used by DAO
+        //   (this code currently checks status string; keep consistent with existing UI logic).
         // Total = all appointments today
         int totalAppointments = todayAppointments.size();
         
@@ -71,7 +75,7 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         int emergencyActive = emergencyCases;
         int emergencyResolved = 0;
         
-        // Get all appointments for today (sorted by time)
+        // Sort by appointment time so the "recent appointments" table is chronological.
         todayAppointments.sort(java.util.Comparator.comparing(Appointment::getAppointmentTime));
         List<Appointment> recentAppointments = todayAppointments;
         
@@ -87,6 +91,7 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         ServiceDAO serviceDAO = new ServiceJdbcDAO();
         request.setAttribute("services", serviceDAO.findAll());
 
+        // Notifications for header dropdown (if session exists).
         jakarta.servlet.http.HttpSession session = request.getSession(false);
         if (session != null) {
             Object currentUserObj = session.getAttribute("currentUser");

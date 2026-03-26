@@ -27,6 +27,11 @@ public class ReceptionistPatientsQueueServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Receptionist queue shows appointments for TODAY and indicates whether they were checked-in already.
+        //
+        // Data shown includes:
+        // - appointment basics (pet, owner, slot, service, status)
+        // - whether a Visits row exists (used to show "Check-in" vs "Checked-in" state reliably)
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("currentUser") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
@@ -37,7 +42,9 @@ public class ReceptionistPatientsQueueServlet extends HttpServlet {
         AppointmentDAO dao = new AppointmentDAO();
         VisitDAO visitDao = new VisitDAO();
         LocalDate today = LocalDate.now();
+        // appointmentsForDate() returns the appointment list for the calendar day (schema-aware inside DAO).
         List<Appointment> appointments = dao.getAppointmentsForDate(today);
+        // We batch-check which appointment IDs already have a Visits row to avoid querying per appointment.
         Set<Integer> appointmentIdsWithVisit = appointments.isEmpty() ? Collections.emptySet()
                 : visitDao.getAppointmentIdsWithVisit(appointments.stream().map(Appointment::getAppointmentId).collect(Collectors.toSet()));
 

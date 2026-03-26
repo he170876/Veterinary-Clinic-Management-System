@@ -18,23 +18,49 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Vet-safe detail API for queue modal.
+ * Vet-safe detail API used by the "Details" modal on:
+ * - `web/WEB-INF/views/vet/patients-queue.jsp`
+ * - `web/WEB-INF/views/vet/dashboard.jsp`
+ *
+ * Endpoint: GET `/vet/GetAppointmentDetail?appointmentId=...`
+ *
+ * Response contract (JSON):
+ * - success: boolean
+ * - message: string (only present when success=false)
+ * - appointmentId: number
+ * - status: string
+ * - date: "yyyy-MM-dd" (appointment_date)
+ * - time: display string for slot (AM/PM -> English label)
+ * - formattedDateWithSlot: display string (date + slot)
+ * - service: string (already merged for multi-service appointments by AppointmentDAO)
+ * - notes: string (nullable in DB; returned as "" if null)
+ * - veterinarianId / veterinarianName
+ * - pet: { name, photoUrl, species, breed, gender, age, weight }
+ * - owner: { name, email, phone, address }
+ *
+ * Notes:
+ * - This is intentionally a small, "modal-friendly" payload (not the full Appointment model).
+ * - This servlet does not implement RBAC itself; access control is assumed to be enforced upstream
+ *   (e.g., by RoleBasedAccessFilter) similarly to other /vet/* endpoints.
  */
 @WebServlet("/vet/GetAppointmentDetail")
 public class VetGetAppointmentDetailServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Always return JSON; the client expects r.json() in `vet-appointment-detail-modal.jspf`.
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         PrintWriter out = response.getWriter();
 
+        // Required query parameter.
         String idParam = request.getParameter("appointmentId");
         if (idParam == null || idParam.isEmpty()) {
             out.print("{\"success\":false,\"message\":\"Missing appointmentId\"}");
             return;
         }
 
+        // Defensive parsing: avoid 500 + HTML error page (which would break r.json()).
         int appointmentId;
         try {
             appointmentId = Integer.parseInt(idParam);
@@ -44,12 +70,16 @@ public class VetGetAppointmentDetailServlet extends HttpServlet {
         }
 
         AppointmentDAO dao = new AppointmentDAO();
+        // Uses the shared detail loader that already:
+        // - merges multi-service appointment rows
+        // - includes notes, customer/vet names, etc.
         Appointment ap = dao.getAppointmentDetail(appointmentId);
         if (ap == null) {
             out.print("{\"success\":false,\"message\":\"Appointment not found\"}");
             return;
         }
 
+        // Build JSON manually (no JSON library in this project). See esc() for minimal escaping.
         out.print(buildJson(ap));
     }
 
@@ -58,6 +88,8 @@ public class VetGetAppointmentDetailServlet extends HttpServlet {
         Customer cus = ap.getCustomer();
         User owner = cus != null ? cus.getUser() : null;
 
+        // Age is derived on the server for a stable display string in the modal.
+        // We keep it simple: years + months, or just one component.
         String petAge = "";
         if (pet != null && pet.getBirthDate() != null) {
             Period period = Period.between(pet.getBirthDate(), LocalDate.now());
@@ -72,6 +104,7 @@ public class VetGetAppointmentDetailServlet extends HttpServlet {
             }
         }
 
+        // ISO-ish format for a stable client display/parsing.
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         StringBuilder json = new StringBuilder();
@@ -84,6 +117,7 @@ public class VetGetAppointmentDetailServlet extends HttpServlet {
         json.append("\"service\":\"").append(esc(ap.getService())).append("\",");
         json.append("\"notes\":\"").append(esc(ap.getNotes())).append("\",");
         json.append("\"formattedDateWithSlot\":\"").append(esc(ap.getFormattedDateWithSlot())).append("\",");
+        // veterinarianId is nullable in the model (Integer); StringBuilder.append(Object) will output "null" if null.
         json.append("\"veterinarianId\":").append(ap.getVeterinarianId()).append(",");
         json.append("\"veterinarianName\":\"").append(esc(ap.getVeterinarianName())).append("\",");
 
@@ -113,6 +147,7 @@ public class VetGetAppointmentDetailServlet extends HttpServlet {
 
     private String esc(String s) {
         if (s == null) return "";
+        // Minimal JSON string escaping for values we embed between quotes.
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n")

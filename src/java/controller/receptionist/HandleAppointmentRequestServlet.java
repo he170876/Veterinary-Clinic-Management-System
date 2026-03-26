@@ -15,6 +15,16 @@ public class HandleAppointmentRequestServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // AJAX endpoint to approve/reject a customer request (currently: reschedule request).
+        //
+        // Called from:
+        // - ManageAppointmentRequests.jsp action buttons
+        //
+        // It delegates the business logic to AppointmentDAO (which will:
+        // - validate current appointment status is Reschedule-Requested
+        // - apply the requested schedule if approve=true
+        // - update appointment status accordingly
+        // - notify customer with "Reschedule Approved"/"Reschedule Rejected")
         response.setContentType("application/json;charset=UTF-8");
 
         try {

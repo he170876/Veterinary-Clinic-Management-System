@@ -15,6 +15,8 @@
     if (appointments == null) appointments = java.util.Collections.emptyList();
     int currentVetId = request.getAttribute("currentVetId") != null ? (Integer) request.getAttribute("currentVetId") : 0;
     boolean vetHasActiveExamination = Boolean.TRUE.equals(request.getAttribute("vetHasActiveExamination"));
+    // vetHasActiveExamination is used as a UI-only guard to prevent starting two exams at once.
+    // The server still enforces this rule in VetExaminationServlet/AppointmentDAO.startExamination.
     String roleTitle = (user.getRole() != null && user.getRole().getRoleName() != null)
         ? user.getRole().getRoleName() : "Veterinarian";
     DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
@@ -197,6 +199,19 @@
         <%@ include file="/WEB-INF/includes/vet-appointment-detail-modal.jspf" %>
         <script>
             var VET_HAS_ACTIVE_EXAMINATION = <%= vetHasActiveExamination ? "true" : "false" %>;
+            /**
+             * ==========================
+             * Vet Queue page (client JS)
+             * ==========================
+             *
+             * What happens here:
+             * - show a toast when the server redirects with ?error=busy (already in exam)
+             * - block clicking "Start Examination" if VET_HAS_ACTIVE_EXAMINATION is true
+             *   (Continue is still allowed)
+             * - live search filter by pet name / owner name / phone
+             *
+             * Note: all restrictions are duplicated server-side for correctness.
+             */
             function showVetQueueToast(message) {
                 var toast = document.getElementById('vetQueueToast');
                 var span = document.getElementById('vetQueueToastMessage');
@@ -217,6 +232,7 @@
             })();
             document.querySelectorAll('a.vet-exam-action-link').forEach(function (a) {
                 a.addEventListener('click', function (e) {
+                    // We only block "start" of a new exam; continuing an existing exam is allowed.
                     if (VET_HAS_ACTIVE_EXAMINATION && a.getAttribute('data-exam-action') === 'start') {
                         e.preventDefault();
                         showVetQueueToast('You already have an examination in progress. Complete it before starting another one.');
@@ -228,6 +244,9 @@
                 var rows = document.querySelectorAll('.queue-row');
                 if (search && rows.length) {
                     search.addEventListener('input', function () {
+                        // Search strategy:
+                        // - normalize whitespace and lowercase for names
+                        // - also match phone digits-only to tolerate formatting
                         var q = (this.value || '').toLowerCase().replace(/\s+/g, ' ').trim();
                         var qDigits = q.replace(/\D/g, '');
                         rows.forEach(function (row) {

@@ -24,6 +24,11 @@ public class MarkInvoicePaidServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // This endpoint is called from the receptionist invoice modal.
+        // It supports BOTH:
+        // - normal HTML form/navigation (redirect)
+        // - AJAX fetch() (JSON)
+        // We infer which to use via Accept / X-Requested-With headers (sendJsonOrRedirect()).
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("currentUser") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
@@ -35,6 +40,7 @@ public class MarkInvoicePaidServlet extends HttpServlet {
             return;
         }
 
+        // 1) Read/validate appointmentId (+ optional invoiceId).
         String appIdParam = request.getParameter("appointmentId");
         String invoiceIdParam = request.getParameter("invoiceId"); // optional
         if (appIdParam == null || appIdParam.isEmpty()) {
@@ -64,12 +70,17 @@ public class MarkInvoicePaidServlet extends HttpServlet {
         InvoiceDAO invoiceDao = new InvoiceDAO();
         AppointmentDAO appDao = new AppointmentDAO();
 
+        // 2) Resolve invoice id:
+        // - UI may pass invoiceId if known
+        // - otherwise we fetch the latest invoice for that appointment
         // If UI didn't provide invoiceId, fetch the latest invoice for this appointment.
         if (invoiceId <= 0) {
             invoiceId = invoiceDao.getLatestInvoiceIdByAppointmentId(appointmentId);
         }
 
         if (invoiceId <= 0) {
+            // 3) If invoice still not found, try to create a placeholder invoice (total = 0).
+            // This covers cases where vet completed but had no billable services recorded.
             // If vet completed but didn't generate invoice (e.g. total = 0),
             // create a placeholder invoice so receptionist can confirm payment.
             VisitDAO visitDao = new VisitDAO();
@@ -88,6 +99,7 @@ public class MarkInvoicePaidServlet extends HttpServlet {
             }
         }
 
+        // 4) Mark invoice Paid. If this fails we stop early (do NOT mark appointment Done).
         boolean paid = invoiceDao.markAsPaid(invoiceId);
         if (!paid) {
             sendJsonOrRedirect(request, response, false, "Unable to mark invoice as Paid.",
@@ -95,8 +107,10 @@ public class MarkInvoicePaidServlet extends HttpServlet {
             return;
         }
 
+        // 5) Business state transition: after payment, appointment is Done.
         appDao.updateAppointmentStatus(appointmentId, "Done");
 
+        // 6) Optional: notify the customer that their visit is completed (in-app notification dropdown).
         int customerUserId = appDao.getCustomerUserIdForAppointment(appointmentId);
         if (customerUserId > 0) {
             String title = "Visit completed";
@@ -118,6 +132,10 @@ public class MarkInvoicePaidServlet extends HttpServlet {
             String message,
             String redirectUrl) throws IOException {
 
+        // We support both:
+        // - normal navigation (redirect)
+        // - AJAX (JSON response)
+        // The UI uses fetch() with Accept: application/json.
         String accept = request.getHeader("Accept");
         String xrw = request.getHeader("X-Requested-With");
         boolean wantsJson = (accept != null && accept.contains("application/json"))

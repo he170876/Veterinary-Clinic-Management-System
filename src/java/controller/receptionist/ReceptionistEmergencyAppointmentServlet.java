@@ -37,10 +37,16 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Emergency flow is designed to be fast:
+        // - receptionist enters phone + owner name (+ optional email for brand-new customers)
+        // - chooses existing pet (if phone lookup found) or enters new pet name/type
+        // - server creates a Checked-in appointment immediately (no "Pending/Confirm" step)
+        // - server ensures a Visits row exists so vet examination/completion works reliably
         request.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
+        // 1) Read parameters.
         String ownerName = ValidationUtil.trim(request.getParameter("ownerName"));
         String email = ValidationUtil.trim(request.getParameter("email"));
         String phone = ValidationUtil.trim(request.getParameter("phone"));
@@ -48,6 +54,7 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
         String petName = ValidationUtil.trim(request.getParameter("petName"));
         String petType = ValidationUtil.trim(request.getParameter("petType"));
 
+        // 2) Validate basics.
         if (ownerName == null || ownerName.isEmpty() || phone == null || phone.isEmpty()) {
             response.getWriter().print("{\"success\":false,\"message\":\"Owner name and phone are required.\"}");
             return;
@@ -64,6 +71,7 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
             return;
         }
 
+        // 3) Prepare DAOs.
         UserDAO userDAO = new UserJdbcDAO();
         CustomerDAO customerDAO = new CustomerJdbcDAO();
         PetDAO petDAO = new PetJdbcDAO();
@@ -73,6 +81,7 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
         int petId;
 
         if (useExistingPet) {
+            // Existing pet selected from dropdown after phone lookup.
             try {
                 petId = Integer.parseInt(petIdStr);
                 Optional<Pet> petOpt = petDAO.findById(petId);
@@ -92,6 +101,9 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
                 return;
             }
         } else {
+            // New pet / possibly new customer:
+            // - Find existing user by phone.
+            // - If missing, require email and create a customer user + customer row.
             Optional<User> userOpt = userDAO.findByPhone(phone);
             User user;
             if (userOpt.isPresent()) {
@@ -106,6 +118,7 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
                     customerId = custOpt.get().getCustomerId();
                 }
             } else {
+                // Brand-new customer account requires a real email, because emergency accounts still need identity/contact.
                 if (email == null || email.isEmpty() || !ValidationUtil.isValidEmailFormat(email)) {
                     response.getWriter().print("{\"success\":false,\"message\":\"Please enter a valid email address for the new customer.\"}");
                     return;
@@ -129,6 +142,7 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
             if (existingPet.isPresent()) {
                 petId = existingPet.get().getPetId();
             } else {
+                // Create a new pet under this customer.
                 Pet newPet = new Pet();
                 newPet.setName(petName);
                 newPet.setSpecies(petType);
@@ -142,14 +156,19 @@ public class ReceptionistEmergencyAppointmentServlet extends HttpServlet {
 
         int appointmentId = appointmentDAO.createEmergencyAppointment(petId, customerId, phone);
         if (appointmentId > 0) {
+            // 4) IMPORTANT: ensure there is a Visits row.
+            // Emergency appointments are "Checked-in" immediately, but the normal check-in flow is what creates Visits.
+            // Without a visit, vet examination completion cannot progress correctly.
             VisitDAO visitDAO = new VisitDAO();
             if (visitDAO.getByAppointmentId(appointmentId) == null) {
                 HttpSession session = request.getSession(false);
                 User sessionUser = session != null ? (User) session.getAttribute("currentUser") : null;
                 int receptionistId = sessionUser != null ? appointmentDAO.getReceptionistIdByUserId(sessionUser.getUserId()) : 0;
                 if (receptionistId > 0) {
+                    // Standard path: create a visit with staff_id set (FK to receptionists).
                     visitDAO.createForCheckIn(appointmentId, petId, customerId, null, receptionistId);
                 } else {
+                    // Fallback: create a visit with staff_id NULL (still allows vet workflow).
                     visitDAO.ensureVisitForAppointment(appointmentId, petId, customerId, null);
                 }
             }

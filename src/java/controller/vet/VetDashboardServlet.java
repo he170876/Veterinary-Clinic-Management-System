@@ -29,6 +29,17 @@ public class VetDashboardServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Vet dashboard controller.
+        //
+        // High-level responsibilities:
+        // - Auth (session currentUser)
+        // - Derive veterinarian_id for this user
+        // - Load today's "queue model" appointments for displaying:
+        //   - Emergency table (subset of todayAppointments where type=Emergency)
+        //   - Normal table (non-Emergency)
+        // - Compute header statistics:
+        //   - totalToday, surgeriesToday, pendingLab, followUps
+        // - Provide UI with a boolean to block starting a second exam while one is in progress
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("currentUser") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
@@ -38,10 +49,14 @@ public class VetDashboardServlet extends HttpServlet {
         User user = (User) session.getAttribute("currentUser");
         AppointmentDAO appDao = new AppointmentDAO();
         LabTestRequestDAO labDao = new LabTestRequestDAO();
+        // Map logged-in user → veterinarian_id.
         int vetId = appDao.getVeterinarianIdByUserId(user.getUserId());
         LocalDate today = LocalDate.now();
 
-        // Shared queue model: actionable today + current vet's resumable in-examination cases.
+        // Shared queue model:
+        // - Checked-in today (actionable)
+        // - In-Examination (resumable by current vet)
+        // - In-Examination assigned to other vets (read-only; dim in UI)
         List<Appointment> todayAppointments = appDao.getVetQueueAppointmentsForDate(today, vetId);
         if (todayAppointments.isEmpty() && vetId > 0) {
             // Fallback for days where queue has not been checked in yet.
@@ -56,6 +71,7 @@ public class VetDashboardServlet extends HttpServlet {
         int pendingLab = vetId > 0 ? labDao.countPendingByVeterinarian(vetId) : 0;
         int followUps = vetId > 0 ? appDao.countFollowUpsThisWeek(vetId) : 0;
         List<LabResultSummary> recentLabResults = vetId > 0 ? labDao.getRecentResultsForVeterinarian(vetId, 5) : Collections.emptyList();
+        // Used to prevent starting a second exam. Server still enforces in startExamination logic.
         boolean vetHasActiveExamination = vetId > 0 && appDao.hasActiveInExamination(vetId);
 
         request.setAttribute("user", user);

@@ -1,4 +1,14 @@
-<%-- Shared vet appointment detail modal (queue + dashboard). Requires page request. --%>
+<%-- 
+  Shared vet appointment detail modal (queue + dashboard).
+  
+  This fragment is included by multiple JSP pages and provides:
+  - the HTML structure for the detail modal
+  - the client-side function openVetAppointmentDetail(appointmentId) that calls the vet-facing detail API
+  
+  Important:
+  - This is the VET detail endpoint: /vet/GetAppointmentDetail
+  - Receptionist pages use a different endpoint and JSON shape.
+--%>
 <div id="vetAppointmentDetailModal" class="fixed inset-0 bg-black/40 z-[2000] items-center justify-center px-4 hidden">
     <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6">
         <div class="flex items-start justify-between mb-4">
@@ -48,6 +58,9 @@
 <script>
     function openVetAppointmentDetail(appointmentId) {
         if (!appointmentId) return;
+        // Vet-facing detail API:
+        // Expected JSON (shape is enforced by the servlet behind /vet/GetAppointmentDetail):
+        // - { success: boolean, message?: string, pet: {name}, owner: {name, phone, address}, status, service, notes, formattedDateWithSlot }
         fetch('<%= request.getContextPath() %>/vet/GetAppointmentDetail?appointmentId=' + encodeURIComponent(appointmentId))
             .then(function (r) { return r.json(); })
             .then(function (data) {
@@ -57,6 +70,7 @@
                 }
                 var pet = data.pet || {};
                 var owner = data.owner || {};
+                // Render into the modal DOM. "notes" is whitespace-preserved in the template.
                 document.getElementById('v-detail-pet-name').textContent = pet.name || 'N/A';
                 document.getElementById('v-detail-status').textContent = data.status || 'N/A';
                 document.getElementById('v-detail-owner-name').textContent = owner.name || 'N/A';
@@ -71,6 +85,7 @@
                 modal.classList.add('flex');
             })
             .catch(function () {
+                // Network error / non-JSON / server error.
                 alert('An error occurred while loading details.');
             });
     }

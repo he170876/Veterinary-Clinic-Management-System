@@ -126,6 +126,21 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
         var serviceDropdownBtn = document.getElementById('book_serviceDropdownBtn');
         var serviceDropdown = document.getElementById('book_serviceDropdown');
         var serviceDropdownText = document.getElementById('book_serviceDropdownText');
+
+        /**
+         * =========================
+         * Receptionist Book Modal
+         * =========================
+         *
+         * Client-side responsibilities:
+         * - Live lookup by phone to auto-fill Owner + Email and populate pet dropdown
+         * - Lock fields when an existing customer is found (prevent accidental edits)
+         * - Enforce same-day slot cutoffs in the UI (AM after 12:00 disabled, PM after 20:00 disabled)
+         * - Submit booking via POST /Receptionist/BookAppointment (URL-encoded body)
+         *
+         * Server-side contract (see ReceptionistBookAppointmentServlet):
+         * - Response is JSON: { success:boolean, message:string, appointmentId?:number }
+         */
         
         function getTodayLocal() {
             var d = new Date();
@@ -216,6 +231,7 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                     petTypeSelect.value = '';
                 }
 
+                // Reset date/slot defaults and apply same-day cutoff rules.
                 var today = getTodayLocal();
                 var dateEl = document.getElementById('book_appointmentDate');
                 if (dateEl) {

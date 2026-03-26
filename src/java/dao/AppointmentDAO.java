@@ -578,6 +578,12 @@ public class AppointmentDAO extends DBContext {
      */
     public List<Appointment> getVetQueueAppointmentsForDate(LocalDate date, int veterinarianId) {
         List<Appointment> list = new ArrayList<>();
+        // This query is intentionally written to return ONE appointment per ResultSet row PER service join,
+        // then we merge rows by appointment_id in Java (LinkedHashMap) to avoid duplicate rows in the UI.
+        //
+        // Why not GROUP BY in SQL?
+        // - We still need per-appointment core columns + service_name.
+        // - Merging in Java allows us to keep the existing Appointment mapping logic and simply append service names.
         String sql = """
             SELECT a.appointment_id,
                    a.arrival_time,
@@ -607,11 +613,16 @@ public class AppointmentDAO extends DBContext {
             LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
               AND (
+                    -- 1) Today's actionable queue: receptionist has checked-in the appointment.
                     (a.appointment_date = ? AND a.status = 'Checked-in')
                     OR
+                    -- 2) Resumable examination: show ANY In-Examination appointment owned by this vet
+                    -- (even if appointment_date is not today), so the vet can continue.
                     (a.status = 'In-Examination' AND a.veterinarian_id = ?)
                     OR
                     (
+                      -- 3) Today's in-progress cases assigned to other vets:
+                      -- show as read-only rows so other vets can see what's happening, but cannot start/continue.
                       a.appointment_date = ?
                       AND a.status = 'In-Examination'
                       AND a.veterinarian_id IS NOT NULL
@@ -624,21 +635,29 @@ public class AppointmentDAO extends DBContext {
             )
             """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            // Parameter mapping:
+            // 1) date for "Checked-in today"
+            // 2) current veterinarianId for "my in-examination cases"
+            // 3) date for "other vets' in-examination today"
+            // 4/5) veterinarianId for the exclusion condition
             ps.setObject(1, date);
             ps.setInt(2, veterinarianId);
             ps.setObject(3, date);
             ps.setInt(4, veterinarianId);
             ps.setInt(5, veterinarianId);
             try (ResultSet rs = ps.executeQuery()) {
+                // Merge duplicated join rows by appointment_id while preserving natural ordering from SQL.
                 Map<Integer, Appointment> merged = new LinkedHashMap<>();
                 while (rs.next()) {
                     int apptId = rs.getInt("appointment_id");
                     if (!merged.containsKey(apptId)) {
                         merged.put(apptId, mapVetQueueAppointmentCoreRow(rs));
                     }
+                    // Append service_name into Appointment.service as a distinct comma-separated list.
                     appendDistinctServiceName(merged.get(apptId), rs.getString("service_name"));
                 }
                 list.addAll(merged.values());
+                // Sort by arrival time (or derived slot time if arrival_time is null).
                 list.sort(Comparator.comparing(AppointmentDAO::vetQueueArrivalSortKey));
             }
         } catch (Exception e) {

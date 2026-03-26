@@ -25,6 +25,14 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // This screen is a receptionist tool for handling customer requests (currently: reschedule requests).
+        //
+        // High-level flow:
+        // - Read filters (requestType/keyword/customerName/date range)
+        // - Load appointments and merge duplicate rows (appointments can join multiple services)
+        // - Filter to only "Reschedule-Requested" status within the selected date range
+        // - Attach the request payload/details for each appointment (DAO reads latest notification/message)
+        // - Forward to JSP for rendering + action buttons
         AppointmentDAO dao = new AppointmentDAO();
         String requestType = request.getParameter("requestType");
         String keyword = request.getParameter("keyword");
@@ -58,7 +66,7 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
             toDate = null;
         }
 
-        // Default date range behavior should mirror ViewListAppointment:
+        // Default date range behavior mirrors ViewListAppointment:
         // If user does not provide any range, use today -> today + 6 days.
         // If only one bound is provided, infer the other as +/- 1 week.
         if (fromDate == null && toDate == null) {
@@ -75,6 +83,7 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
         final LocalDate rangeStart = fromDate;
         final LocalDate rangeEnd = toDate;
 
+        // Merge by appointmentId so multi-service appointments do not appear as multiple rows.
         List<Appointment> allAppointments = mergeAppointmentsById(dao.getAllAppointments());
         List<Appointment> requestAppointments = allAppointments.stream()
                 .filter(a -> a.getAppointmentTime() != null)
@@ -153,6 +162,7 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
             displayDateRange = "All time";
         }
 
+        // Notifications for header dropdown.
         NotificationDAO ndao = new NotificationDAO();
         HttpSession session = request.getSession(false);
         if (session != null) {
@@ -171,7 +181,7 @@ public class ManageAppointmentRequestsServlet extends HttpServlet {
         request.setAttribute("customerName", customerName != null ? customerName.trim() : "");
         request.setAttribute("displayDateRange", displayDateRange);
         
-        // Add request details for each appointment
+        // Attach request payload/details for each appointment (used to render "requested date/slot/reason").
         java.util.Map<Integer, java.util.Map<String, String>> appointmentDetails = new java.util.HashMap<>();
         for (Appointment appt : filteredRequests) {
             java.util.Map<String, String> details;

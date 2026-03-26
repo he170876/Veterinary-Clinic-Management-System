@@ -1,6 +1,19 @@
 /*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
+ * Receptionist "View List Appointment" page controller.
+ *
+ * High-level flow (GET):
+ * - Read query filters: status, fromDate, toDate, page
+ * - Load appointments from AppointmentDAO
+ * - Filter by date range, then map UI status tab → DB statuses
+ * - Sort chronologically (AM before PM within the same date)
+ * - Compute per-status counts for the dashboard cards
+ * - Paginate results (fixed page size)
+ * - Load supporting dropdown data (veterinarians/services) and notifications
+ * - Forward to JSP view for rendering
+ *
+ * Notes:
+ * - This file still contains NetBeans template scaffolding (processRequest/doPost).
+ *   The application primarily uses doGet() for this screen.
  */
 package controller.receptionist;
 
@@ -23,8 +36,8 @@ import model.User;
 
 
 /**
- *
- * @author admin
+ * Serves receptionist list view at {@code /Receptionist/ViewListAppointment}.
+ * This is the main receptionist "appointments table" page.
  */
 @WebServlet("/Receptionist/ViewListAppointment")
 public class ViewListAppointmentServlet extends HttpServlet {
@@ -40,6 +53,8 @@ public class ViewListAppointmentServlet extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Template method from the original IDE-generated servlet.
+        // This output is not used in the real UI; the app uses doGet() + JSP forwarding.
         response.setContentType("text/html;charset=UTF-8");
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
@@ -68,11 +83,14 @@ public class ViewListAppointmentServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         AppointmentDAO dao = new AppointmentDAO();
+        // Query filters coming from the UI.
         String statusFilter = request.getParameter("status");
         String fromDateParam = request.getParameter("fromDate");
         String toDateParam = request.getParameter("toDate");
 
-        // Handle date range filter (default: current week Monday-Sunday)
+        // Date range rules:
+        // - if both missing: today -> today + 6 days
+        // - if only one bound is provided: infer the other as +/- 1 week
         DateTimeFormatter paramFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate today = LocalDate.now();
         LocalDate fromDate = null;
@@ -108,9 +126,11 @@ public class ViewListAppointmentServlet extends HttpServlet {
         final LocalDate rangeStart = fromDate;
         final LocalDate rangeEnd = toDate;
         
+        // Load all appointments (includes customer/pet/vet/service fields, depending on schema).
+        // We apply UI filters in-memory for this screen.
         List<Appointment> allAppointments = dao.getAllAppointments();
 
-        // Apply date range filter
+        // Apply date filter first (so counts match selected range).
         List<Appointment> dateFiltered = allAppointments.stream()
                 .filter(a -> a.getAppointmentTime() != null)
                 .filter(a -> {
@@ -123,7 +143,7 @@ public class ViewListAppointmentServlet extends HttpServlet {
 
         List<Appointment> list = new java.util.ArrayList<>(dateFiltered);
         
-        // Filter by status if provided (within the selected date range)
+        // Apply status tab filter (UI tab → DB status mapping).
         if (statusFilter != null && !statusFilter.isEmpty() && !statusFilter.equals("All")) {
             list = dateFiltered.stream()
                     .filter(a -> {
@@ -158,9 +178,9 @@ public class ViewListAppointmentServlet extends HttpServlet {
                     .collect(java.util.stream.Collectors.toList());
         }
 
-        // Sort for ALL status filters:
-        // - nearest appointment first
-        // - for same date: AM before PM
+        // Sort for consistent display:
+        // - earliest date first
+        // - AM before PM within the same date
         list.sort((a, b) -> {
             if (a == null && b == null) return 0;
             if (a == null) return 1;
@@ -185,7 +205,7 @@ public class ViewListAppointmentServlet extends HttpServlet {
             return ta.compareTo(tb);
         });
 
-        // Count by status (within the selected date range)
+        // Counters shown on the page (computed for the selected date range).
         int totalCount = dateFiltered.size();
         int pendingCount = (int) dateFiltered.stream()
             .filter(a -> a.getStatus() != null
@@ -216,7 +236,7 @@ public class ViewListAppointmentServlet extends HttpServlet {
                 .filter(a -> a.getStatus() != null && "Rejected".equalsIgnoreCase(a.getStatus()))
                 .count();
         
-        // Pagination: 4 appointments per page
+        // Pagination (fixed size keeps the UI layout stable).
         int pageSize = 4;
         int totalFiltered = list.size();
         int totalPages = (int) Math.ceil((double) totalFiltered / pageSize);
@@ -253,10 +273,10 @@ public class ViewListAppointmentServlet extends HttpServlet {
             displayDateRange = "All time";
         }
         
-        // Load all veterinarians for the dropdown
+        // Dropdown data used in appointment detail/reschedule actions.
         List<User> veterinarians = dao.getAllVeterinarians();
 
-        // Notifications for receptionist user (if logged in)
+        // Notifications for receptionist header dropdown.
         NotificationDAO ndao = new NotificationDAO();
         jakarta.servlet.http.HttpSession session = request.getSession(false);
         if (session != null) {

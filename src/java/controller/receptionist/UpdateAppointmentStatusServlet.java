@@ -20,9 +20,12 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // This endpoint is used by multiple receptionist screens to update an appointment's status
+        // (Confirm/Reject/Cancel/Check-in/etc.). It returns JSON so the UI can toast + refresh.
         response.setContentType("application/json;charset=UTF-8");
         
         try {
+            // 1) Authentication: must have a logged-in session user.
             HttpSession session = request.getSession(false);
             if (session == null || session.getAttribute("currentUser") == null) {
                 response.getWriter().write("{\"success\":false,\"message\":\"Session expired. Please login again.\"}");
@@ -30,6 +33,7 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
             }
             User user = (User) session.getAttribute("currentUser");
 
+            // 2) Read parameters (appointmentId must be int).
             int appointmentId = Integer.parseInt(request.getParameter("appointmentId"));
             String status = request.getParameter("status");
             String reason = request.getParameter("reason");
@@ -38,6 +42,10 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
             }
 
             AppointmentDAO dao = new AppointmentDAO();
+            // Capture the previous status BEFORE updating.
+            // We use this to choose a correct notification title (e.g. Reschedule Confirmed vs Appointment Confirmed).
+            Appointment beforeUpdate = dao.getAppointmentDetail(appointmentId);
+            String previousStatus = beforeUpdate != null ? beforeUpdate.getStatus() : null;
             boolean success = dao.updateAppointmentStatus(appointmentId, status);
             
             if (success) {
@@ -49,6 +57,7 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
                     VisitDAO visitDao = new VisitDAO();
                     Visit existing = visitDao.getByAppointmentId(appointmentId);
                     if (existing == null) {
+                        // We need pet/customer info to create a Visits row.
                         Appointment ap = dao.getAppointmentDetail(appointmentId);
                         if (ap == null
                                 || ap.getPet() == null
@@ -57,12 +66,14 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
                             return;
                         }
 
+                        // Map current logged-in user → receptionist_id for staff_id FK.
                         int receptionistId = dao.getReceptionistIdByUserId(user.getUserId());
                         if (receptionistId <= 0) {
                             response.getWriter().write("{\"success\":false,\"message\":\"Unauthorized receptionist.\"}");
                             return;
                         }
 
+                        // Create the visit row at check-in time. This is required for vet examination flow.
                         Visit created = visitDao.createForCheckIn(
                                 appointmentId,
                                 ap.getPet().getPetId(),
@@ -77,25 +88,33 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
                         }
                     }
                 }
-                notifyCustomerIfNeeded(appointmentId, status, reason, dao);
+                // Send customer notification for certain status transitions.
+                notifyCustomerIfNeeded(appointmentId, status, reason, previousStatus, dao);
                 response.getWriter().write("{\"success\": true, \"message\": \"Status updated successfully!\"}");
             } else {
                 response.getWriter().write("{\"success\": false, \"message\": \"Unable to update status\"}");
             }
         } catch (Exception e) {
+            // Keep JSON response stable for the frontend.
             e.printStackTrace();
             response.getWriter().write("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }
     }
 
-    private void notifyCustomerIfNeeded(int appointmentId, String status, String reason, AppointmentDAO dao) {
+    private void notifyCustomerIfNeeded(int appointmentId, String status, String reason, String previousStatus, AppointmentDAO dao) {
+        // Only a subset of status updates produce a customer-facing notification.
+        // The notification "title" is used as the short header in the dropdown; message carries details.
         if (status == null || appointmentId <= 0) {
             return;
         }
         String s = status.trim();
         String title;
         if (s.equalsIgnoreCase("Confirmed")) {
-            title = "Appointment Confirmed";
+            if (previousStatus != null && previousStatus.equalsIgnoreCase("Reschedule-Requested")) {
+                title = "Reschedule Confirmed";
+            } else {
+                title = "Appointment Confirmed";
+            }
         } else if (s.equalsIgnoreCase("Rejected")) {
             title = "Appointment Rejected";
         } else if (s.equalsIgnoreCase("Canceled") || s.equalsIgnoreCase("Cancelled")) {

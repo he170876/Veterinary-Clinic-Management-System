@@ -29,11 +29,21 @@ public class LookupCustomerByPhoneServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // This endpoint is called as the receptionist types a phone number.
+        //
+        // Goal:
+        // - If a customer account exists for that phone, return the customer profile and their pets
+        //   so the UI can auto-fill owner/email and let receptionist pick an existing pet.
+        //
+        // Security:
+        // - This endpoint is protected by RoleBasedAccessFilter (/Receptionist/*).
+        // - Response is minimal and tailored for booking/check-in UI.
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
         String phone = request.getParameter("phone");
         if (phone == null || phone.trim().isEmpty()) {
+            // Treat missing/empty phone as "not found" so the UI stays in manual-entry mode.
             response.getWriter().print("{\"success\":true,\"found\":false}");
             return;
         }
@@ -51,6 +61,7 @@ public class LookupCustomerByPhoneServlet extends HttpServlet {
         User user = userOpt.get();
         Optional<Customer> customerOpt = customerDAO.findByUserId(user.getUserId());
         if (customerOpt.isEmpty()) {
+            // User exists but isn't a Customer (or customer row missing) → treat as not found for booking UI.
             response.getWriter().print("{\"success\":true,\"found\":false}");
             return;
         }
@@ -70,6 +81,7 @@ public class LookupCustomerByPhoneServlet extends HttpServlet {
         for (int i = 0; i < pets.size(); i++) {
             Pet p = pets.get(i);
             if (i > 0) json.append(",");
+            // Each pet option contains species so UI can lock the pet type dropdown for existing pets.
             json.append("{\"petId\":").append(p.getPetId()).append(",\"name\":\"").append(escapeJson(p.getName() != null ? p.getName() : "")).append("\",\"species\":\"").append(escapeJson(p.getSpecies() != null ? p.getSpecies() : "")).append("\"}");
         }
         json.append("]}");

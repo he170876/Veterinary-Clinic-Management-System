@@ -22,6 +22,15 @@ public class GetAppointmentDetailServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // This is a receptionist-facing detail API for the appointment details modal.
+        // It returns a JSON payload with:
+        // - appointment basic fields (status, date/slot, service, veterinarian)
+        // - pet fields (including calculated age)
+        // - owner fields (name/email/phone/address)
+        //
+        // IMPORTANT:
+        // - This JSON shape is used by receptionist pages only.
+        // - Vet pages use a different endpoint (/vet/GetAppointmentDetail) with a compatible shape for vet UI.
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         PrintWriter out = response.getWriter();
@@ -56,7 +65,7 @@ public class GetAppointmentDetailServlet extends HttpServlet {
         Customer cus = ap.getCustomer();
         User owner = cus != null ? cus.getUser() : null;
 
-        // Calculate pet age from birthDate
+        // Calculate pet age from birthDate (display-friendly string).
         String petAge = "";
         if (pet != null && pet.getBirthDate() != null) {
             Period period = Period.between(pet.getBirthDate(), LocalDate.now());

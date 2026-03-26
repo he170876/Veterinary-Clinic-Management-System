@@ -15,6 +15,13 @@ public class ViewInvoiceServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // This servlet renders an invoice view for a given appointmentId.
+        //
+        // It is used in 2 ways:
+        // 1) Full page view (/Receptionist/ViewInvoice?appointmentId=...) for normal navigation.
+        // 2) Fragment view (?fragment=1) to load only the "invoice card" HTML into a modal via fetch().
+        //
+        // Access control: receptionist only.
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("currentUser") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
@@ -42,6 +49,9 @@ public class ViewInvoiceServlet extends HttpServlet {
         }
 
         InvoiceDAO invoiceDAO = new InvoiceDAO();
+        // The DAO returns a single view model that includes:
+        // - invoice header fields (customer, pet, scheduled slot, check-in time)
+        // - service lines (aggregated)
         InvoiceDAO.AppointmentInvoiceView invoiceData = invoiceDAO.getAppointmentInvoiceView(appointmentId);
         if (invoiceData == null) {
             response.sendRedirect(request.getContextPath() + "/Receptionist/ViewListAppointment");
@@ -54,6 +64,7 @@ public class ViewInvoiceServlet extends HttpServlet {
         String target = fragment
                 ? "/WEB-INF/views/Receptionist/invoice-inner.jsp"
                 : "/WEB-INF/views/Receptionist/invoice.jsp";
+        // invoice-inner.jsp contains only the printable card content; invoice.jsp wraps it with page chrome.
         request.getRequestDispatcher(target).forward(request, response);
     }
 

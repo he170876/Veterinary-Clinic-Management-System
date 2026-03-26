@@ -18,6 +18,7 @@
     if (todayAppointments == null) todayAppointments = java.util.Collections.emptyList();
     int currentVetId = request.getAttribute("currentVetId") != null ? (Integer) request.getAttribute("currentVetId") : 0;
     boolean vetHasActiveExamination = Boolean.TRUE.equals(request.getAttribute("vetHasActiveExamination"));
+    // vetHasActiveExamination is used as a UI-only guard to prevent starting multiple examinations in parallel.
     int totalToday = request.getAttribute("totalToday") != null ? (Integer) request.getAttribute("totalToday") : 0;
     int surgeriesToday = request.getAttribute("surgeriesToday") != null ? (Integer) request.getAttribute("surgeriesToday") : 0;
     int pendingLab = request.getAttribute("pendingLab") != null ? (Integer) request.getAttribute("pendingLab") : 0;
@@ -79,6 +80,7 @@
 </div>
 <script>
     (function() {
+        // Read query-string flags and show a toast (same behavior as queue page).
         var msg = '';
         var isError = false;
         var params = new URLSearchParams(window.location.search);
@@ -406,6 +408,9 @@
 </script>
 <script>
     function showVetDashboardToast(message, isError) {
+        // Simple toast helper used for:
+        // - server redirects that place flags in the query string
+        // - UI guards like "already in examination"
         var toast = document.getElementById('vetDashboardToast');
         var span = document.getElementById('vetDashboardToastMessage');
         if (!toast || !span) return;
@@ -422,6 +427,8 @@
     var VET_HAS_ACTIVE_EXAMINATION = <%= vetHasActiveExamination ? "true" : "false" %>;
     document.querySelectorAll('a.vet-exam-action-link').forEach(function (a) {
         a.addEventListener('click', function (e) {
+            // Block starting a NEW exam when one is already active.
+            // Continuing an existing in-examination case is still allowed.
             if (VET_HAS_ACTIVE_EXAMINATION && a.getAttribute('data-exam-action') === 'start') {
                 e.preventDefault();
                 showVetDashboardToast('You already have an examination in progress. Complete it before starting another one.', true);
