@@ -154,26 +154,39 @@ public class BookAppointmentServlet extends HttpServlet {
             Integer userId = null;
             Integer customerId = null;
 
-            // Check if user exists by phone first (same approach as receptionist booking flow)
-            try (PreparedStatement psFindUser = conn.prepareStatement("SELECT user_id FROM dbo.Users WHERE phone = ?")) {
-                psFindUser.setString(1, phone);
-                try (ResultSet rs = psFindUser.executeQuery()) {
-                    if (rs.next()) {
-                        userId = rs.getInt("user_id");
-                    }
+            Integer userIdByPhone = findUserIdByPhone(conn, phone);
+            Integer userIdByEmail = findUserIdByEmail(conn, email);
+
+            if (userIdByPhone != null && userIdByEmail != null && !userIdByPhone.equals(userIdByEmail)) {
+                response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                        + URLEncoder.encode("Phone and email are already linked to different accounts.", StandardCharsets.UTF_8));
+                return;
+            }
+
+            if (userIdByPhone != null) {
+                String existingEmail = findUserEmailById(conn, userIdByPhone);
+                if (existingEmail != null && !existingEmail.trim().isEmpty()
+                        && !existingEmail.equalsIgnoreCase(email)) {
+                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                            + URLEncoder.encode("This phone is already registered with another email.", StandardCharsets.UTF_8));
+                    return;
                 }
             }
 
-            // Fallback by email if phone does not exist in system.
-            if (userId == null) {
-                try (PreparedStatement psFindUserByEmail = conn.prepareStatement("SELECT user_id FROM dbo.Users WHERE email = ?")) {
-                    psFindUserByEmail.setString(1, email);
-                    try (ResultSet rs = psFindUserByEmail.executeQuery()) {
-                        if (rs.next()) {
-                            userId = rs.getInt("user_id");
-                        }
-                    }
+            if (userIdByEmail != null) {
+                String existingPhone = findUserPhoneById(conn, userIdByEmail);
+                if (existingPhone != null && !existingPhone.trim().isEmpty()
+                        && !existingPhone.equals(phone)) {
+                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                            + URLEncoder.encode("This email is already registered with another phone.", StandardCharsets.UTF_8));
+                    return;
                 }
+            }
+
+            if (userIdByPhone != null) {
+                userId = userIdByPhone;
+            } else if (userIdByEmail != null) {
+                userId = userIdByEmail;
             }
 
             // If user does not exist, create them
@@ -459,6 +472,58 @@ public class BookAppointmentServlet extends HttpServlet {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private Integer findUserIdByPhone(Connection con, String phone) throws SQLException {
+        String sql = "SELECT user_id FROM dbo.Users WHERE phone = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, phone);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("user_id");
+                }
+            }
+        }
+        return null;
+    }
+
+    private Integer findUserIdByEmail(Connection con, String email) throws SQLException {
+        String sql = "SELECT user_id FROM dbo.Users WHERE email = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("user_id");
+                }
+            }
+        }
+        return null;
+    }
+
+    private String findUserEmailById(Connection con, int userId) throws SQLException {
+        String sql = "SELECT email FROM dbo.Users WHERE user_id = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("email");
+                }
+            }
+        }
+        return null;
+    }
+
+    private String findUserPhoneById(Connection con, int userId) throws SQLException {
+        String sql = "SELECT phone FROM dbo.Users WHERE user_id = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("phone");
+                }
+            }
+        }
+        return null;
     }
 
     private void upsertAppointmentService(Connection con, int appointmentId, int serviceId) throws SQLException {

@@ -15,7 +15,7 @@ import java.io.IOException;
 /**
  * Serves the logged-in Admin's profile page.
  */
-@WebServlet(name = "AdminProfileServlet", urlPatterns = {"/admin/profile"})
+@WebServlet(name = "AdminProfileServlet", urlPatterns = {"/owner/profile"})
 public class AdminProfileServlet extends HttpServlet {
 
     private UserDAO userDAO;
@@ -40,7 +40,7 @@ public class AdminProfileServlet extends HttpServlet {
 
         if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
             session.setAttribute("pendingPhoneRequired", Boolean.TRUE);
-            response.sendRedirect(request.getContextPath() + "/admin/edit-profile?required=phone");
+            response.sendRedirect(request.getContextPath() + "/owner/edit-profile?required=phone");
             return;
         }
 

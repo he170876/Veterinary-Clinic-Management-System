@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-@WebServlet(name = "EditUserServlet", urlPatterns = {"/admin/edit-user"})
+@WebServlet(name = "EditUserServlet", urlPatterns = {"/owner/edit-user"})
 public class EditUserServlet extends HttpServlet {
 
     private final UserDAO userDAO = new UserJdbcDAO();

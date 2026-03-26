@@ -21,7 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @MultipartConfig(fileSizeThreshold = 512 * 1024, maxFileSize = 2 * 1024 * 1024, maxRequestSize = 6 * 1024 * 1024)
-@WebServlet(name = "AdminEditProfileServlet", urlPatterns = {"/admin/edit-profile"})
+@WebServlet(name = "AdminEditProfileServlet", urlPatterns = {"/owner/edit-profile"})
 public class AdminEditProfileServlet extends HttpServlet {
 
     private UserDAO userDAO;
@@ -47,7 +47,7 @@ public class AdminEditProfileServlet extends HttpServlet {
         // Same behavior as other profile pages: force phone if missing
         if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
             session.setAttribute("pendingPhoneRequired", Boolean.TRUE);
-            response.sendRedirect(request.getContextPath() + "/admin/edit-profile?required=phone");
+            response.sendRedirect(request.getContextPath() + "/owner/edit-profile?required=phone");
             return;
         }
 
@@ -81,41 +81,41 @@ public class AdminEditProfileServlet extends HttpServlet {
 
         if (request.getParameter("phone") != null
                 && ValidationUtil.hasLeadingOrTrailingSpaces(request.getParameter("phone"))) {
-            response.sendRedirect(ctx + "/admin/edit-profile" + redirectSuffix
+            response.sendRedirect(ctx + "/owner/edit-profile" + redirectSuffix
                     + (redirectSuffix.isEmpty() ? "?" : "&") + "error="
                     + URLEncoder.encode("Phone must not contain leading or trailing spaces.", StandardCharsets.UTF_8));
             return;
         }
 
         if (fullName == null || fullName.isEmpty()) {
-            response.sendRedirect(ctx + "/admin/edit-profile" + redirectSuffix
+            response.sendRedirect(ctx + "/owner/edit-profile" + redirectSuffix
                     + (redirectSuffix.isEmpty() ? "?" : "&") + "error="
                     + URLEncoder.encode("Full name is required.", StandardCharsets.UTF_8));
             return;
         }
 
         if (!ValidationUtil.isValidFullName(fullName)) {
-            response.sendRedirect(ctx + "/admin/edit-profile" + redirectSuffix
+            response.sendRedirect(ctx + "/owner/edit-profile" + redirectSuffix
                     + (redirectSuffix.isEmpty() ? "?" : "&") + "error="
                     + URLEncoder.encode("Full name must be 1-30 characters, letters and spaces only (any language).", StandardCharsets.UTF_8));
             return;
         }
 
         if (pendingPhone && (phone == null || phone.isEmpty())) {
-            response.sendRedirect(ctx + "/admin/edit-profile?required=phone&error="
+            response.sendRedirect(ctx + "/owner/edit-profile?required=phone&error="
                     + URLEncoder.encode("Phone number is required to continue.", StandardCharsets.UTF_8));
             return;
         }
 
         if (phone != null && !phone.isEmpty() && !ValidationUtil.isValidPhone(phone)) {
-            response.sendRedirect(ctx + "/admin/edit-profile" + redirectSuffix
+            response.sendRedirect(ctx + "/owner/edit-profile" + redirectSuffix
                     + (redirectSuffix.isEmpty() ? "?" : "&") + "error="
                     + URLEncoder.encode("Phone must be 10 digits starting with 0 (e.g. 0123456789).", StandardCharsets.UTF_8));
             return;
         }
 
         if (!ValidationUtil.isValidAddress(address)) {
-            response.sendRedirect(ctx + "/admin/edit-profile" + redirectSuffix
+            response.sendRedirect(ctx + "/owner/edit-profile" + redirectSuffix
                     + (redirectSuffix.isEmpty() ? "?" : "&") + "error="
                     + URLEncoder.encode("Address must be at most " + ValidationUtil.ADDRESS_MAX_LENGTH + " characters.", StandardCharsets.UTF_8));
             return;
@@ -141,9 +141,9 @@ public class AdminEditProfileServlet extends HttpServlet {
         if (ok) {
             userDAO.findById(user.getUserId()).ifPresent(u -> session.setAttribute("currentUser", u));
             session.removeAttribute("pendingPhoneRequired");
-            response.sendRedirect(ctx + "/admin/profile" + (pendingPhone ? "" : "?updated=1"));
+            response.sendRedirect(ctx + "/owner/profile" + (pendingPhone ? "" : "?updated=1"));
         } else {
-            response.sendRedirect(ctx + "/admin/edit-profile"
+            response.sendRedirect(ctx + "/owner/edit-profile"
                     + (pendingPhone ? "?required=phone&" : "?")
                     + "error=" + URLEncoder.encode("Could not save. Please try again.", StandardCharsets.UTF_8));
         }

@@ -59,6 +59,14 @@ public class ContentServiceImpl implements ContentService {
 
         textDefaults.put("home.team.kicker", "Our Experts");
         textDefaults.put("home.team.title", "Meet Our Professional Team");
+        textDefaults.put("home.team.card1.name", "Team Member 1");
+        textDefaults.put("home.team.card1.role", "Veterinary Specialist");
+        textDefaults.put("home.team.card2.name", "Team Member 2");
+        textDefaults.put("home.team.card2.role", "Veterinary Specialist");
+        textDefaults.put("home.team.card3.name", "Team Member 3");
+        textDefaults.put("home.team.card3.role", "Veterinary Specialist");
+        textDefaults.put("home.team.card4.name", "Team Member 4");
+        textDefaults.put("home.team.card4.role", "Veterinary Specialist");
 
         textDefaults.put("home.footer.brand", "Anipats");
         textDefaults.put("home.footer.about", "Setting the gold standard in pet healthcare. Modern medical expertise with heart and compassion since 2010.");
@@ -92,6 +100,10 @@ public class ContentServiceImpl implements ContentService {
         imageLabels.put("home.hero.banner.image", "Hero Banner Image");
         imageLabels.put("home.about.image.1", "About Section Image 1");
         imageLabels.put("home.about.image.2", "About Section Image 2");
+        imageLabels.put("home.team.card1.image", "Team Card 1 Image");
+        imageLabels.put("home.team.card2.image", "Team Card 2 Image");
+        imageLabels.put("home.team.card3.image", "Team Card 3 Image");
+        imageLabels.put("home.team.card4.image", "Team Card 4 Image");
         LANDING_IMAGE_LABELS = Collections.unmodifiableMap(imageLabels);
     }
 
