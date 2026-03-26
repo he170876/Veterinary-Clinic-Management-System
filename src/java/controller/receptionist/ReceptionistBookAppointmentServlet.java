@@ -15,8 +15,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.Customer;
 import model.Pet;
 import model.Role;
+import model.Service;
 import model.User;
 import org.mindrot.jbcrypt.BCrypt;
+import service.ServiceService;
+import service.impl.ServiceServiceImpl;
 import utils.ValidationUtil;
 
 import java.io.IOException;
@@ -45,7 +48,7 @@ import java.util.Optional;
  * - phone: must be 10 digits starting with 0
  * - email: must be a valid email format (generic)
  * - appointmentDate + timeSlot: must be bookable (today must be before slot start time)
- * - serviceIds: at least one service must be selected
+ * - serviceIds: optional (appointment can be created without selecting services)
  *
  * <h3>Data model notes</h3>
  * - {@code appointments} is created with status 'Pending'
@@ -107,12 +110,6 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        // At least one service must be chosen; the UI uses checkboxes.
-        if (serviceIdValues == null || serviceIdValues.length == 0) {
-            writeJson(response, "{\"success\":false,\"message\":\"Please select at least one service.\"}");
-            return;
-        }
-
         // "Pet" can be selected from an existing list (petId present) OR created new (petName + petType required).
         boolean useExistingPet = petIdStr != null && !petIdStr.isEmpty() && !"0".equals(petIdStr);
         if (!useExistingPet && (petName == null || petName.isEmpty() || petType == null || petType.isEmpty())) {
@@ -131,21 +128,20 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        // 3) Parse serviceIds and appointment date; reject invalid values.
+        // 3) Parse optional serviceIds and appointment date; reject only invalid values.
         List<Integer> serviceIds = new ArrayList<>();
         LocalDate appointmentDate;
         try {
-            for (String rawServiceId : serviceIdValues) {
-                int parsed = Integer.parseInt(ValidationUtil.trim(rawServiceId));
-                if (parsed <= 0) {
-                    throw new IllegalArgumentException("Invalid service");
+            if (serviceIdValues != null) {
+                for (String rawServiceId : serviceIdValues) {
+                    int parsed = Integer.parseInt(ValidationUtil.trim(rawServiceId));
+                    if (parsed <= 0) {
+                        throw new IllegalArgumentException("Invalid service");
+                    }
+                    if (!serviceIds.contains(parsed)) {
+                        serviceIds.add(parsed);
+                    }
                 }
-                if (!serviceIds.contains(parsed)) {
-                    serviceIds.add(parsed);
-                }
-            }
-            if (serviceIds.isEmpty()) {
-                throw new IllegalArgumentException("Invalid service");
             }
             appointmentDate = LocalDate.parse(appointmentDateStr);
         } catch (NumberFormatException | DateTimeParseException e) {
@@ -172,6 +168,24 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
 
         // Canonical slot stored in DB is AM/PM.
         String slot = "morning".equals(normalizedSlot) ? "AM" : "PM";
+
+        // 4.5) Enforce receptionist booking services to category=general only.
+        // Service selection is optional, but if provided all IDs must be general.
+        if (!serviceIds.isEmpty()) {
+            ServiceService serviceService = new ServiceServiceImpl();
+            for (Integer sid : serviceIds) {
+                if (sid == null || sid <= 0) {
+                    writeJson(response, "{\"success\":false,\"message\":\"Invalid service selection.\"}");
+                    return;
+                }
+                Service svc = serviceService.getServiceById(sid).orElse(null);
+                String cat = svc != null && svc.getCategory() != null ? svc.getCategory().trim().toLowerCase() : "";
+                if (svc == null || !"general".equals(cat)) {
+                    writeJson(response, "{\"success\":false,\"message\":\"Only general services are allowed for booking.\"}");
+                    return;
+                }
+            }
+        }
 
         // 5) Decide customer + pet identity.
         // - If user selected an existing pet, we trust petId and derive customerId from the pet row.
@@ -263,16 +277,19 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             }
         }
 
-        // 6) Create appointment (status Pending) and link services.
+        // 6) Create appointment (status Pending) and link services (if any).
         // The DB schema supports:
-        // - primary service_id on appointments (first selected)
-        // - appointment_service join table (all selected)
-        int appointmentId = appointmentDAO.createWithDateAndSlot(petId, customerId, serviceIds.get(0), appointmentDate, slot, notes, phone);
+        // - primary service_id on appointments (first selected, nullable)
+        // - appointment_service join table (all selected, optional)
+        Integer primaryServiceId = serviceIds.isEmpty() ? null : serviceIds.get(0);
+        int appointmentId = appointmentDAO.createWithDateAndSlot(petId, customerId, primaryServiceId, appointmentDate, slot, notes, phone);
         if (appointmentId > 0) {
-            boolean servicesSaved = appointmentDAO.insertAppointmentServices(appointmentId, serviceIds);
-            if (!servicesSaved) {
-                writeJson(response, "{\"success\":false,\"message\":\"Appointment saved but services could not be linked.\"}");
-                return;
+            if (!serviceIds.isEmpty()) {
+                boolean servicesSaved = appointmentDAO.insertAppointmentServices(appointmentId, serviceIds);
+                if (!servicesSaved) {
+                    writeJson(response, "{\"success\":false,\"message\":\"Appointment saved but services could not be linked.\"}");
+                    return;
+                }
             }
             writeJson(response, "{\"success\":true,\"message\":\"Appointment booked successfully.\",\"appointmentId\":" + appointmentId + "}");
         } else {

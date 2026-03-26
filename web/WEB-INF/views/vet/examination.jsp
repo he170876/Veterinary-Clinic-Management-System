@@ -54,6 +54,9 @@
     List<RecordServiceLine> recordServices = (List<RecordServiceLine>) request.getAttribute("recordServices");
     if (recordServices == null) recordServices = java.util.Collections.emptyList();
     @SuppressWarnings("unchecked")
+    List<Service> appointmentServices = (List<Service>) request.getAttribute("appointmentServices");
+    if (appointmentServices == null) appointmentServices = java.util.Collections.emptyList();
+    @SuppressWarnings("unchecked")
     List<LabTest> labTests = (List<LabTest>) request.getAttribute("labTests");
     if (labTests == null) labTests = java.util.Collections.emptyList();
     @SuppressWarnings("unchecked")
@@ -65,6 +68,19 @@
     @SuppressWarnings("unchecked")
     List<LabResultSummary> recentLabResults = (List<LabResultSummary>) request.getAttribute("recentLabResults");
     if (recentLabResults == null) recentLabResults = java.util.Collections.emptyList();
+    @SuppressWarnings("unchecked")
+    List<LabTestRequest> labRequests = (List<LabTestRequest>) request.getAttribute("labRequests");
+    if (labRequests == null) labRequests = java.util.Collections.emptyList();
+    java.util.Map<String, Integer> requestedLabServiceCounts = new java.util.HashMap<>();
+    if (visit != null) {
+        for (LabTestRequest lr : labRequests) {
+            if (lr == null || lr.getVisitId() != visit.getVisitId()) continue;
+            String tn = lr.getTestName();
+            if (tn == null || tn.trim().isEmpty()) continue;
+            String key = tn.trim().toLowerCase();
+            requestedLabServiceCounts.put(key, requestedLabServiceCounts.getOrDefault(key, 0) + 1);
+        }
+    }
     String diagnosisText = (medicalRecord != null && medicalRecord.getDiagnosis() != null) ? medicalRecord.getDiagnosis() : "";
     String conclusionText = (medicalRecord != null && medicalRecord.getConclusion() != null) ? medicalRecord.getConclusion() : "";
     String noteText = (medicalRecord != null && medicalRecord.getNote() != null) ? medicalRecord.getNote() : "";
@@ -201,7 +217,11 @@
                                         Conclusion
                                     </h4>
                                     <div class="space-y-3">
-                                        <textarea name="conclusion" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm" placeholder="Kết luận / conclusion for this visit..." rows="3"><%= conclusionText %></textarea>
+                                        <textarea id="conclusion-textarea" name="conclusion" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm" placeholder="Kết luận / conclusion for this visit..." rows="3"><%= conclusionText %></textarea>
+                                        <p id="conclusion-error" class="hidden mt-1.5 text-xs text-red-500 font-semibold flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm">error</span>
+                                            Conclusion is required to complete the examination.
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -219,62 +239,69 @@
                                                     int sid = line.getServiceId();
                                                     String sname = line.getServiceName();
                                                     String normName = sname != null ? sname.trim().toLowerCase() : "";
+                                                    int requestedCount = !normName.isEmpty() ? requestedLabServiceCounts.getOrDefault(normName, 0) : 0;
+                                                    boolean labLocked = requestedCount > 0;
+                                                    int displayQty = line.getQuantity() > 0 ? line.getQuantity() : 1;
+                                                    if (requestedCount > displayQty) displayQty = requestedCount;
                                                     if (seenServiceIds.contains(sid)) continue;
                                                     if (!normName.isEmpty() && seenServiceNames.contains(normName)) continue;
                                                     seenServiceIds.add(sid);
                                                     if (!normName.isEmpty()) seenServiceNames.add(normName);
                                                 %>
-                                                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row" data-service-id="<%= sid %>" data-service-name="<%= sname != null ? sname : "" %>">
+                                                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row" data-service-id="<%= sid %>" data-service-name="<%= sname != null ? sname : "" %>" data-lab-locked="<%= labLocked ? "true" : "false" %>">
                                                     <div class="flex items-center gap-3">
                                                         <span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>
                                                         <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><%= sname != null ? sname : "" %></span>
+                                                        <% if (labLocked) { %><span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">Lab Requested</span><% } %>
                                                     </div>
                                                     <div class="flex items-center gap-2">
                                                         <div class="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden" data-role="service-qty-box">
-                                                            <button type="button" class="service-qty-dec px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Decrease quantity"><span class="material-symbols-outlined text-base">remove</span></button>
-                                                            <span class="service-qty min-w-[26px] text-center text-xs font-bold text-slate-700 dark:text-slate-200" data-role="service-qty"><%= line.getQuantity() > 0 ? line.getQuantity() : 1 %></span>
-                                                            <button type="button" class="service-qty-inc px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Increase quantity"><span class="material-symbols-outlined text-base">add</span></button>
+                                                            <button type="button" class="service-qty-dec px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors <%= labLocked ? "pointer-events-none opacity-40" : "" %>" <%= labLocked ? "disabled" : "" %> aria-label="Decrease quantity"><span class="material-symbols-outlined text-base">remove</span></button>
+                                                            <span class="service-qty min-w-[26px] text-center text-xs font-bold text-slate-700 dark:text-slate-200" data-role="service-qty"><%= displayQty %></span>
+                                                            <button type="button" class="service-qty-inc px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors <%= labLocked ? "pointer-events-none opacity-40" : "" %>" <%= labLocked ? "disabled" : "" %> aria-label="Increase quantity"><span class="material-symbols-outlined text-base">add</span></button>
                                                         </div>
                                                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
+                                                            <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove <%= labLocked ? "pointer-events-none opacity-30" : "" %>" <%= labLocked ? "disabled" : "" %> aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <% }
-                                            } else if (ap.getServiceId() != null && ap.getService() != null) { %>
-                                            <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row" data-service-id="<%= ap.getServiceId() %>" data-service-name="<%= ap.getService() %>">
+                                            } else if (!appointmentServices.isEmpty()) {
+                                                // When there is no saved medical record yet, pre-fill from the appointment's booked services.
+                                                // This list is resolved from appointment_service (one row per service) in VetExaminationServlet.
+                                                java.util.Set<Integer> seenServiceIds = new java.util.HashSet<>();
+                                                java.util.Set<String> seenServiceNames = new java.util.HashSet<>();
+                                                for (Service svc : appointmentServices) {
+                                                    if (svc == null) continue;
+                                                    int sid = svc.getServiceId();
+                                                    String sname = svc.getName();
+                                                    String normName = sname != null ? sname.trim().toLowerCase() : "";
+                                                    int requestedCount = !normName.isEmpty() ? requestedLabServiceCounts.getOrDefault(normName, 0) : 0;
+                                                    boolean labLocked = requestedCount > 0;
+                                                    int displayQty = requestedCount > 0 ? requestedCount : 1;
+                                                    if (sid > 0 && seenServiceIds.contains(sid)) continue;
+                                                    if (!normName.isEmpty() && seenServiceNames.contains(normName)) continue;
+                                                    if (sid > 0) seenServiceIds.add(sid);
+                                                    if (!normName.isEmpty()) seenServiceNames.add(normName);
+                                            %>
+                                            <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row" data-service-id="<%= sid > 0 ? sid : "" %>" data-service-name="<%= sname != null ? sname : "" %>" data-lab-locked="<%= labLocked ? "true" : "false" %>">
                                                 <div class="flex items-center gap-3">
                                                     <span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>
-                                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><%= ap.getService() %></span>
+                                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><%= sname != null ? sname : "" %></span>
+                                                    <% if (labLocked) { %><span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">Lab Requested</span><% } %>
                                                 </div>
                                                 <div class="flex items-center gap-2">
                                                     <div class="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden" data-role="service-qty-box">
-                                                        <button type="button" class="service-qty-dec px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Decrease quantity"><span class="material-symbols-outlined text-base">remove</span></button>
-                                                        <span class="service-qty min-w-[26px] text-center text-xs font-bold text-slate-700 dark:text-slate-200" data-role="service-qty">1</span>
-                                                        <button type="button" class="service-qty-inc px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Increase quantity"><span class="material-symbols-outlined text-base">add</span></button>
+                                                        <button type="button" class="service-qty-dec px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors <%= labLocked ? "pointer-events-none opacity-40" : "" %>" <%= labLocked ? "disabled" : "" %> aria-label="Decrease quantity"><span class="material-symbols-outlined text-base">remove</span></button>
+                                                        <span class="service-qty min-w-[26px] text-center text-xs font-bold text-slate-700 dark:text-slate-200" data-role="service-qty"><%= displayQty %></span>
+                                                        <button type="button" class="service-qty-inc px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors <%= labLocked ? "pointer-events-none opacity-40" : "" %>" <%= labLocked ? "disabled" : "" %> aria-label="Increase quantity"><span class="material-symbols-outlined text-base">add</span></button>
                                                     </div>
                                                     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
+                                                        <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove <%= labLocked ? "pointer-events-none opacity-30" : "" %>" <%= labLocked ? "disabled" : "" %> aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <% } else { %>
-                                            <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row" data-service-id="" data-service-name="General Consultation">
-                                                <div class="flex items-center gap-3">
-                                                    <span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>
-                                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">General Consultation</span>
-                                                </div>
-                                                <div class="flex items-center gap-2">
-                                                    <div class="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden" data-role="service-qty-box">
-                                                        <button type="button" class="service-qty-dec px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Decrease quantity"><span class="material-symbols-outlined text-base">remove</span></button>
-                                                        <span class="service-qty min-w-[26px] text-center text-xs font-bold text-slate-700 dark:text-slate-200" data-role="service-qty">1</span>
-                                                        <button type="button" class="service-qty-inc px-2 py-1 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Increase quantity"><span class="material-symbols-outlined text-base">add</span></button>
-                                                    </div>
-                                                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <%   } %>
                                             <% } %>
                                         </div>
                                         <button type="button" id="add-service-btn" class="w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -287,6 +314,8 @@
                                                 java.util.Set<String> seenServiceNames = new java.util.HashSet<>();
                                                 for (Service svc : clinicServices) {
                                                     if (svc == null) continue;
+                                                    String cat = svc.getCategory() != null ? svc.getCategory().trim().toLowerCase() : "";
+                                                    if (!"general".equals(cat)) continue;
                                                     int sid = svc.getServiceId();
                                                     String svcName = svc.getName();
                                                     String normName = svcName != null ? svcName.trim().toLowerCase() : "";
@@ -357,9 +386,6 @@
                                         </h4>
                                         <ul class="space-y-3 text-xs">
                                             <%
-                                                @SuppressWarnings("unchecked")
-                                                java.util.List<LabTestRequest> labRequests = (java.util.List<LabTestRequest>) request.getAttribute("labRequests");
-                                                if (labRequests == null) labRequests = java.util.Collections.emptyList();
                                                 int pendingLabCount = 0;
                                                 for (LabTestRequest _lr : labRequests) {
                                                     if (visit != null && _lr.getVisitId() == visit.getVisitId()
@@ -903,7 +929,7 @@
                             /* ── server autosave + lab request submit ── */
                             if (!examForm || !labForm) return;
                             
-                            // Nếu user chọn Lab Test Type trước khi submit, auto-add service vào Services (UI)
+                            // Add/increment lab service only when user submits lab request.
                             const ensureSelectedLabServiceInExam = (function () {
                                 const testSelect = labForm.querySelector('select[name="serviceId"]');
                                 const servicesList = document.getElementById('examination-services-list');
@@ -934,18 +960,44 @@
                                     if (serviceQuantitiesInput) serviceQuantitiesInput.value = quantities.join(',');
                                 }
                                 
-                                async function ensureServiceForSelectedTest() {
+                                function lockLabRow(row) {
+                                    if (!row) return;
+                                    row.setAttribute('data-lab-locked', 'true');
+                                    row.querySelectorAll('.service-qty-dec, .service-qty-inc, .service-remove').forEach(function (btn) {
+                                        btn.disabled = true;
+                                        btn.classList.add('pointer-events-none', 'opacity-40');
+                                    });
+                                    if (!row.querySelector('.lab-locked-tag')) {
+                                        const nameWrap = row.querySelector('.flex.items-center.gap-3');
+                                        if (nameWrap) {
+                                            const tag = document.createElement('span');
+                                            tag.className = 'lab-locked-tag text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200';
+                                            tag.textContent = 'Lab Requested';
+                                            nameWrap.appendChild(tag);
+                                        }
+                                    }
+                                }
+
+                                function ensureServiceForSelectedTest() {
                                     const serviceId = testSelect.value;
                                     const testName = (testSelect.options[testSelect.selectedIndex] && testSelect.options[testSelect.selectedIndex].text) || '';
                                     const testNorm = norm(testName);
                                     if (!serviceId || !testNorm) return;
                                     
-                                    // Avoid duplicates by service name
-                                    let exists = false;
+                                    // If row already exists, +1 quantity and lock it.
+                                    let existingRow = null;
                                     servicesList.querySelectorAll('.service-row').forEach(function (row) {
-                                        if (norm(row.getAttribute('data-service-name')) === testNorm) exists = true;
+                                        if (norm(row.getAttribute('data-service-name')) === testNorm) existingRow = row;
                                     });
-                                    if (exists) return;
+                                    if (existingRow) {
+                                        const qtyEl = existingRow.querySelector('.service-qty');
+                                        let qty = qtyEl ? parseInt(qtyEl.textContent, 10) : 1;
+                                        if (Number.isNaN(qty) || qty < 1) qty = 1;
+                                        if (qtyEl) qtyEl.textContent = String(qty + 1);
+                                        lockLabRow(existingRow);
+                                        updateServiceIds();
+                                        return;
+                                    }
                                     
                                     const displayName = String(testName);
                                     const row = document.createElement('div');
@@ -956,18 +1008,22 @@
                                     '<div class="flex items-center gap-3">' +
                                     '<span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>' +
                                     '<span class="text-sm font-semibold text-slate-700 dark:text-slate-200">' + escHtml(displayName) + '</span>' +
+                                    '<span class="lab-locked-tag text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">Lab Requested</span>' +
+                                    '</div>' +
+                                    '<div class="flex items-center gap-2">' +
+                                    '<div class="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden" data-role="service-qty-box">' +
+                                    '<button type="button" class="service-qty-dec px-2 py-1 text-slate-500 transition-colors pointer-events-none opacity-40" disabled aria-label="Decrease quantity"><span class="material-symbols-outlined text-base">remove</span></button>' +
+                                    '<span class="service-qty min-w-[26px] text-center text-xs font-bold text-slate-700 dark:text-slate-200" data-role="service-qty">1</span>' +
+                                    '<button type="button" class="service-qty-inc px-2 py-1 text-slate-500 transition-colors pointer-events-none opacity-40" disabled aria-label="Increase quantity"><span class="material-symbols-outlined text-base">add</span></button>' +
                                     '</div>' +
                                     '<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">' +
-                                    '<button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove">' +
-                                    '<span class="material-symbols-outlined text-lg">delete</span></button></div>';
-                                    row.querySelector('.service-remove').addEventListener('click', function () { row.remove(); updateServiceIds(); });
+                                    '<button type="button" class="p-1 text-slate-400 transition-colors service-remove pointer-events-none opacity-40" disabled aria-label="Remove">' +
+                                    '<span class="material-symbols-outlined text-lg">delete</span></button></div></div>';
                                     servicesList.appendChild(row);
+                                    lockLabRow(row);
                                     updateServiceIds();
                                 }
-                                
-                                testSelect.addEventListener('change', function () {
-                                    ensureServiceForSelectedTest();
-                                });
+
                                 return function () {
                                     ensureServiceForSelectedTest();
                                     updateServiceIds();
@@ -1085,6 +1141,18 @@
                                         if (diagnosisEmpty) {
                                             valid = false;
                                             if (!firstInvalidEl) firstInvalidEl = diagnosisEl;
+                                        }
+
+                                        /* 1.5 Conclusion required */
+                                        var conclusionEl = document.getElementById('conclusion-textarea');
+                                        var conclusionErrEl = document.getElementById('conclusion-error');
+                                        var conclusionEmpty = conclusionEl && !conclusionEl.value.trim();
+                                        setFieldError(conclusionEl, conclusionEmpty);
+                                        if (conclusionErrEl) conclusionErrEl.classList.toggle('hidden', !conclusionEmpty);
+                                        if (conclusionEmpty) {
+                                            valid = false;
+                                            if (!firstInvalidEl) firstInvalidEl = conclusionEl;
+                                            showBanner('Conclusion is required to complete the examination.');
                                         }
                                         
                                         /* 2. At least one service */

@@ -451,13 +451,7 @@ Preferred Time = AM/PM dropdown. Live phone lookup: if customer found, Pet Name 
                     if (form) {
                         form.addEventListener('submit', function(e) {
                             e.preventDefault();
-                            
-                            var selectedServices = form.querySelectorAll('input[name="serviceIds"]:checked');
-                            if (!selectedServices || selectedServices.length === 0) {
-                                alert('Please select at least one service.');
-                                return;
-                            }
-                            
+
                             var bookPetIdEl = document.getElementById('book_petId');
                             var petSelect = document.getElementById('book_petSelect');
                             if (petSelect && bookPetIdEl) {

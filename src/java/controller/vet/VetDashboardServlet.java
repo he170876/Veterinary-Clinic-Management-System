@@ -58,10 +58,6 @@ public class VetDashboardServlet extends HttpServlet {
         // - In-Examination (resumable by current vet)
         // - In-Examination assigned to other vets (read-only; dim in UI)
         List<Appointment> todayAppointments = appDao.getVetQueueAppointmentsForDate(today, vetId);
-        if (todayAppointments.isEmpty() && vetId > 0) {
-            // Fallback for days where queue has not been checked in yet.
-            todayAppointments = appDao.getTodayAppointmentsByVeterinarianForDashboard(vetId);
-        }
 
         int totalToday = todayAppointments.size();
         int surgeriesToday = (int) todayAppointments.stream()

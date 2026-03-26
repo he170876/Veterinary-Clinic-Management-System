@@ -51,7 +51,7 @@ public class UpdateAppointmentStatusServlet extends HttpServlet {
             if (success) {
                 if (status != null && status.equalsIgnoreCase("Checked-in")) {
                     // Save real arrival time when receptionist checks in
-                    dao.setArrivalTimeNow(appointmentId);
+                    boolean arrivalUpdated = dao.setArrivalTimeNow(appointmentId);
 
                     // Ensure Visits row exists so vet can load MedicalRecord + LabTestRequests
                     VisitDAO visitDao = new VisitDAO();

@@ -94,6 +94,7 @@ public class ReceptionistCheckInServlet extends HttpServlet {
 
         // Update appointment status after the visit exists (so vet pages won't see "Checked-in" without a visit).
         appDao.updateAppointmentStatus(appointmentId, "Checked-in");
+        appDao.setArrivalTimeNow(appointmentId);
         response.sendRedirect(request.getContextPath() + QUEUE_URL + "?checkedin=1");
     }
 }

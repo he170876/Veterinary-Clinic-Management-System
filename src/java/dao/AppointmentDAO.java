@@ -3,6 +3,7 @@ package dao;
 import model.Appointment;
 import model.Customer;
 import model.Pet;
+import model.Service;
 import model.User;
 import utils.DBContext;
 
@@ -509,8 +510,16 @@ public class AppointmentDAO extends DBContext {
             LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
             LEFT JOIN services s ON aps.service_id = s.service_id
             WHERE p.isDeleted = 0
-              AND a.appointment_date = ?
-              AND a.status = 'Checked-in'
+              AND REPLACE(REPLACE(REPLACE(LOWER(LTRIM(RTRIM(COALESCE(a.status, '')))), '-', ''), ' ', ''), '_', '') = 'checkedin'
+              AND (
+                    a.appointment_date = ?
+                    OR EXISTS (
+                        SELECT 1
+                        FROM Visits vv
+                        WHERE vv.appointment_id = a.appointment_id
+                          AND CAST(vv.check_in_time AS date) = ?
+                    )
+                  )
             ORDER BY COALESCE(
                 a.arrival_time,
                 DATEADD(hour, CASE WHEN UPPER(COALESCE(a.time_slot, 'AM')) = 'PM' THEN 15 ELSE 9 END, CAST(a.appointment_date AS datetime))
@@ -518,6 +527,7 @@ public class AppointmentDAO extends DBContext {
             """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setObject(1, date);
+            ps.setObject(2, date);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Appointment ap = new Appointment();
@@ -611,20 +621,34 @@ public class AppointmentDAO extends DBContext {
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
             LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
             LEFT JOIN services s ON aps.service_id = s.service_id
-            WHERE p.isDeleted = 0
+            WHERE (p.isDeleted = 0 OR p.isDeleted IS NULL)
               AND (
-                    -- 1) Today's actionable queue: receptionist has checked-in the appointment.
-                    (a.appointment_date = ? AND a.status = 'Checked-in')
+                    -- 1) Today's actionable queue based on real check-in date:
+                    -- Accept exactly two Checked-in types:
+                    --  - Type 1: appointment_date = today AND status = checked-in
+                    --  - Type 2: status = checked-in AND check-in timestamp is today
+                    --    (using Visits.check_in_time, which is robust across schemas where
+                    --     appointments.arrival_time may be TIME-only and cannot be cast to DATE)
+                    (REPLACE(REPLACE(REPLACE(LOWER(LTRIM(RTRIM(COALESCE(a.status, '')))), '-', ''), ' ', ''), '_', '') = 'checkedin'
+                     AND (
+                          a.appointment_date = ?
+                          OR EXISTS (
+                              SELECT 1
+                              FROM Visits vv
+                              WHERE vv.appointment_id = a.appointment_id
+                                AND CAST(vv.check_in_time AS date) = ?
+                          )
+                     ))
                     OR
                     -- 2) Resumable examination: show ANY In-Examination appointment owned by this vet
                     -- (even if appointment_date is not today), so the vet can continue.
-                    (a.status = 'In-Examination' AND a.veterinarian_id = ?)
+                    (REPLACE(REPLACE(REPLACE(LOWER(LTRIM(RTRIM(COALESCE(a.status, '')))), '-', ''), ' ', ''), '_', '') = 'inexamination' AND a.veterinarian_id = ?)
                     OR
                     (
                       -- 3) Today's in-progress cases assigned to other vets:
                       -- show as read-only rows so other vets can see what's happening, but cannot start/continue.
                       a.appointment_date = ?
-                      AND a.status = 'In-Examination'
+                      AND REPLACE(REPLACE(REPLACE(LOWER(LTRIM(RTRIM(COALESCE(a.status, '')))), '-', ''), ' ', ''), '_', '') = 'inexamination'
                       AND a.veterinarian_id IS NOT NULL
                       AND (? <= 0 OR a.veterinarian_id <> ?)
                     )
@@ -636,15 +660,16 @@ public class AppointmentDAO extends DBContext {
             """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             // Parameter mapping:
-            // 1) date for "Checked-in today"
-            // 2) current veterinarianId for "my in-examination cases"
-            // 3) date for "other vets' in-examination today"
-            // 4/5) veterinarianId for the exclusion condition
+            // 1/2) date for checked-in filters (appointment_date OR visit.check_in_time)
+            // 3) current veterinarianId for "my in-examination cases"
+            // 4) date for "other vets' in-examination today"
+            // 5/6) veterinarianId for the exclusion condition
             ps.setObject(1, date);
-            ps.setInt(2, veterinarianId);
-            ps.setObject(3, date);
-            ps.setInt(4, veterinarianId);
+            ps.setObject(2, date);
+            ps.setInt(3, veterinarianId);
+            ps.setObject(4, date);
             ps.setInt(5, veterinarianId);
+            ps.setInt(6, veterinarianId);
             try (ResultSet rs = ps.executeQuery()) {
                 // Merge duplicated join rows by appointment_id while preserving natural ordering from SQL.
                 Map<Integer, Appointment> merged = new LinkedHashMap<>();
@@ -1311,6 +1336,44 @@ public class AppointmentDAO extends DBContext {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Returns the list of services attached to an appointment via {@code appointment_service}.
+     * <p>
+     * This is used by the vet examination page to pre-populate the "Services" UI with
+     * individual service rows (one row per service), instead of using the merged
+     * comma-separated label in {@link Appointment#getService()} which is intended for tables.
+     * </p>
+     */
+    public List<Service> getServicesForAppointment(int appointmentId) {
+        if (appointmentId <= 0) return new ArrayList<>();
+        String sql = """
+            SELECT DISTINCT s.service_id, s.name, s.price, s.category
+            FROM appointment_service aps
+            INNER JOIN services s ON aps.service_id = s.service_id
+            WHERE aps.appointment_id = ?
+            ORDER BY s.service_id
+            """;
+        List<Service> list = new ArrayList<>();
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Service s = new Service();
+                    s.setServiceId(rs.getInt("service_id"));
+                    s.setName(rs.getString("name"));
+                    double p = rs.getDouble("price");
+                    if (!rs.wasNull()) s.setPrice(p);
+                    s.setCategory(rs.getString("category"));
+                    list.add(s);
+                }
+            }
+        } catch (Exception e) {
+            // If appointment_service does not exist in legacy schema, or any other error occurs,
+            // return an empty list and let the caller fall back.
+        }
+        return list;
     }
 
     public Appointment getAppointmentDetailByCustomer(int appointmentId, int customerId) {

@@ -47,16 +47,6 @@ public class BookAppointmentServlet extends HttpServlet {
         String ctx = request.getContextPath();
         String redirect = ctx + "/index.jsp";
 
-        // DEBUG: print all inbound fields so we can identify what is missing.
-        System.out.println("[BOOK_DEBUG] ownerName='" + ownerName + "', email='" + email + "', phone='" + phone
-                + "', petName='" + petName + "', petType='" + petType + "', appointmentDate='" + appointmentDate
-                + "', timeSlotRaw='" + timeSlotRaw + "', notesLen=" + (notes == null ? 0 : notes.length()));
-        if (serviceIdValues == null) {
-            System.out.println("[BOOK_DEBUG] serviceIds is null");
-        } else {
-            System.out.println("[BOOK_DEBUG] serviceIds count=" + serviceIdValues.length + ", values=" + String.join(",", serviceIdValues));
-        }
-
         List<String> missingFields = new ArrayList<>();
         if (isBlank(ownerName)) missingFields.add("ownerName");
         if (isBlank(email)) missingFields.add("email");
@@ -67,7 +57,6 @@ public class BookAppointmentServlet extends HttpServlet {
         if (isBlank(timeSlotRaw)) missingFields.add("timeSlot");
 
         if (!missingFields.isEmpty()) {
-            System.out.println("[BOOK_DEBUG] Missing required fields: " + String.join(",", missingFields));
             response.sendRedirect(redirect + "?bookError=1&bookMessage="
                     + URLEncoder.encode("Please fill in all required fields. Missing: " + String.join(", ", missingFields), StandardCharsets.UTF_8));
             return;
@@ -149,6 +138,15 @@ public class BookAppointmentServlet extends HttpServlet {
         try {
             conn = DBContext.getConnection();
             conn.setAutoCommit(false); // Start transaction
+
+            // Only general category services can be booked from guest/customer flows.
+            for (Integer sid : serviceIds) {
+                if (sid == null || sid <= 0 || !isGeneralService(conn, sid)) {
+                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                            + URLEncoder.encode("Only general services are available for booking.", StandardCharsets.UTF_8));
+                    return;
+                }
+            }
 
             // Step 1: Find or Create User and Customer
             Integer userId = null;
@@ -544,6 +542,20 @@ public class BookAppointmentServlet extends HttpServlet {
             ps.setInt(3, appointmentId);
             ps.setInt(4, serviceId);
             ps.executeUpdate();
+        }
+    }
+
+    private boolean isGeneralService(Connection con, int serviceId) throws SQLException {
+        String sql = "SELECT TOP 1 category FROM dbo.Services WHERE service_id = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, serviceId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return false;
+                }
+                String category = rs.getString("category");
+                return category != null && "general".equalsIgnoreCase(category.trim());
+            }
         }
     }
 }

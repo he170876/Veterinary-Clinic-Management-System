@@ -30,8 +30,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import model.Appointment;
+import model.Service;
 import model.User;
 
 
@@ -307,7 +309,14 @@ public class ViewListAppointmentServlet extends HttpServlet {
         request.setAttribute("canceledCount", canceledCount);
         request.setAttribute("rejectedCount", rejectedCount);
         ServiceDAO serviceDAO = new ServiceJdbcDAO();
-        request.setAttribute("services", serviceDAO.findAll());
+        List<Service> generalServices = new ArrayList<>();
+        for (Service s : serviceDAO.findAll()) {
+            String cat = s != null && s.getCategory() != null ? s.getCategory().trim().toLowerCase() : "";
+            if ("general".equals(cat)) {
+                generalServices.add(s);
+            }
+        }
+        request.setAttribute("services", generalServices);
         
         request.getRequestDispatcher("/WEB-INF/views/Receptionist/ViewListAppointment.jsp")
                 .forward(request, response);

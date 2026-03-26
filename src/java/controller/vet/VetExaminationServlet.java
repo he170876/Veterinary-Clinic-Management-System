@@ -212,6 +212,32 @@ public class VetExaminationServlet extends HttpServlet {
                 ? labDao.getByVisitId(visit.getVisitId())
                 : List.of();
 
+        // Pre-populate the "Services" section in the examination UI:
+        // - Prefer the normalized list from appointment_service (one row per service).
+        // - If legacy data has no appointment_service rows, we'll fall back in the JSP.
+        List<Service> appointmentServices = appDao.getServicesForAppointment(appointmentId);
+        if (appointmentServices.isEmpty() && ap != null && ap.getService() != null) {
+            // If Appointment.service is a merged label like "A, B, C", try to resolve each name back to a service_id
+            // using the current services catalog (best-effort). This prevents the UI from showing one merged row.
+            java.util.Map<String, Service> byNormName = new java.util.HashMap<>();
+            for (Service s : allServices) {
+                if (s == null || s.getName() == null) continue;
+                byNormName.put(s.getName().trim().toLowerCase(), s);
+            }
+            java.util.LinkedHashMap<Integer, Service> resolved = new java.util.LinkedHashMap<>();
+            for (String part : ap.getService().split(",")) {
+                String name = part != null ? part.trim() : "";
+                if (name.isEmpty()) continue;
+                Service matched = byNormName.get(name.toLowerCase());
+                if (matched != null && matched.getServiceId() > 0) {
+                    resolved.putIfAbsent(matched.getServiceId(), matched);
+                }
+            }
+            if (!resolved.isEmpty()) {
+                appointmentServices = new java.util.ArrayList<>(resolved.values());
+            }
+        }
+
         // Optional: detailed viewer for a specific completed lab request
         String viewReqParam = request.getParameter("viewLabRequestId");
         model.LabResultDetail labResultDetail = null;
@@ -228,6 +254,7 @@ public class VetExaminationServlet extends HttpServlet {
         request.setAttribute("visit", visit);
         request.setAttribute("medicalRecord", record);
         request.setAttribute("recordServices", recordServices);
+        request.setAttribute("appointmentServices", appointmentServices);
         request.setAttribute("prescriptions", prescriptions);
         request.setAttribute("recentLabResults", recentLabResults);
         request.setAttribute("labResultDetail", labResultDetail);
@@ -238,6 +265,9 @@ public class VetExaminationServlet extends HttpServlet {
         if ("pendingLab".equals(request.getParameter("error"))) {
             request.setAttribute("examCompleteBlocked",
                     "Cannot complete examination while lab requests are still pending. Complete them in the lab queue first.");
+        } else if ("missingConclusion".equals(request.getParameter("error"))) {
+            request.setAttribute("examCompleteBlocked",
+                    "Conclusion is required to complete the examination.");
         } else if ("missingDiagnosisObservation".equals(request.getParameter("error"))) {
             request.setAttribute("examCompleteBlocked",
                     "Diagnosis and Observation are required to complete the examination.");
@@ -398,6 +428,11 @@ public class VetExaminationServlet extends HttpServlet {
         String action = request.getParameter("action");
 
         // Server-side guard for required fields when user completes the examination.
+        if ("complete".equals(action) && conclusion.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath()
+                    + "/vet/examination?id=" + appointmentId + "&error=missingConclusion");
+            return;
+        }
         if ("complete".equals(action) && (diagnosis.trim().isEmpty() || note.trim().isEmpty())) {
             response.sendRedirect(request.getContextPath()
                     + "/vet/examination?id=" + appointmentId + "&error=missingDiagnosisObservation");

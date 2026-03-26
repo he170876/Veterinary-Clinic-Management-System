@@ -125,6 +125,9 @@ public class VetLabRequestServlet extends HttpServlet {
             }
             if (!alreadyAdded) {
                 recordDao.addService(record.getRecordId(), selectedService.getServiceId(), 1, selectedService.getPrice());
+            } else {
+                // If this lab service has already been requested before, keep service row and increment quantity.
+                recordDao.incrementServiceQuantity(record.getRecordId(), selectedService.getServiceId(), 1);
             }
         }
 

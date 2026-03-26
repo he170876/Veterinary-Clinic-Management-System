@@ -203,6 +203,30 @@ public class VetMedicalRecordDAO extends DBContext {
         }
     }
 
+    /**
+     * Increase quantity for an existing service row inside one medical record.
+     * If no row exists, caller should insert with addService().
+     */
+    public boolean incrementServiceQuantity(int recordId, int serviceId, int delta) {
+        if (delta <= 0) {
+            return false;
+        }
+        String sql = """
+            UPDATE MedicalRecordServices
+            SET quantity = COALESCE(quantity, 0) + ?
+            WHERE record_id = ? AND service_id = ?
+            """;
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, delta);
+            ps.setInt(2, recordId);
+            ps.setInt(3, serviceId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public void addPrescription(int recordId, String medicineName, String dosage, String duration) {
         String sql = "INSERT INTO Prescriptions (record_id, medicine_name, dosage, duration) VALUES (?, ?, ?, ?)";
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {

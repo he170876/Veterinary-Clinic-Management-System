@@ -161,14 +161,18 @@
             for (var i = 0; i < pets.length; i++) {
                 var p = pets[i] || {};
                 var species = p.species != null ? String(p.species) : '';
-                html += '<option value="' + p.petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (p.name || '') + '</option>';
+                var petId = (p.petId != null) ? p.petId : (p.id != null ? p.id : '');
+                var petName = p.name != null ? p.name : (p.petName != null ? p.petName : '');
+                html += '<option value="' + petId + '" data-species="' + species.replace(/"/g, '&quot;') + '">' + (petName || '') + '</option>';
             }
         }
         html += '<option value="' + NEW_PET_VALUE + '">Add a new pet</option>';
 
         petSelect.innerHTML = html;
         if (pets && pets.length > 0) {
-            petSelect.value = String(pets[0].petId);
+            var first = pets[0] || {};
+            var firstPetId = (first.petId != null) ? first.petId : (first.id != null ? first.id : NEW_PET_VALUE);
+            petSelect.value = String(firstPetId);
         } else {
             petSelect.value = NEW_PET_VALUE;
         }
@@ -244,26 +248,30 @@
             fetch(ctx + '/Receptionist/LookupCustomerByPhone?phone=' + encodeURIComponent(phone))
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
+                    if (data && data.found) {
+                        customerFoundByPhone = true;
+                        setOwnerNameLocked(true, data.customer && data.customer.fullName ? data.customer.fullName : '');
+                        setCustomerEmailLocked(true, data.customer && data.customer.email ? data.customer.email : '');
+                        renderPetSelectOptions(data.pets || []);
+                    } else {
+                        customerFoundByPhone = false;
+                        setOwnerNameLocked(false);
+                        if (emailInput) emailInput.value = '';
+                        setCustomerEmailLocked(false, '');
+                        renderPetSelectOptions([]);
+                    }
+
                     if (phoneStatus) {
                         phoneStatus.classList.remove('hidden');
-                        if (data.found) {
-                            customerFoundByPhone = true;
+                        if (data && data.found) {
                             phoneStatus.textContent = 'Customer found. Select pet below.';
                             phoneStatus.className = 'text-xs mt-1 text-green-600 dark:text-green-400';
-                            setOwnerNameLocked(true, data.customer.fullName || '');
-                            setCustomerEmailLocked(true, data.customer.email || '');
-                            renderPetSelectOptions(data.pets || []);
                         } else {
-                            customerFoundByPhone = false;
                             phoneStatus.textContent = 'New customer. Enter pet details.';
                             phoneStatus.className = 'text-xs mt-1 text-slate-500 dark:text-slate-400';
-                            setOwnerNameLocked(false);
-                            if (emailInput) emailInput.value = '';
-                            setCustomerEmailLocked(false, '');
-                            renderPetSelectOptions([]);
                         }
-                        refreshEmailRequirement();
                     }
+                    refreshEmailRequirement();
                 })
                 .catch(function() {
                     if (phoneStatus) {
