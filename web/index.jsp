@@ -11,7 +11,11 @@ Anipats landing page - VCMS (Tailwind design)
 <%@page import="service.impl.ImageServiceImpl"%>
 <%@page import="model.Image"%>
 <%@page import="java.util.List"%>
+<%@page import="java.util.Map"%>
+<%@page import="java.util.HashMap"%>
+<%@page import="java.util.ArrayList"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%!
     private String esc(String value) {
     if (value == null) {
@@ -26,6 +30,19 @@ Anipats landing page - VCMS (Tailwind design)
     
     private boolean isOwnerOrAdminRole(Integer roleId) {
     return roleId != null && (roleId == 5 || roleId == 6);
+    }
+    
+    private String toPageUrl(String contextPath, String rawUrl) {
+    if (rawUrl == null || rawUrl.isEmpty()) {
+    return "";
+    }
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+    return rawUrl;
+    }
+    if (rawUrl.startsWith("/")) {
+    return contextPath + rawUrl;
+    }
+    return contextPath + "/" + rawUrl;
     }
 %>
 <%
@@ -87,7 +104,54 @@ Anipats landing page - VCMS (Tailwind design)
     }
     
     List<Image> teamMembers = imageService.getImagesBySection("team");
-    pageContext.setAttribute("teamMembers", teamMembers);
+    if (teamMembers == null) {
+        teamMembers = java.util.Collections.emptyList();
+    }
+    
+    String[] fallbackTeamUrls = new String[] {
+        "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1612531385446-f7b6b8f2b2c3?auto=format&fit=crop&w=900&q=80"
+    };
+    
+    List<Map<String, String>> teamCards = new ArrayList<>();
+    for (int i = 0; i < 4; i++) {
+        Image member = i < teamMembers.size() ? teamMembers.get(i) : null;
+        
+        String fallbackUrl = (member != null && member.getUrl() != null && !member.getUrl().isEmpty())
+        ? member.getUrl()
+        : fallbackTeamUrls[i];
+        
+        String fallbackAlt = (member != null && member.getAltText() != null && !member.getAltText().trim().isEmpty())
+        ? member.getAltText().trim()
+        : "Veterinary specialist";
+        
+        String fallbackName = (member != null && member.getTitle() != null && !member.getTitle().trim().isEmpty())
+        ? member.getTitle().trim()
+        : "Team Member " + (i + 1);
+        
+        String fallbackRole = (member != null && member.getAltText() != null && !member.getAltText().trim().isEmpty())
+        ? member.getAltText().trim()
+        : "Veterinary Specialist";
+        
+        String nameKey = "home.team.card" + (i + 1) + ".name";
+        String roleKey = "home.team.card" + (i + 1) + ".role";
+        String cardName = txt.apply(nameKey, fallbackName);
+        String cardRole = txt.apply(roleKey, fallbackRole);
+        
+        String imageKey = "home.team.card" + (i + 1) + ".image";
+        String resolvedUrl = contentService.getImageUrl(imageKey, contentLocale, contentDraftMode, fallbackUrl);
+        String resolvedAlt = contentService.getImageAlt(imageKey, contentLocale, contentDraftMode, fallbackAlt);
+        
+        Map<String, String> card = new HashMap<>();
+        card.put("url", toPageUrl(ctx, resolvedUrl));
+        card.put("alt", resolvedAlt == null ? "" : resolvedAlt);
+        card.put("name", cardName);
+        card.put("role", cardRole == null ? "" : cardRole);
+        teamCards.add(card);
+    }
+    pageContext.setAttribute("teamCards", teamCards);
     
     // Load banner image
     List<Image> bannerImages = imageService.getImagesBySection("banner");
@@ -172,13 +236,19 @@ Anipats landing page - VCMS (Tailwind design)
                 font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             }
             @layer base {
+                html {
+                    scroll-behavior: smooth;
+                }
                 body {
                     @apply font-display;
+                }
+                section[id], footer[id] {
+                    scroll-margin-top: 96px;
                 }
             }
         </style>
     </head>
-    <body class="bg-background-light dark:bg-background-dark text-[#181111] dark:text-white transition-colors duration-300">
+    <body id="top" class="bg-background-light dark:bg-background-dark text-[#181111] dark:text-white transition-colors duration-300">
         <% if ("1".equals(forbidden)) { %>
         <div class="fixed top-20 right-6 z-[9999] max-w-sm bg-amber-500 text-[#181111] px-4 py-3 rounded-xl shadow-xl flex items-center justify-between gap-4" role="alert">
             <span class="font-semibold">Access denied.</span> You do not have permission to view that page.
@@ -243,11 +313,10 @@ Anipats landing page - VCMS (Tailwind design)
                     <h2 class="text-2xl font-extrabold leading-tight tracking-tight text-[#181111] dark:text-white">Anipats</h2>
                 </a>
                 <nav class="hidden xl:flex items-center gap-10">
-                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="<%= ctx %>/index.jsp">Home</a>
-                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">About</a>
-                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">Services</a>
-                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">Adoption</a>
-                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#">Contact</a>
+                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#top">Home</a>
+                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#about">About</a>
+                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#services">Services</a>
+                    <a class="text-[15px] font-semibold text-[#181111]/80 dark:text-white/80 hover:text-primary dark:hover:text-primary transition-all relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all" href="#contact">Contact</a>
                 </nav>
                 <div class="flex items-center gap-4">
                     <% if (loggedIn) { %>
@@ -334,7 +403,7 @@ Anipats landing page - VCMS (Tailwind design)
         </div>
     </div>
 
-    <section class="py-20 px-6 max-w-[1200px] mx-auto">
+    <section id="services" class="py-20 px-6 max-w-[1200px] mx-auto">
         <div class="flex flex-col items-center text-center mb-16">
             <h2 class="text-primary font-bold uppercase tracking-widest text-sm mb-2"><%= esc(txt.apply("home.services.kicker", "What we do")) %></h2>
             <h3 class="text-[#181111] dark:text-white text-4xl font-black"><%= esc(txt.apply("home.services.title", "Our Specialized Services")) %></h3>
@@ -373,7 +442,7 @@ Anipats landing page - VCMS (Tailwind design)
         </div>
     </section>
 
-    <section class="bg-white dark:bg-background-dark py-20">
+    <section id="about" class="bg-white dark:bg-background-dark py-20">
         <div class="max-w-[1200px] mx-auto px-6 flex flex-col lg:flex-row items-center gap-16">
             <div class="w-full lg:w-1/2 grid grid-cols-2 gap-4">
                 <div class="h-64 rounded-2xl bg-center bg-cover" data-alt="<%= esc(about1Alt) %>" style="background-image: url('<%= esc(about1Url.startsWith("/") ? (ctx + about1Url) : about1Url) %>');"></div>
@@ -410,62 +479,27 @@ Anipats landing page - VCMS (Tailwind design)
         </div>
     </section>
 
-    <section class="bg-[#fdf8f1] dark:bg-background-dark/50 py-24 px-6">
-        <div class="max-w-[1200px] mx-auto">
-            <div class="bg-primary rounded-[2.5rem] p-12 lg:p-20 relative overflow-hidden flex flex-col lg:flex-row items-center gap-12">
-                <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-                <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
-                <div class="flex-1 text-white z-10">
-                    <h2 class="text-white/80 font-bold uppercase tracking-widest text-sm mb-4">Adoption Program</h2>
-                    <h2 class="text-4xl lg:text-6xl font-black mb-6">Find Your New Best Friend</h2>
-                    <p class="text-white/80 text-lg mb-10 max-w-[600px]">
-                        Over 450+ pets are currently looking for a forever home. From playful puppies to gentle senior cats, we help you find the perfect match.
-                    </p>
-                    <div class="flex flex-wrap gap-4">
-                        <button type="button" class="px-8 py-4 bg-white text-primary rounded-xl font-bold text-lg hover:bg-white/90 transition-all">Browse Pets</button>
-                        <button type="button" class="px-8 py-4 bg-transparent border-2 border-white/40 text-white rounded-xl font-bold text-lg hover:bg-white/10 transition-all">Adoption Process</button>
-                    </div>
-                </div>
-                <div class="w-full lg:w-1/3 z-10 flex flex-col gap-4">
-                    <div class="bg-white/20 backdrop-blur-md p-6 rounded-2xl border border-white/20 text-white">
-                        <div class="text-5xl font-black mb-1">452+</div>
-                        <div class="text-sm font-bold uppercase tracking-wider">Available Pets</div>
-                    </div>
-                    <div class="bg-white/20 backdrop-blur-md p-6 rounded-2xl border border-white/20 text-white">
-                        <div class="text-5xl font-black mb-1">12k+</div>
-                        <div class="text-sm font-bold uppercase tracking-wider">Happy Adoptions</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <section class="py-24 px-6 max-w-[1200px] mx-auto">
         <div class="flex flex-col items-center text-center mb-16">
             <h2 class="text-primary font-bold uppercase tracking-widest text-sm mb-2"><%= esc(txt.apply("home.team.kicker", "Our Experts")) %></h2>
             <h3 class="text-[#181111] dark:text-white text-4xl font-black"><%= esc(txt.apply("home.team.title", "Meet Our Professional Team")) %></h3>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <c:forEach var="member" items="${teamMembers}">
+            <c:forEach var="card" items="${teamCards}">
                 <div class="group">
                     <div class="relative aspect-square rounded-3xl overflow-hidden mb-6 shadow-lg bg-gray-200 bg-center bg-cover"
-                    data-alt="${member.altText}"
-                    style="background-image: url('${pageContext.request.contextPath}${member.url}');">
+                    data-alt="${fn:escapeXml(card.alt)}"
+                    style="background-image: url('${fn:escapeXml(card.url)}');">
                     <div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-all duration-300"></div>
                 </div>
-                <h4 class="text-xl font-black mb-1 group-hover:text-primary transition-colors">${member.title}</h4>
-                <p class="text-[#896163] dark:text-white/60 font-medium">${member.altText}</p>
+                <h4 class="text-xl font-black mb-1 group-hover:text-primary transition-colors">${fn:escapeXml(card.name)}</h4>
+                <p class="text-[#896163] dark:text-white/60 font-medium">${fn:escapeXml(card.role)}</p>
             </div>
         </c:forEach>
-        <c:if test="${empty teamMembers}">
-            <div class="col-span-full text-center py-12">
-                <p class="text-[#896163] dark:text-white/60">Team members will be displayed here. Please add them in the admin panel.</p>
-            </div>
-        </c:if>
     </div>
 </section>
 
-<footer class="bg-dark-accent text-white py-16 px-6">
+<footer id="contact" class="bg-dark-accent text-white py-16 px-6">
     <div class="max-w-[1200px] mx-auto">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16 border-b border-white/10 pb-16">
             <div class="flex flex-col gap-6">

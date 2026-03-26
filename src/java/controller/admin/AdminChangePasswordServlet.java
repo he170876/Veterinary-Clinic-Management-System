@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Handles POST from Admin profile Change Password form.
  */
-@WebServlet(name = "AdminChangePasswordServlet", urlPatterns = {"/admin/change-password"})
+@WebServlet(name = "AdminChangePasswordServlet", urlPatterns = {"/owner/change-password"})
 public class AdminChangePasswordServlet extends HttpServlet {
 
     private AuthService authService;
@@ -33,7 +33,7 @@ public class AdminChangePasswordServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding(StandardCharsets.UTF_8.name());
         String ctx = request.getContextPath();
-        String redirect = ctx + "/admin/profile";
+        String redirect = ctx + "/owner/profile";
 
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("currentUser") == null) {

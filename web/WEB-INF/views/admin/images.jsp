@@ -56,15 +56,15 @@
                         <span class="text-sm font-semibold">Dashboard</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5  text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/user-management">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+                        <span class="material-symbols-outlined">group</span>
                         <span class="text-sm font-semibold">User Management</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/services">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">medical_services</span>
+                        <span class="material-symbols-outlined" >medical_services</span>
                         <span class="text-sm font-semibold">Services</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/content">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">edit_document</span>
+                        <span class="material-symbols-outlined" >edit_document</span>
                         <span class="text-sm font-semibold">Content</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 sidebar-item-active text-primary" href="#">
@@ -105,7 +105,7 @@
                         <div id="admin-profile-menu"
                              class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
                              style="display:none;">
-                            <a href="${pageContext.request.contextPath}/admin/profile"
+                            <a href="${pageContext.request.contextPath}/owner/profile"
                                class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-t-xl flex items-center gap-2">
                                 <span class="material-symbols-outlined text-base text-primary">person</span>
                                 <span>My Profile</span>
@@ -130,7 +130,7 @@
                                 <span class="text-[#1d140c] dark:text-white text-sm font-bold">Images</span>
                             </div>
                             <h2 class="text-2xl font-bold tracking-tight">Homepage Images</h2>
-                            <p class="text-[#a17145] text-sm">Manage homepage and section images.</p>
+                            <p class="text-[#a17145] text-sm">Upload to image library. Choose which image to use in the Content page.</p>
                         </div>
                         <button onclick="openAddImageModal()" class="px-6 py-3 bg-primary hover:bg-[#e66f00] text-white rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
                             <span class="material-symbols-outlined">add_photo_alternate</span>
@@ -138,10 +138,10 @@
                         </button>
                     </div>
 
-                    <!-- Images Grid Grouped by Section -->
+                    <!-- Uploaded image library -->
                     <div id="imagesContainer">
                         <c:choose>
-                            <c:when test="${empty imagesBySection}">
+                            <c:when test="${empty images}">
                                 <div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark p-12 text-center">
                                     <div class="flex flex-col items-center gap-3">
                                         <span class="material-symbols-outlined text-5xl opacity-50 text-[#a17145]">image_not_supported</span>
@@ -151,52 +151,33 @@
                                 </div>
                             </c:when>
                             <c:otherwise>
-                                <c:forEach var="entry" items="${imagesBySection}">
-                                    <div class="mb-8 section-group">
-                                        <h3 class="text-xl font-bold text-[#1d140c] dark:text-white mb-4 flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-primary">folder</span>
-                                            ${entry.key}
-                                            <span class="text-sm font-normal text-[#a17145] ml-2">(${fn:length(entry.value)})</span>
-                                        </h3>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            <c:forEach var="image" items="${entry.value}">
-                                                <div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark overflow-hidden image-card" data-image-id="${image.id}" data-image-title="${image.title}" data-image-section="${image.section}" data-image-url="${image.url}" data-image-alt="${image.altText}" data-image-sort="${image.sortOrder}">
-                                                    <!-- Image Preview -->
-                                                    <div class="relative w-full h-48 bg-gray-200 dark:bg-gray-700 overflow-hidden group">
-                                                        <img src="${pageContext.request.contextPath}${image.url}" alt="${image.altText}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
-                                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
-                                                            <button onclick="openEditImageModal(${image.id})" class="p-2 bg-white text-primary rounded-lg hover:scale-110 transition-transform" title="Edit">
-                                                                <span class="material-symbols-outlined">edit</span>
-                                                            </button>
-                                                            <button onclick="deleteImage(${image.id})" class="p-2 bg-red-500 text-white rounded-lg hover:scale-110 transition-transform" title="Delete">
-                                                                <span class="material-symbols-outlined">delete</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <c:forEach var="image" items="${images}">
+                                        <div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark overflow-hidden image-card" data-image-title="${image.title}" data-image-section="${image.section}">
+                                            <div class="relative w-full h-48 bg-gray-200 dark:bg-gray-700 overflow-hidden group">
+                                                <img src="${pageContext.request.contextPath}${image.url}" alt="${image.altText}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+                                            </div>
 
-                                                    <!-- Image Details -->
-                                                    <div class="p-4 flex flex-col gap-3">
-                                                        <div class="flex flex-col gap-1">
-                                                            <h3 class="font-bold text-[#1d140c] dark:text-white">${image.title}</h3>
-                                                            <p class="text-xs text-[#a17145]">${image.altText}</p>
-                                                        </div>
-                                                        <div class="flex items-center justify-between pt-2 border-t border-[#eadbcd] dark:border-gray-700">
-                                                            <div class="flex flex-col gap-1">
-                                                                <span class="text-xs font-medium text-[#a17145]">Section</span>
-                                                                <span class="text-sm font-bold text-[#1d140c] dark:text-white">${image.section}</span>
-                                                            </div>
-                                                            <div class="flex flex-col gap-1 items-end">
-                                                                <span class="text-xs font-medium text-[#a17145]">Order</span>
-                                                                <span class="text-sm font-bold text-primary">#${image.sortOrder}</span>
-                                                            </div>
-                                                        </div>
-                                                        <p class="text-xs text-[#a17145] mt-2">${fn:replace(fn:substring(image.createdAt, 0, 16), 'T', ' ')}</p>
+                                            <div class="p-4 flex flex-col gap-3">
+                                                <div class="flex flex-col gap-1">
+                                                    <h3 class="font-bold text-[#1d140c] dark:text-white">${image.title}</h3>
+                                                    <p class="text-xs text-[#a17145]">${image.altText}</p>
+                                                </div>
+                                                <div class="flex items-center justify-between pt-2 border-t border-[#eadbcd] dark:border-gray-700">
+                                                    <div class="flex flex-col gap-1">
+                                                        <span class="text-xs font-medium text-[#a17145]">Section</span>
+                                                        <span class="text-sm font-bold text-[#1d140c] dark:text-white">${image.section}</span>
+                                                    </div>
+                                                    <div class="flex flex-col gap-1 items-end">
+                                                        <span class="text-xs font-medium text-[#a17145]">Image ID</span>
+                                                        <span class="text-sm font-bold text-primary">#${image.id}</span>
                                                     </div>
                                                 </div>
-                                            </c:forEach>
+                                                <p class="text-xs text-[#a17145] mt-2">${fn:replace(fn:substring(image.createdAt, 0, 16), 'T', ' ')}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </c:forEach>
+                                    </c:forEach>
+                                </div>
                             </c:otherwise>
                         </c:choose>
                     </div>
@@ -209,7 +190,7 @@
             </main>
         </div>
 
-        <!-- Add/Edit Image Modal -->
+        <!-- Upload Image Modal -->
         <div id="imageModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div class="bg-background-light dark:bg-background-dark rounded-xl max-w-md w-full soft-shadow border border-[#eadbcd] dark:border-gray-800">
                 <div class="flex items-center justify-between p-6 border-b border-[#eadbcd] dark:border-gray-800">
@@ -223,7 +204,6 @@
 
                 <form id="imageForm" method="POST" action="${pageContext.request.contextPath}/owner/images" enctype="multipart/form-data" class="p-6 flex flex-col gap-4">
                     <input type="hidden" name="action" id="formAction" value="create">
-                    <input type="hidden" name="imageId" id="imageId">
 
                     <div class="flex flex-col gap-2">
                         <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Title <span class="text-red-500">*</span></label>
@@ -231,20 +211,20 @@
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Image File <span class="text-red-500">*</span><span class="text-xs text-[#a17145] font-normal ml-1">(Only for new images)</span></label>
+                        <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Image File <span class="text-red-500">*</span></label>
                         <input type="file" name="imageFile" id="imageFile" accept="image/jpeg,image/png,image/gif,image/webp" class="px-4 py-2 border border-[#eadbcd] dark:border-gray-700 rounded-lg bg-background-light dark:bg-gray-800 text-[#1d140c] dark:text-white focus:ring-2 focus:ring-primary/20 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 cursor-pointer" id="imageFileInput">
                         <p class="text-xs text-[#a17145]">Max size: 10MB. Supported: JPG, PNG, GIF, WebP</p>
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Alt Text <span class="text-red-500">*</span></label>
-                        <input type="text" name="altText" id="altText" required class="px-4 py-2 border border-[#eadbcd] dark:border-gray-700 rounded-lg bg-background-light dark:bg-gray-800 text-[#1d140c] dark:text-white focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Alternative text for accessibility">
+                        <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Alt Text</label>
+                        <input type="text" name="altText" id="altText" class="px-4 py-2 border border-[#eadbcd] dark:border-gray-700 rounded-lg bg-background-light dark:bg-gray-800 text-[#1d140c] dark:text-white focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Alternative text for accessibility">
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Section <span class="text-red-500">*</span></label>
-                        <select name="section" id="section" required class="px-4 py-2 border border-[#eadbcd] dark:border-gray-700 rounded-lg bg-background-light dark:bg-gray-800 text-[#1d140c] dark:text-white focus:ring-2 focus:ring-primary/20 transition-all">
-                            <option value="">Select a section</option>
+                        <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Section</label>
+                        <select name="section" id="section" class="px-4 py-2 border border-[#eadbcd] dark:border-gray-700 rounded-lg bg-background-light dark:bg-gray-800 text-[#1d140c] dark:text-white focus:ring-2 focus:ring-primary/20 transition-all">
+                            <option value="">General</option>
                             <option value="about">About</option>
                             <option value="banner">Banner</option>
                             <option value="services">Services</option>
@@ -252,11 +232,6 @@
                             <option value="gallery">Gallery</option>
                             <option value="home">Home</option>
                         </select>
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-[#1d140c] dark:text-white">Sort Order</label>
-                        <input type="number" name="sortOrder" id="sortOrder" min="0" class="px-4 py-2 border border-[#eadbcd] dark:border-gray-700 rounded-lg bg-background-light dark:bg-gray-800 text-[#1d140c] dark:text-white focus:ring-2 focus:ring-primary/20 transition-all" placeholder="0" value="0">
                     </div>
 
                     <div class="flex gap-3 pt-4 border-t border-[#eadbcd] dark:border-gray-800">
@@ -315,30 +290,10 @@
                 }
                 
                 function openAddImageModal() {
-                    document.getElementById('modalTitle').textContent = 'Add New Image';
+                    document.getElementById('modalTitle').textContent = 'Upload Image';
                     document.getElementById('formAction').value = 'create';
                     document.getElementById('imageFile').required = true;
                     document.getElementById('imageForm').reset();
-                    document.getElementById('imageId').value = '';
-                    document.getElementById('imageModal').classList.remove('hidden');
-                }
-                
-                function openEditImageModal(imageId) {
-                    const card = document.querySelector('[data-image-id="' + imageId + '"]');
-                    if (!card) {
-                        showToast('Image not found.', 'error');
-                        return;
-                    }
-                    
-                    document.getElementById('modalTitle').textContent = 'Edit Image';
-                    document.getElementById('formAction').value = 'update';
-                    document.getElementById('imageFile').required = false;
-                    document.getElementById('imageId').value = card.dataset.imageId;
-                    document.getElementById('title').value = card.dataset.imageTitle;
-                    document.getElementById('altText').value = card.dataset.imageAlt;
-                    document.getElementById('section').value = card.dataset.imageSection;
-                    document.getElementById('sortOrder').value = card.dataset.imageSort;
-                    document.getElementById('imageFile').value = '';
                     document.getElementById('imageModal').classList.remove('hidden');
                 }
                 
@@ -350,10 +305,9 @@
                     event.preventDefault();
                     
                     const form = document.getElementById('imageForm');
-                    const action = document.getElementById('formAction').value;
                     const fileInput = document.getElementById('imageFile');
                     
-                    if (action === 'create' && (!fileInput.files || fileInput.files.length === 0)) {
+                    if (!fileInput.files || fileInput.files.length === 0) {
                         showToast('Please select an image file.', 'error');
                         return;
                     }
@@ -368,71 +322,34 @@
                         
                         if (response.redirected || response.ok) {
                             closeImageModal();
-                            showToast(action === 'create' ? 'Image created successfully.' : 'Image updated successfully.', 'success');
+                            showToast('Image uploaded successfully.', 'success');
                             setTimeout(function () {
                                 location.reload();
                             }, 700);
                             return;
                         }
                         
-                        const errorMessage = await parseErrorMessage(response, action === 'create' ? 'Failed to create image.' : 'Failed to update image.');
+                        const errorMessage = await parseErrorMessage(response, 'Failed to upload image.');
                         showToast(errorMessage, 'error');
                         } catch (error) {
                             showToast('Network error: ' + error.message, 'error');
                         }
                     }
-                    
-                    async function deleteImage(imageId) {
-                        if (!confirm('Are you sure you want to delete this image?')) {
-                            return;
-                        }
-                        
-                        try {
-                            const response = await fetch('${pageContext.request.contextPath}/owner/images/delete/' + imageId, {
-                                method: 'POST'
-                            });
-                            
-                            if (response.redirected || response.ok) {
-                                showToast('Image deleted successfully.', 'success');
-                                setTimeout(function () {
-                                    location.reload();
-                                }, 700);
-                                return;
-                            }
-                            
-                            const errorMessage = await parseErrorMessage(response, 'Failed to delete image.');
-                            showToast(errorMessage, 'error');
-                            } catch (error) {
-                                showToast('Network error: ' + error.message, 'error');
-                            }
-                        }
                         
                         function filterImages() {
                             const searchInput = document.getElementById('searchInput').value.toLowerCase();
-                            const sections = document.querySelectorAll('.section-group');
-                            
-                            sections.forEach(section => {
-                                const cards = section.querySelectorAll('.image-card');
-                                let hasVisibleCards = false;
-                                
-                                cards.forEach(card => {
-                                    const title = card.dataset.imageTitle.toLowerCase();
-                                    const sectionName = card.dataset.imageSection.toLowerCase();
-                                    
-                                    if (title.includes(searchInput) || sectionName.includes(searchInput)) {
-                                        card.style.display = '';
-                                        hasVisibleCards = true;
-                                        } else {
-                                            card.style.display = 'none';
-                                        }
-                                    });
-                                    
-                                    if (hasVisibleCards) {
-                                        section.style.display = '';
-                                        } else {
-                                            section.style.display = 'none';
-                                        }
-                                    });
+                            const cards = document.querySelectorAll('.image-card');
+
+                            cards.forEach(card => {
+                                const title = (card.dataset.imageTitle || '').toLowerCase();
+                                const sectionName = (card.dataset.imageSection || '').toLowerCase();
+
+                                if (title.includes(searchInput) || sectionName.includes(searchInput)) {
+                                    card.style.display = '';
+                                } else {
+                                    card.style.display = 'none';
+                                }
+                            });
                                 }
                                 
                                 document.addEventListener('DOMContentLoaded', function() {

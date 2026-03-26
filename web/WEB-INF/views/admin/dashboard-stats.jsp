@@ -62,25 +62,25 @@
                         </div>
                     </div>
                     <nav class="flex flex-col gap-2">
-                        <a class="sidebar-item active-nav flex items-center gap-3 px-4 py-3 rounded-full transition-all" href="#">
+                        <a class="flex items-center gap-3 px-3 py-2.5 sidebar-item-active text-primary" href="#">
                             <span class="material-symbols-outlined">dashboard</span>
                             <span class="text-sm font-bold">Dashboard</span>
                         </a>
 
                         <a class="flex items-center gap-3 px-3 py-2.5  text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/user-management">
-                            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+                            <span class="material-symbols-outlined" >group</span>
                             <span class="text-sm font-semibold">User Management</span>
                         </a>
                         <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/services">
-                            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">medical_services</span>
+                            <span class="material-symbols-outlined" >medical_services</span>
                             <span class="text-sm font-semibold">Services</span>
                         </a>
                         <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/content">
-                            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">edit_document</span>
+                            <span class="material-symbols-outlined" >edit_document</span>
                             <span class="text-sm font-semibold">Content</span>
                         </a>
                         <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/images">
-                            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">image</span>
+                            <span class="material-symbols-outlined">image</span>
                             <span class="text-sm font-semibold">Images</span>
                         </a>
 
@@ -116,7 +116,7 @@
                         <div id="admin-profile-menu"
                              class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
                              style="display:none;">
-                            <a href="${pageContext.request.contextPath}/admin/profile"
+                            <a href="${pageContext.request.contextPath}/owner/profile"
                                class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-t-xl flex items-center gap-2">
                                 <span class="material-symbols-outlined text-base text-primary">person</span>
                                 <span>My Profile</span>

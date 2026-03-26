@@ -108,7 +108,7 @@ public class CreateUserServlet extends HttpServlet {
                 errors.put("phone", "Phone too long");
             } else if (!PHONE_PATTERN.matcher(phone).matches()) {
                 errors.put("phone", "Phone must be 10 digits and start with 0");
-            } else if (userDAO.existsByPhone(phone)) {
+            } else if (userDAO.findByPhone(phone).isPresent()) {
                 errors.put("phone", "Phone already exists");
             }
         }

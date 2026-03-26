@@ -54,19 +54,19 @@
                         <span class="text-sm font-semibold">Dashboard</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/user-management">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+                        <span class="material-symbols-outlined">group</span>
                         <span class="text-sm font-semibold">User Management</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/services">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">medical_services</span>
+                        <span class="material-symbols-outlined" >medical_services</span>
                         <span class="text-sm font-semibold">Services</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 sidebar-item-active text-primary" href="#">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">edit_document</span>
+                        <span class="material-symbols-outlined"  style="font-variation-settings: 'FILL' 1">edit_document</span>
                         <span class="text-sm font-bold">Content</span>
                     </a>
                     <a class="flex items-center gap-3 px-3 py-2.5 text-[#a17145] hover:bg-[#f4ede6] dark:hover:bg-gray-800 rounded-xl transition-all" href="${pageContext.request.contextPath}/owner/images">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">image</span>
+                        <span class="material-symbols-outlined">image</span>
                         <span class="text-sm font-semibold">Images</span>
                     </a>
                 </nav>
@@ -101,7 +101,7 @@
                             <div id="admin-profile-menu"
                                  class="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white shadow-lg border border-slate-200 z-50"
                                  style="display:none;">
-                                <a href="${pageContext.request.contextPath}/admin/profile"
+                                <a href="${pageContext.request.contextPath}/owner/profile"
                                    class="block px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors rounded-t-xl flex items-center gap-2">
                                     <span class="material-symbols-outlined text-base text-primary">person</span>
                                     <span>My Profile</span>
@@ -346,6 +346,82 @@
                         root.appendChild(details);
                     });
                 }
+
+                function storageKey(suffix) {
+                    return "owner-content-" + suffix;
+                }
+
+                function captureDetailsState(rootId) {
+                    var root = document.getElementById(rootId);
+                    if (!root) {
+                        return [];
+                    }
+                    return Array.from(root.querySelectorAll(":scope > details")).map(function (d) {
+                        return !!d.open;
+                    });
+                }
+
+                function restoreDetailsState(rootId, state) {
+                    if (!Array.isArray(state)) {
+                        return;
+                    }
+                    var root = document.getElementById(rootId);
+                    if (!root) {
+                        return;
+                    }
+                    Array.from(root.querySelectorAll(":scope > details")).forEach(function (d, idx) {
+                        d.open = !!state[idx];
+                    });
+                }
+
+                function persistEditingViewState() {
+                    try {
+                        sessionStorage.setItem(storageKey("scrollY"), String(window.scrollY || 0));
+                        sessionStorage.setItem(storageKey("text-open"), JSON.stringify(captureDetailsState("text-keys-root")));
+                        sessionStorage.setItem(storageKey("image-open"), JSON.stringify(captureDetailsState("image-keys-root")));
+                        sessionStorage.setItem(storageKey("ts"), String(Date.now()));
+                    } catch (e) {
+                        // no-op
+                    }
+                }
+
+                function restoreEditingViewState() {
+                    try {
+                        var tsRaw = sessionStorage.getItem(storageKey("ts"));
+                        var ts = tsRaw ? parseInt(tsRaw, 10) : 0;
+                        if (!ts || (Date.now() - ts) > 60000) {
+                            return;
+                        }
+
+                        var textStateRaw = sessionStorage.getItem(storageKey("text-open"));
+                        var imageStateRaw = sessionStorage.getItem(storageKey("image-open"));
+                        restoreDetailsState("text-keys-root", textStateRaw ? JSON.parse(textStateRaw) : []);
+                        restoreDetailsState("image-keys-root", imageStateRaw ? JSON.parse(imageStateRaw) : []);
+
+                        var yRaw = sessionStorage.getItem(storageKey("scrollY"));
+                        var y = yRaw ? parseInt(yRaw, 10) : 0;
+                        if (!isNaN(y) && y > 0) {
+                            setTimeout(function () {
+                                window.scrollTo(0, y);
+                            }, 0);
+                        }
+                    } catch (e) {
+                        // no-op
+                    } finally {
+                        sessionStorage.removeItem(storageKey("scrollY"));
+                        sessionStorage.removeItem(storageKey("text-open"));
+                        sessionStorage.removeItem(storageKey("image-open"));
+                        sessionStorage.removeItem(storageKey("ts"));
+                    }
+                }
+
+                function wirePersistStateOnSubmit() {
+                    document.querySelectorAll('form[action$="/owner/content"]').forEach(function (formEl) {
+                        formEl.addEventListener("submit", function () {
+                            persistEditingViewState();
+                        });
+                    });
+                }
                 
                 function normalizeImageUrl(rawUrl) {
                     if (!rawUrl) {
@@ -454,8 +530,11 @@
                             groupFormsIntoAccordion(
                             "image-keys-root",
                             "image-key-item",
-                            ["home.hero", "home.about", "home.services", "home.footer"]
+                            ["home.hero", "home.about", "home.team", "home.services", "home.footer"]
                             );
+
+                            restoreEditingViewState();
+                            wirePersistStateOnSubmit();
 
                             initImagePreviews("image-keys-root");
 
