@@ -211,11 +211,22 @@
                             </h4>
 <div class="space-y-3" id="examination-services-list">
 <% if (!recordServices.isEmpty()) {
-    for (RecordServiceLine line : recordServices) { %>
-<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row" data-service-id="<%= line.getServiceId() %>" data-service-name="<%= line.getServiceName() != null ? line.getServiceName() : "" %>">
+    java.util.Set<Integer> seenServiceIds = new java.util.HashSet<>();
+    java.util.Set<String> seenServiceNames = new java.util.HashSet<>();
+    for (RecordServiceLine line : recordServices) {
+        if (line == null) continue;
+        int sid = line.getServiceId();
+        String sname = line.getServiceName();
+        String normName = sname != null ? sname.trim().toLowerCase() : "";
+        if (seenServiceIds.contains(sid)) continue;
+        if (!normName.isEmpty() && seenServiceNames.contains(normName)) continue;
+        seenServiceIds.add(sid);
+        if (!normName.isEmpty()) seenServiceNames.add(normName);
+%>
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row" data-service-id="<%= sid %>" data-service-name="<%= sname != null ? sname : "" %>">
 <div class="flex items-center gap-3">
 <span class="material-symbols-outlined text-slate-400 text-lg">check_circle</span>
-<span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><%= line.getServiceName() != null ? line.getServiceName() : "" %></span>
+<span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><%= sname != null ? sname : "" %></span>
 </div>
 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 <button type="button" class="p-1 hover:text-primary text-slate-400 transition-colors service-remove" aria-label="Remove"><span class="material-symbols-outlined text-lg">delete</span></button>
@@ -251,13 +262,18 @@
 <div id="add-service-dropdown" class="hidden mt-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto">
 <%
     java.util.Set<Integer> seenServiceIds = new java.util.HashSet<>();
+    java.util.Set<String> seenServiceNames = new java.util.HashSet<>();
     for (Service svc : clinicServices) {
         if (svc == null) continue;
         int sid = svc.getServiceId();
+        String svcName = svc.getName();
+        String normName = svcName != null ? svcName.trim().toLowerCase() : "";
         if (seenServiceIds.contains(sid)) continue;
+        if (!normName.isEmpty() && seenServiceNames.contains(normName)) continue;
         seenServiceIds.add(sid);
+        if (!normName.isEmpty()) seenServiceNames.add(normName);
 %>
-<button type="button" class="add-service-option w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-primary/10 rounded-lg flex justify-between items-center" data-id="<%= sid %>" data-name="<%= svc.getName() %>"><span><%= svc.getName() %></span><span class="text-xs text-slate-400"><%= String.format("%.2f", svc.getPrice()) %> </span></button>
+<button type="button" class="add-service-option w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-primary/10 rounded-lg flex justify-between items-center" data-id="<%= sid %>" data-name="<%= svcName %>"><span><%= svcName %></span><span class="text-xs text-slate-400"><%= String.format("%.2f", svc.getPrice()) %> </span></button>
 <% } %>
 </div>
 <% } %>
@@ -508,12 +524,22 @@
     var form = document.getElementById('examination-form');
     var serviceIdsInput = document.getElementById('serviceIds');
 
+    function norm(s) {
+        return String(s || '').trim().toLowerCase();
+    }
+
     function updateServiceIds() {
         if (!serviceIdsInput) return;
         var ids = [];
+        var seenKeys = new Set();
         document.querySelectorAll('#examination-services-list .service-row').forEach(function(row) {
             var id = row.getAttribute('data-service-id');
-            if (id && id !== '') ids.push(id);
+            if (!id || id === '') return;
+            var nameKey = norm(row.getAttribute('data-service-name'));
+            if (!nameKey) nameKey = 'id:' + id; // fallback
+            if (seenKeys.has(nameKey)) return;
+            seenKeys.add(nameKey);
+            ids.push(id);
         });
         serviceIdsInput.value = ids.join(',');
     }
@@ -532,6 +558,22 @@
             btn.addEventListener('click', function() {
                 var id = this.getAttribute('data-id');
                 var name = this.getAttribute('data-name');
+
+                // Prevent duplicates by service name (case-insensitive)
+                var incomingKey = norm(name);
+                if (!incomingKey) incomingKey = 'id:' + id;
+                var exists = false;
+                list.querySelectorAll('.service-row').forEach(function(row) {
+                    var existingKey = norm(row.getAttribute('data-service-name'));
+                    var existingId = row.getAttribute('data-service-id');
+                    if (!existingKey) existingKey = 'id:' + existingId;
+                    if (existingKey === incomingKey) exists = true;
+                });
+                if (exists) {
+                    dropdown.classList.add('hidden');
+                    return;
+                }
+
                 var row = document.createElement('div');
                 row.className = 'flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group service-row';
                 row.setAttribute('data-service-id', id);
@@ -851,9 +893,15 @@
             const servicesList = document.getElementById('examination-services-list');
             if (!serviceIdsInput || !servicesList) return;
             const ids = [];
+            const seenKeys = new Set();
             servicesList.querySelectorAll('.service-row').forEach(function (r) {
                 const id = r.getAttribute('data-service-id');
-                if (id && id !== '') ids.push(id);
+                if (!id || id === '') return;
+                const nameKey = String(r.getAttribute('data-service-name') || '').trim().toLowerCase();
+                const key = nameKey ? nameKey : ('id:' + id);
+                if (seenKeys.has(key)) return;
+                seenKeys.add(key);
+                ids.push(id);
             });
             serviceIdsInput.value = ids.join(',');
         }
@@ -1007,9 +1055,15 @@
         var serviceIdsInput = document.getElementById('serviceIds');
         if (serviceIdsInput) {
             var ids = [];
+            var seenKeys = new Set();
             document.querySelectorAll('#examination-services-list .service-row').forEach(function (r) {
                 var id = r.getAttribute('data-service-id');
-                if (id && id !== '') ids.push(id);
+                if (!id || id === '') return;
+                var nameKey = String(r.getAttribute('data-service-name') || '').trim().toLowerCase();
+                var key = nameKey ? nameKey : ('id:' + id);
+                if (seenKeys.has(key)) return;
+                seenKeys.add(key);
+                ids.push(id);
             });
             serviceIdsInput.value = ids.join(',');
         }
