@@ -54,6 +54,31 @@ public class VetExaminationServlet extends HttpServlet {
         return CLINICAL_CONDITION_CODES.contains(t) ? t : "follow_up";
     }
 
+    private static java.util.Map<Integer, Integer> parseServiceQuantities(String raw) {
+        java.util.Map<Integer, Integer> quantities = new java.util.HashMap<>();
+        if (raw == null || raw.trim().isEmpty()) {
+            return quantities;
+        }
+        for (String token : raw.split(",")) {
+            if (token == null) continue;
+            String t = token.trim();
+            if (t.isEmpty()) continue;
+            int sep = t.indexOf(':');
+            if (sep <= 0 || sep >= t.length() - 1) continue;
+            String idPart = t.substring(0, sep).trim();
+            String qtyPart = t.substring(sep + 1).trim();
+            try {
+                int sid = Integer.parseInt(idPart);
+                int qty = Integer.parseInt(qtyPart);
+                if (sid <= 0) continue;
+                if (qty < 1) qty = 1;
+                quantities.put(sid, qty);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return quantities;
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -283,6 +308,8 @@ public class VetExaminationServlet extends HttpServlet {
         if (record != null) {
             recordDao.deleteRecordServices(record.getRecordId());
             String serviceIdsParam = request.getParameter("serviceIds");
+            String serviceQuantitiesParam = request.getParameter("serviceQuantities");
+            java.util.Map<Integer, Integer> quantityByServiceId = parseServiceQuantities(serviceQuantitiesParam);
             if (serviceIdsParam != null && !serviceIdsParam.trim().isEmpty()) {
                 ServiceService svc = new ServiceServiceImpl();
                 java.util.LinkedHashSet<Integer> distinctIds = new java.util.LinkedHashSet<>();
@@ -320,7 +347,9 @@ public class VetExaminationServlet extends HttpServlet {
                         seenServiceNameKeys.add(key);
 
                         double safePrice = price != null ? price : 0.0;
-                        recordDao.addService(record.getRecordId(), sid, 1, safePrice);
+                        int qty = quantityByServiceId.getOrDefault(sid, 1);
+                        if (qty < 1) qty = 1;
+                        recordDao.addService(record.getRecordId(), sid, qty, safePrice);
                     }
                 }
             }
