@@ -204,7 +204,7 @@
                                             String timeSlotText = appointment.getDisplayTimePeriodEnglish();
                                             String detail = (appointment.getPet() != null ? appointment.getPet().getName() : "Pet")
                                                     + " with "
-                                                    + (appointment.getVeterinarianName() != null && !appointment.getVeterinarianName().isEmpty() ? "Dr. " + appointment.getVeterinarianName() : "Unassigned doctor");
+                                                    + (appointment.getVeterinarianName() != null && !appointment.getVeterinarianName().isEmpty() ? " " + appointment.getVeterinarianName() : "Unassigned doctor");
                                             String current = appointment.getFormattedDate() + " - " + timeSlotText;
                                             pageContext.setAttribute("canRequest", canRequest);
                                             pageContext.setAttribute("hasPendingRequest", hasPendingRequest);
@@ -232,7 +232,7 @@
                                                     <span class="material-symbols-outlined text-slate-400 text-sm">medical_services</span>
                                                     <span class="text-slate-600 dark:text-slate-300">
                                                         <c:choose>
-                                                            <c:when test="${not empty appointment.veterinarianName}">Dr. ${appointment.veterinarianName}</c:when>
+                                                            <c:when test="${not empty appointment.veterinarianName}">${appointment.veterinarianName}</c:when>
                                                             <c:otherwise>Unassigned</c:otherwise>
                                                         </c:choose>
                                                     </span>

@@ -249,7 +249,7 @@ public class CustomerBookAppointmentServlet extends HttpServlet {
         // Convert time slot to appointment time (morning=08:00, afternoon=14:00)
         LocalDateTime requestedTime;
         try {
-            int hour = "morning".equals(normalizedSlot) ? 8 : 14;
+            int hour = "morning".equals(normalizedSlot) ? 12 : 20;
             requestedTime = LocalDateTime.parse(appointmentDate + "T" + String.format("%02d:00", hour));
         } catch (DateTimeParseException ex) {
             forwardForm(request, response, user, customer,
