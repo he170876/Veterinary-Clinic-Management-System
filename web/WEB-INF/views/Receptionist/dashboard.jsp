@@ -352,6 +352,67 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100">
+                    <p class="text-sm text-slate-500">
+                        Showing
+                        <span class="font-semibold text-slate-800">
+                            <c:out value="${not empty recentAppointments ? recentAppointments.size() : 0}"/>
+                        </span>
+                        of
+                        <span class="font-semibold text-slate-800">
+                            <c:out value="${totalFiltered}"/>
+                        </span>
+                        appointments
+                    </p>
+                    <div class="flex gap-2">
+                        <!-- Previous page -->
+                        <c:choose>
+                            <c:when test="${currentPage > 1}">
+                                <a href="?page=${currentPage - 1}"
+                                   class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </a>
+                            </c:when>
+                            <c:otherwise>
+                                <button class="p-2 rounded-lg border border-slate-200 text-slate-400 opacity-50 cursor-not-allowed" disabled>
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                            </c:otherwise>
+                        </c:choose>
+
+                        <!-- Page numbers -->
+                        <c:forEach var="i" begin="1" end="${totalPages}">
+                            <c:choose>
+                                <c:when test="${i == currentPage}">
+                                    <button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white font-semibold">
+                                        ${i}
+                                    </button>
+                                </c:when>
+                                <c:otherwise>
+                                    <a href="?page=${i}"
+                                       class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600">
+                                        ${i}
+                                    </a>
+                                </c:otherwise>
+                            </c:choose>
+                        </c:forEach>
+
+                        <!-- Next page -->
+                        <c:choose>
+                            <c:when test="${currentPage < totalPages}">
+                                <a href="?page=${currentPage + 1}"
+                                   class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </a>
+                            </c:when>
+                            <c:otherwise>
+                                <button class="p-2 rounded-lg border border-slate-200 text-slate-400 opacity-50 cursor-not-allowed" disabled>
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
