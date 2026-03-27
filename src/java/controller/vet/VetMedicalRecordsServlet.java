@@ -13,6 +13,7 @@ import model.MedicalRecordSummary;
 import model.User;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -46,6 +47,26 @@ public class VetMedicalRecordsServlet extends HttpServlet {
 
         VetMedicalRecordDAO recordDao = new VetMedicalRecordDAO();
         String q = request.getParameter("q");
+        LocalDate today = LocalDate.now();
+        LocalDate fromDate = today;
+        LocalDate toDate = today;
+        try {
+            String fromDateParam = request.getParameter("fromDate");
+            if (fromDateParam != null && !fromDateParam.trim().isEmpty()) {
+                fromDate = LocalDate.parse(fromDateParam.trim());
+            }
+        } catch (Exception ignored) {}
+        try {
+            String toDateParam = request.getParameter("toDate");
+            if (toDateParam != null && !toDateParam.trim().isEmpty()) {
+                toDate = LocalDate.parse(toDateParam.trim());
+            }
+        } catch (Exception ignored) {}
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            LocalDate temp = fromDate;
+            fromDate = toDate;
+            toDate = temp;
+        }
         int pageSize = 10;
         int page = 1;
         try {
@@ -56,12 +77,12 @@ public class VetMedicalRecordsServlet extends HttpServlet {
         } catch (NumberFormatException ignored) {}
         if (page < 1) page = 1;
 
-        int total = recordDao.countRecordsByVeterinarian(veterinarianId, q);
+        int total = recordDao.countRecordsByVeterinarian(veterinarianId, q, fromDate, toDate);
         int totalPages = total == 0 ? 1 : (int) Math.ceil(total / (double) pageSize);
         if (page > totalPages) page = totalPages;
         int offset = (page - 1) * pageSize;
 
-        List<MedicalRecordSummary> records = recordDao.getRecordsPageByVeterinarian(veterinarianId, offset, pageSize, q);
+        List<MedicalRecordSummary> records = recordDao.getRecordsPageByVeterinarian(veterinarianId, offset, pageSize, q, fromDate, toDate);
 
         request.setAttribute("user", user);
         NotificationDAO ndao = new NotificationDAO();
@@ -69,6 +90,8 @@ public class VetMedicalRecordsServlet extends HttpServlet {
         request.setAttribute("notificationTimeFmt", DateTimeFormatter.ofPattern("MMM dd, HH:mm"));
         request.setAttribute("records", records);
         request.setAttribute("q", q == null ? "" : q.trim());
+        request.setAttribute("fromDate", fromDate != null ? fromDate.toString() : "");
+        request.setAttribute("toDate", toDate != null ? toDate.toString() : "");
         request.setAttribute("page", page);
         request.setAttribute("pageSize", pageSize);
         request.setAttribute("totalRecords", total);

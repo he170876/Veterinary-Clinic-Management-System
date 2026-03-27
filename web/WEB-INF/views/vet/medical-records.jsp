@@ -19,10 +19,16 @@
     }
     String q = (String) request.getAttribute("q");
     if (q == null) q = "";
+    String fromDate = (String) request.getAttribute("fromDate");
+    if (fromDate == null || fromDate.trim().isEmpty()) fromDate = java.time.LocalDate.now().toString();
+    String toDate = (String) request.getAttribute("toDate");
+    if (toDate == null || toDate.trim().isEmpty()) toDate = java.time.LocalDate.now().toString();
     String qEsc = q.replace("&", "&amp;")
                    .replace("\"", "&quot;")
                    .replace("<", "&lt;")
                    .replace(">", "&gt;");
+    String fromDateEsc = fromDate.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;").replace(">", "&gt;");
+    String toDateEsc = toDate.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;").replace(">", "&gt;");
     Integer pageObj = (Integer) request.getAttribute("page");
     Integer pageSizeObj = (Integer) request.getAttribute("pageSize");
     Integer totalObj = (Integer) request.getAttribute("totalRecords");
@@ -89,15 +95,32 @@
         </header>
         <div class="flex-1 overflow-auto p-8">
             <div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-                <!-- Prominent search bar -->
+                <!-- Search + date range filters -->
                 <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
-                    <form action="<%= ctx %>/vet/records" method="get" class="relative max-w-2xl">
-                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                        <input name="q"
-                               value="<%= qEsc %>"
-                               class="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400"
-                               placeholder="Search by pet, owner, or record ID..."
-                               type="text"/>
+                    <form action="<%= ctx %>/vet/records" method="get" class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto] gap-3 items-end">
+                        <div class="relative max-w-2xl">
+                            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                            <input name="q"
+                                   value="<%= qEsc %>"
+                                   class="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400"
+                                   placeholder="Search by pet, owner, or record ID..."
+                                   type="text"/>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">From date</label>
+                            <input type="date" name="fromDate" value="<%= fromDateEsc %>"
+                                   class="w-full py-2.5 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"/>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">To date</label>
+                            <input type="date" name="toDate" value="<%= toDateEsc %>"
+                                   class="w-full py-2.5 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"/>
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                                Apply
+                            </button>
+                        </div>
                         <input type="hidden" name="page" value="1"/>
                     </form>
                 </div>
@@ -172,6 +195,8 @@
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Go to page</span>
                             <form action="<%= ctx %>/vet/records" method="get" class="flex items-center gap-1">
                                 <input type="hidden" name="q" value="<%= qEsc %>"/>
+                                <input type="hidden" name="fromDate" value="<%= fromDateEsc %>"/>
+                                <input type="hidden" name="toDate" value="<%= toDateEsc %>"/>
                                 <input class="w-16 h-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-center focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                        name="page"
                                        type="number"
@@ -184,6 +209,8 @@
                     <div class="flex items-center gap-2">
                         <form action="<%= ctx %>/vet/records" method="get">
                             <input type="hidden" name="q" value="<%= qEsc %>"/>
+                            <input type="hidden" name="fromDate" value="<%= fromDateEsc %>"/>
+                            <input type="hidden" name="toDate" value="<%= toDateEsc %>"/>
                             <input type="hidden" name="page" value="<%= pageNumber - 1 %>"/>
                             <button type="submit"
                                     class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors<%= prevExtraClass %>"
@@ -194,6 +221,8 @@
                         </form>
                         <form action="<%= ctx %>/vet/records" method="get">
                             <input type="hidden" name="q" value="<%= qEsc %>"/>
+                            <input type="hidden" name="fromDate" value="<%= fromDateEsc %>"/>
+                            <input type="hidden" name="toDate" value="<%= toDateEsc %>"/>
                             <input type="hidden" name="page" value="<%= pageNumber + 1 %>"/>
                             <button type="submit"
                                     class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors<%= nextExtraClass %>"

@@ -25,9 +25,9 @@ import model.Visit;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -100,15 +100,6 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
 
         // Services and prescriptions
         List<RecordServiceLine> services = recordDao.getServicesForRecord(record.getRecordId());
-        List<RecordServiceLine> filteredServices = new ArrayList<>();
-        for (RecordServiceLine line : services) {
-            if (line == null) continue;
-            String serviceName = line.getServiceName() == null ? "" : line.getServiceName().trim().toLowerCase();
-            if (serviceName.contains("general checkup") || serviceName.contains("general check up")) {
-                continue;
-            }
-            filteredServices.add(line);
-        }
         List<Prescription> prescriptions = recordDao.getPrescriptionsByRecordId(record.getRecordId());
         LabTestRequestDAO labTestRequestDAO = new LabTestRequestDAO();
         List<LabTestRequest> labRequests = labTestRequestDAO.getByVisitId(record.getVisitId());
@@ -129,8 +120,14 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
         String concludedAt = (out != null) ? out.format(fullDateTimeFmt)
                 : (record.getCreatedAt() != null ? record.getCreatedAt().format(fullDateTimeFmt) : "");
 
+        LocalDate recordDate = null;
+        if (record.getCreatedAt() != null) {
+            recordDate = record.getCreatedAt().toLocalDate();
+        }
+        request.setAttribute("recordDate", recordDate);
+
         double totalAmount = 0;
-        for (RecordServiceLine line : filteredServices) {
+        for (RecordServiceLine line : services) {
             if (line.getPrice() != null && line.getQuantity() > 0) {
                 totalAmount += line.getPrice() * line.getQuantity();
             }
@@ -145,7 +142,7 @@ public class VetMedicalRecordDetailServlet extends HttpServlet {
         request.setAttribute("pet", pet);
         request.setAttribute("customer", customer);
         request.setAttribute("labRequests", labRequests);
-        request.setAttribute("services", filteredServices);
+        request.setAttribute("services", services);
         request.setAttribute("prescriptions", prescriptions);
         request.setAttribute("durationLabel", durationLabel);
         request.setAttribute("concludedAt", concludedAt);

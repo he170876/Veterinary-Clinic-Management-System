@@ -274,7 +274,18 @@ public class VetMedicalRecordDAO extends DBContext {
 
     public List<RecordServiceLine> getServicesForRecord(int recordId) {
         List<RecordServiceLine> list = new ArrayList<>();
-        String sql = "SELECT mrs.record_service_id, mrs.record_id, mrs.service_id, s.name AS service_name, mrs.quantity, mrs.price FROM MedicalRecordServices mrs JOIN Services s ON mrs.service_id = s.service_id WHERE mrs.record_id = ?";
+        String sql = """
+            SELECT mrs.record_service_id,
+                   mrs.record_id,
+                   mrs.service_id,
+                   s.name AS service_name,
+                   mrs.quantity,
+                   COALESCE(mrs.price, s.price) AS effective_price
+            FROM MedicalRecordServices mrs
+            JOIN Services s ON mrs.service_id = s.service_id
+            WHERE mrs.record_id = ?
+            ORDER BY mrs.record_service_id ASC
+            """;
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, recordId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -285,7 +296,7 @@ public class VetMedicalRecordDAO extends DBContext {
                     line.setServiceId(rs.getInt("service_id"));
                     line.setServiceName(rs.getString("service_name"));
                     line.setQuantity(rs.getInt("quantity"));
-                    line.setPrice(rs.getObject("price") != null ? rs.getDouble("price") : null);
+                    line.setPrice(rs.getObject("effective_price") != null ? rs.getDouble("effective_price") : null);
                     list.add(line);
                 }
             }
@@ -411,7 +422,7 @@ public class VetMedicalRecordDAO extends DBContext {
         return list;
     }
 
-    public int countRecordsByVeterinarian(int veterinarianId, String query) {
+    public int countRecordsByVeterinarian(int veterinarianId, String query, java.time.LocalDate fromDate, java.time.LocalDate toDate) {
         if (query == null) query = "";
         query = query.trim();
 
@@ -423,6 +434,8 @@ public class VetMedicalRecordDAO extends DBContext {
             JOIN Customers c ON v.customer_id = c.customer_id
             JOIN Users cu ON c.user_id = cu.user_id
             WHERE mr.veterinarian_id = ?
+              AND ( ? IS NULL OR CAST(mr.created_at AS date) >= ? )
+              AND ( ? IS NULL OR CAST(mr.created_at AS date) <= ? )
               AND ( ? = ''
                     OR p.name LIKE ?
                     OR cu.full_name LIKE ?
@@ -431,11 +444,27 @@ public class VetMedicalRecordDAO extends DBContext {
 
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, veterinarianId);
-            ps.setString(2, query);
+            if (fromDate != null) {
+                java.sql.Date d = java.sql.Date.valueOf(fromDate);
+                ps.setDate(2, d);
+                ps.setDate(3, d);
+            } else {
+                ps.setNull(2, java.sql.Types.DATE);
+                ps.setNull(3, java.sql.Types.DATE);
+            }
+            if (toDate != null) {
+                java.sql.Date d = java.sql.Date.valueOf(toDate);
+                ps.setDate(4, d);
+                ps.setDate(5, d);
+            } else {
+                ps.setNull(4, java.sql.Types.DATE);
+                ps.setNull(5, java.sql.Types.DATE);
+            }
+            ps.setString(6, query);
             String like = "%" + query + "%";
-            ps.setString(3, like);
-            ps.setString(4, like);
-            ps.setString(5, query);
+            ps.setString(7, like);
+            ps.setString(8, like);
+            ps.setString(9, query);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);
@@ -447,7 +476,7 @@ public class VetMedicalRecordDAO extends DBContext {
         return 0;
     }
 
-    public List<MedicalRecordSummary> getRecordsPageByVeterinarian(int veterinarianId, int offset, int pageSize, String query) {
+    public List<MedicalRecordSummary> getRecordsPageByVeterinarian(int veterinarianId, int offset, int pageSize, String query, java.time.LocalDate fromDate, java.time.LocalDate toDate) {
         List<MedicalRecordSummary> list = new ArrayList<>();
         if (pageSize <= 0) pageSize = 10;
         if (offset < 0) offset = 0;
@@ -472,6 +501,8 @@ public class VetMedicalRecordDAO extends DBContext {
             JOIN Veterinarians vet ON mr.veterinarian_id = vet.veterinarian_id
             JOIN Users u ON vet.user_id = u.user_id
             WHERE mr.veterinarian_id = ?
+              AND ( ? IS NULL OR CAST(mr.created_at AS date) >= ? )
+              AND ( ? IS NULL OR CAST(mr.created_at AS date) <= ? )
               AND ( ? = ''
                     OR p.name LIKE ?
                     OR cu.full_name LIKE ?
@@ -482,13 +513,29 @@ public class VetMedicalRecordDAO extends DBContext {
 
         try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, veterinarianId);
-            ps.setString(2, query);
+            if (fromDate != null) {
+                java.sql.Date d = java.sql.Date.valueOf(fromDate);
+                ps.setDate(2, d);
+                ps.setDate(3, d);
+            } else {
+                ps.setNull(2, java.sql.Types.DATE);
+                ps.setNull(3, java.sql.Types.DATE);
+            }
+            if (toDate != null) {
+                java.sql.Date d = java.sql.Date.valueOf(toDate);
+                ps.setDate(4, d);
+                ps.setDate(5, d);
+            } else {
+                ps.setNull(4, java.sql.Types.DATE);
+                ps.setNull(5, java.sql.Types.DATE);
+            }
+            ps.setString(6, query);
             String like = "%" + query + "%";
-            ps.setString(3, like);
-            ps.setString(4, like);
-            ps.setString(5, query);
-            ps.setInt(6, offset);
-            ps.setInt(7, pageSize);
+            ps.setString(7, like);
+            ps.setString(8, like);
+            ps.setString(9, query);
+            ps.setInt(10, offset);
+            ps.setInt(11, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     MedicalRecordSummary s = new MedicalRecordSummary();
