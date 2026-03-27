@@ -115,7 +115,23 @@ public class ReceptionistDashboardServlet extends HttpServlet {
             if (a.getArrivalTime() != null) return a.getArrivalTime();
             return java.time.LocalDateTime.MIN;
         }));
-        List<Appointment> recentAppointments = todayAppointments;
+        int pageSize = 5;
+        int currentPage = 1;
+        try {
+            String pageParam = request.getParameter("page");
+            if (pageParam != null && !pageParam.trim().isEmpty()) {
+                currentPage = Integer.parseInt(pageParam.trim());
+            }
+        } catch (NumberFormatException ignored) {}
+        if (currentPage < 1) currentPage = 1;
+        int totalFiltered = todayAppointments.size();
+        int totalPages = totalFiltered == 0 ? 1 : (int) Math.ceil(totalFiltered / (double) pageSize);
+        if (currentPage > totalPages) currentPage = totalPages;
+        int fromIndex = (currentPage - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalFiltered);
+        List<Appointment> recentAppointments = (fromIndex >= 0 && fromIndex < toIndex)
+                ? todayAppointments.subList(fromIndex, toIndex)
+                : new ArrayList<>();
         
         List<User> veterinarians = dao.getAllVeterinarians();
         
@@ -125,6 +141,10 @@ public class ReceptionistDashboardServlet extends HttpServlet {
         request.setAttribute("emergencyActive", emergencyActive);
         request.setAttribute("emergencyResolved", emergencyResolved);
         request.setAttribute("recentAppointments", recentAppointments);
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("pageSize", pageSize);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalFiltered", totalFiltered);
         request.setAttribute("veterinarians", veterinarians);
         ServiceDAO serviceDAO = new ServiceJdbcDAO();
         List<Service> generalServices = new ArrayList<>();
