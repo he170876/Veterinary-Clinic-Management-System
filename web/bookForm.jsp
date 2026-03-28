@@ -13,52 +13,28 @@ Booking form fragment - included in index.jsp modal.
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&display=swap');
     
     .book-form-container {
-        --brand-orange: #f27c0d;
-        --brand-orange-deep: #d96809;
-        --ink: #2f2319;
-        --muted-ink: #826752;
+        --brand: #c64212;
+        --brand-soft: #fdeae2;
+        --ink: #1f2126;
+        --muted-ink: #6d6f76;
         --surface: #fff;
-        --field-bg: #f6f2ee;
-        --field-border: #ecdfd2;
-        --divider: #f1e8df;
+        --field-bg: #f6f6f7;
+        --field-border: #ececee;
+        --section-surface: #f8f8f9;
+        --divider: #efeff1;
         font-family: 'Nunito', 'Tahoma', sans-serif;
         padding: 0;
         background: var(--surface);
-        border-radius: 22px;
+        border-radius: 20px;
         overflow: hidden;
-        box-shadow: 0 24px 48px rgba(49, 26, 7, 0.12);
-    }
-    
-    .book-form-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 22px 28px;
-        border-bottom: 1px solid var(--divider);
-        background: linear-gradient(180deg, #fff 0%, #fffbf7 100%);
-    }
-    
-    .book-form-title {
-        margin: 0;
-        font-weight: 800;
-        font-size: 30px;
-        color: var(--brand-orange-deep);
-        line-height: 1;
-        letter-spacing: -0.03em;
-    }
-    
-    .book-form-brand {
-        font-size: 28px;
-        font-weight: 800;
-        color: #ba3b07;
-        line-height: 1;
+        box-shadow: 0 26px 50px rgba(33, 23, 19, 0.11);
     }
     
     .book-form-body {
-        padding: 26px 28px 20px;
+        padding: 20px;
         background:
-        radial-gradient(circle at 92% 14%, rgba(242, 124, 13, 0.08), transparent 28%),
-        radial-gradient(circle at 98% 8%, rgba(242, 124, 13, 0.1), transparent 16%),
+        radial-gradient(circle at 88% 8%, rgba(198, 66, 18, 0.06), transparent 34%),
+        radial-gradient(circle at 98% 16%, rgba(198, 66, 18, 0.08), transparent 20%),
         #fff;
     }
     
@@ -66,18 +42,17 @@ Booking form fragment - included in index.jsp modal.
     
     .book-form-container label {
         display: block;
-        margin-bottom: 9px;
-        text-transform: uppercase;
-        letter-spacing: 0.045em;
-        font-size: 11px;
-        font-weight: 800;
-        color: #5f4a39;
+        margin-bottom: 8px;
+        letter-spacing: 0.01em;
+        font-size: 14px;
+        font-weight: 700;
+        color: #4c4f56;
     }
     
     .book-form-container .form-control,
     .book-form-container .form-select {
         border: 1px solid var(--field-border);
-        border-radius: 999px;
+        border-radius: 10px;
         padding: 12px 16px;
         font-size: 15px;
         color: var(--ink);
@@ -89,7 +64,7 @@ Booking form fragment - included in index.jsp modal.
     }
     
     .book-form-container textarea.form-control {
-        border-radius: 16px;
+        border-radius: 10px;
         min-height: 112px;
         resize: vertical;
     }
@@ -100,8 +75,8 @@ Booking form fragment - included in index.jsp modal.
     
     .book-form-container .form-control:focus,
     .book-form-container .form-select:focus {
-        border-color: var(--brand-orange);
-        box-shadow: 0 0 0 4px rgba(242, 124, 13, 0.14);
+        border-color: var(--brand);
+        box-shadow: 0 0 0 4px rgba(198, 66, 18, 0.12);
         background-color: #fff;
         outline: none;
     }
@@ -115,14 +90,92 @@ Booking form fragment - included in index.jsp modal.
     .book-form-container .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 18px;
+        gap: 14px;
     }
     
     .book-form-container .form-row.full { grid-template-columns: 1fr; }
     
-    .book-form-container .divider {
-        border-top: 1px solid var(--divider);
-        margin: 8px 0 20px;
+    .book-form-section {
+        background: var(--section-surface);
+        border: 1px solid var(--divider);
+        border-radius: 18px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .book-form-section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 14px;
+        color: #44474f;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 12px;
+        font-weight: 800;
+    }
+    
+    .book-form-section-title .section-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 800;
+    }
+    
+    .service-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .service-pill-option {
+        position: relative;
+    }
+    
+    .service-pill-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .service-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dddde0;
+        border-radius: 999px;
+        background: #ececef;
+        color: #44474f;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1;
+        padding: 10px 18px;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+    
+    .service-pill-input:checked + .service-pill {
+        background: #f8d8cb;
+        border-color: #f0a98f;
+        color: #74270e;
+        box-shadow: 0 6px 14px rgba(198, 66, 18, 0.15);
+    }
+    
+    .service-pill:hover {
+        background: #e3e3e6;
+    }
+    
+    .book-form-helper {
+        margin: 8px 0 0;
+        color: var(--muted-ink);
+        font-size: 12px;
     }
     
     .book-form-container .alert {
@@ -143,7 +196,7 @@ Booking form fragment - included in index.jsp modal.
         align-items: center;
         justify-content: space-between;
         gap: 14px;
-        margin-top: 10px;
+        margin-top: 4px;
         padding-top: 16px;
         border-top: 1px solid var(--divider);
     }
@@ -151,13 +204,13 @@ Booking form fragment - included in index.jsp modal.
     .book-form-container .btn-cancel {
         border: none;
         background: transparent;
-        color: #6e5a4a;
+        color: #6e6f75;
         font-weight: 700;
         padding: 10px 6px;
     }
     
     .book-form-container .btn-submit {
-        background: linear-gradient(135deg, var(--brand-orange) 0%, var(--brand-orange-deep) 100%);
+        background: linear-gradient(135deg, #ef7a0b 0%, #d86109 100%);
         color: #fff;
         border: none;
         border-radius: 999px;
@@ -180,33 +233,23 @@ Booking form fragment - included in index.jsp modal.
         transform: translateY(0);
     }
     
-    #serviceDropdown {
-        background: #fff;
-        border: 1px solid var(--field-border);
-        border-radius: 16px;
-        margin-top: 6px;
-    }
-    
-    #serviceDropdown > div:hover {
-        background: #fff7ef;
-    }
-    
-    @media (max-width: 900px) {
-        .book-form-title,
-        .book-form-brand {
-            font-size: 24px;
-        }
-    }
-    
     @media (max-width: 768px) {
-        .book-form-header,
         .book-form-body {
             padding: 18px;
+        }
+        
+        .book-form-section {
+            padding: 14px;
         }
         
         .book-form-container .form-row {
             grid-template-columns: 1fr;
             gap: 12px;
+        }
+        
+        .service-pill {
+            font-size: 16px;
+            padding: 9px 14px;
         }
         
         .book-form-actions {
@@ -232,83 +275,81 @@ Booking form fragment - included in index.jsp modal.
         <div class="alert alert-danger" role="alert"><%= java.net.URLDecoder.decode(msg, "UTF-8") %></div>
         <% } %>
         <form id="appointmentForm" action="<%= ctx %>/book" method="post">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="ownerName">Owner Name *</label>
-                    <input type="text" class="form-control" id="ownerName" name="ownerName" placeholder="e.g. Nguyen Van A" maxlength="100" title="1-100 characters. Letters (including Vietnamese), spaces, apostrophes, hyphens, and dots are allowed." required>
-                </div>
-                <div class="form-group">
-                    <label for="phone">Phone Number *</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="0123456789" pattern="0[0-9]{9}" title="10 digits starting with 0." maxlength="10" required>
-                    <small id="phoneLookupStatus" style="display:block;margin-top:6px;color:#8e7b6a;">Phone is used to identify existing customer.</small>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="email">Email Address *</label>
-                    <input type="email" class="form-control" id="email" name="email" placeholder="alexander@domain.com" maxlength="255" required>
-                </div>
-                <div class="form-group">
-                    <label>Select Service(s) *</label>
-                    <div class="dropdown-service-multi" style="position: relative;">
-                        <button type="button" id="dropdownServiceBtn" class="form-control form-select" style="text-align: left; cursor: pointer;" onclick="toggleServiceDropdown()">
-                            <span id="dropdownServiceText">Chọn dịch vụ</span>
-                            <span style="float: right;">&#9660;</span>
-                        </button>
-                        <div id="serviceDropdown" style="display: none; position: absolute; z-index: 10; background: #fff; border: 1px solid #e8dbce; border-radius: 8px; width: 100%; max-height: 200px; overflow-y: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 2px;">
-                            <c:if test="${not empty services}">
-                                <c:forEach var="service" items="${services}">
-                                    <div style="padding: 8px 12px;">
-                                        <input type="checkbox" id="service_${service.serviceId}" name="serviceIds" value="${service.serviceId}" style="margin-right: 6px;">
-                                        <label for="service_${service.serviceId}" style="font-weight: normal; cursor: pointer;">${service.name}</label>
-                                    </div>
-                                </c:forEach>
-                            </c:if>
-                        </div>
+            <section class="book-form-section">
+                <h3 class="book-form-section-title"><span class="section-icon">O</span>Owner Information</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ownerName">Full Name</label>
+                        <input type="text" class="form-control" id="ownerName" name="ownerName" placeholder="e.g. Nguyen Van A" maxlength="100" title="1-100 characters. Letters (including Vietnamese), spaces, apostrophes, hyphens, and dots are allowed." required>
                     </div>
-                    <small style="color:#888;">Chọn một hoặc nhiều dịch vụ.</small>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" maxlength="255" required>
+                    </div>
                 </div>
-            </div>
-            <div class="divider"></div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="petName">Pet Name *</label>
-                    <input type="text" class="form-control" id="petName" name="petName" placeholder="e.g. Luna" maxlength="100" title="1-100 characters. Letters (including Vietnamese), spaces, apostrophes, hyphens, and dots are allowed." required>
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="0123456789" pattern="0[0-9]{9}" title="10 digits starting with 0." maxlength="10" required>
+                        <small id="phoneLookupStatus" class="book-form-helper">Phone is used to identify existing customer.</small>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="petType">Pet Type *</label>
-                    <select class="form-control form-select" id="petType" name="petType" required>
-                        <option value="">Select pet type</option>
-                        <option value="Dog">Dog</option>
-                        <option value="Cat">Cat</option>
-                        <option value="Bird">Bird</option>
-                        <option value="Rabbit">Rabbit</option>
-                        <option value="Other">Other</option>
-                    </select>
+            </section>
+
+            <section class="book-form-section">
+                <h3 class="book-form-section-title"><span class="section-icon">P</span>Pet Information</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="petName">Pet Name</label>
+                        <input type="text" class="form-control" id="petName" name="petName" placeholder="e.g. Luna" maxlength="100" title="1-100 characters. Letters (including Vietnamese), spaces, apostrophes, hyphens, and dots are allowed." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="petType">Pet Type</label>
+                        <select class="form-control form-select" id="petType" name="petType" required>
+                            <option value="">Select pet type</option>
+                            <option value="Dog">Dog</option>
+                            <option value="Cat">Cat</option>
+                            <option value="Bird">Bird</option>
+                            <option value="Rabbit">Rabbit</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="appointmentDate">Preferred Date *</label>
-                    <input type="date" class="form-control" id="appointmentDate" name="appointmentDate" required>
+            </section>
+
+            <section class="book-form-section">
+                <h3 class="book-form-section-title"><span class="section-icon">S</span>Service Selection</h3>
+                <div class="service-pills">
+                    <c:if test="${not empty services}">
+                        <c:forEach var="service" items="${services}">
+                            <div class="service-pill-option">
+                                <input class="service-pill-input" type="checkbox" id="service_${service.serviceId}" name="serviceIds" value="${service.serviceId}">
+                                <label class="service-pill" for="service_${service.serviceId}">${service.name}</label>
+                            </div>
+                        </c:forEach>
+                    </c:if>
                 </div>
-                <div class="form-group">
-                    <label for="timeSlot">Preferred Slot *</label>
-                    <select class="form-control form-select" id="timeSlot" name="timeSlot" required>
-                        <option value="">Choose a slot</option>
-                        <option value="morning">Morning (08:00)</option>
-                        <option value="afternoon">Afternoon (14:00)</option>
-                    </select>
+                <p class="book-form-helper">Choose one or more services for this appointment.</p>
+            </section>
+
+            <section class="book-form-section">
+                <h3 class="book-form-section-title"><span class="section-icon">T</span>Scheduling</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="appointmentDate">Preferred Date</label>
+                        <input type="date" class="form-control" id="appointmentDate" name="appointmentDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="timeSlot">Preferred Slot</label>
+                        <select class="form-control form-select" id="timeSlot" name="timeSlot" required>
+                            <option value="">Choose a slot</option>
+                            <option value="morning">Morning </option>
+                            <option value="afternoon">Afternoon </option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="timeSlot">Preferred Slot *</label>
-                <select class="form-control form-select" id="timeSlot" name="timeSlot" required>
-                    <option value="">Choose a slot</option>
-                    <option value="morning">in the Morning</option>
-                    <option value="afternoon">in the Afternoon</option>
-                </select>
-            </div>
+            </section>
+
             <div class="book-form-actions">
                 <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn-submit">Confirm Booking</button>
@@ -327,30 +368,7 @@ Booking form fragment - included in index.jsp modal.
     })();
 </script>
 <script>
-    function toggleServiceDropdown() {
-        var dropdown = document.getElementById('serviceDropdown');
-        if (!dropdown) return;
-        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-    }
-    document.addEventListener('click', function(event) {
-        var btn = document.getElementById('dropdownServiceBtn');
-        var dropdown = document.getElementById('serviceDropdown');
-        if (!btn || !dropdown) return;
-        if (!btn.contains(event.target) && !dropdown.contains(event.target)) {
-            dropdown.style.display = 'none';
-        }
-    });
-    // Hiển thị tên dịch vụ đã chọn
-    var serviceDropdown = document.getElementById('serviceDropdown');
-    if (serviceDropdown) {
-        serviceDropdown.addEventListener('change', function() {
-            var checked = serviceDropdown.querySelectorAll('input[type=checkbox]:checked');
-            var names = Array.from(checked).map(function(cb) {
-                return cb.nextElementSibling.textContent;
-            });
-            document.getElementById('dropdownServiceText').textContent = names.length ? names.join(', ') : 'Chọn dịch vụ';
-        });
-    }
+    // Service choices are always visible as selectable pills.
 </script>
 <script>
     (function() {

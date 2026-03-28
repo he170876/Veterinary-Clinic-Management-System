@@ -46,6 +46,7 @@ public class BookAppointmentServlet extends HttpServlet {
 
         String ctx = request.getContextPath();
         String redirect = ctx + "/index.jsp";
+        String errorRedirectBase = redirect + "?openBooking=1&bookError=1&bookMessage=";
 
         List<String> missingFields = new ArrayList<>();
         if (isBlank(ownerName)) missingFields.add("ownerName");
@@ -57,50 +58,50 @@ public class BookAppointmentServlet extends HttpServlet {
         if (isBlank(timeSlotRaw)) missingFields.add("timeSlot");
 
         if (!missingFields.isEmpty()) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Please fill in all required fields. Missing: " + String.join(", ", missingFields), StandardCharsets.UTF_8));
             return;
         }
 
         if (serviceIdValues == null || serviceIdValues.length == 0) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                 + URLEncoder.encode("Please select at least one service.", StandardCharsets.UTF_8));
             return;
         }
         if (!ValidationUtil.isValidOwnerOrPetName(ownerName)) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Owner name must be 1-100 letters and spaces only.", StandardCharsets.UTF_8));
             return;
         }
         if (!ValidationUtil.isValidEmailFormat(email)) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Please enter a valid email address.", StandardCharsets.UTF_8));
             return;
         }
         if (!ValidationUtil.isValidPhone(phone)) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Phone must be 10 digits starting with 0 (e.g. 0123456789).", StandardCharsets.UTF_8));
             return;
         }
         if (!ValidationUtil.isValidOwnerOrPetName(petName)) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Pet name must be 1-100 characters using letters (including Vietnamese), spaces, apostrophes, hyphens, or dots.", StandardCharsets.UTF_8));
             return;
         }
         if (!ValidationUtil.isDateNotInPast(appointmentDate)) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Preferred date cannot be in the past.", StandardCharsets.UTF_8));
             return;
         }
         if (notes != null && notes.length() > ValidationUtil.NOTES_MAX_LENGTH) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Notes must be at most " + ValidationUtil.NOTES_MAX_LENGTH + " characters.", StandardCharsets.UTF_8));
             return;
         }
 
         String normalizedTimeSlot = normalizeTimeSlot(timeSlotRaw);
         if (normalizedTimeSlot == null) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Please choose a valid booking slot (Morning or Afternoon).", StandardCharsets.UTF_8));
             return;
         }
@@ -122,16 +123,16 @@ public class BookAppointmentServlet extends HttpServlet {
                 throw new IllegalArgumentException("Invalid service selected.");
             }
         } catch (Exception e) {
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+            response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode("Invalid data format for date, slot or service.", StandardCharsets.UTF_8));
             return;
         }
 
-                if (!ValidationUtil.isBookableDateSlot(preferredDate, normalizedTimeSlot)) {
-                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
-                        + URLEncoder.encode("Selected time slot has passed. Please choose a different slot or date.", StandardCharsets.UTF_8));
-                    return;
-                }
+        if (!ValidationUtil.isBookableDateSlot(preferredDate, normalizedTimeSlot)) {
+            response.sendRedirect(errorRedirectBase
+                + URLEncoder.encode("Selected time slot has passed. Please choose a different slot or date.", StandardCharsets.UTF_8));
+            return;
+        }
 
         Connection conn = null;
         boolean newUserCreated = false; // Flag to track new user creation
@@ -142,7 +143,7 @@ public class BookAppointmentServlet extends HttpServlet {
             // Only general category services can be booked from guest/customer flows.
             for (Integer sid : serviceIds) {
                 if (sid == null || sid <= 0 || !isGeneralService(conn, sid)) {
-                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    response.sendRedirect(errorRedirectBase
                             + URLEncoder.encode("Only general services are available for booking.", StandardCharsets.UTF_8));
                     return;
                 }
@@ -156,7 +157,7 @@ public class BookAppointmentServlet extends HttpServlet {
             Integer userIdByEmail = findUserIdByEmail(conn, email);
 
             if (userIdByPhone != null && userIdByEmail != null && !userIdByPhone.equals(userIdByEmail)) {
-                response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                response.sendRedirect(errorRedirectBase
                         + URLEncoder.encode("Phone and email are already linked to different accounts.", StandardCharsets.UTF_8));
                 return;
             }
@@ -165,7 +166,7 @@ public class BookAppointmentServlet extends HttpServlet {
                 String existingEmail = findUserEmailById(conn, userIdByPhone);
                 if (existingEmail != null && !existingEmail.trim().isEmpty()
                         && !existingEmail.equalsIgnoreCase(email)) {
-                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    response.sendRedirect(errorRedirectBase
                             + URLEncoder.encode("This phone is already registered with another email.", StandardCharsets.UTF_8));
                     return;
                 }
@@ -175,7 +176,7 @@ public class BookAppointmentServlet extends HttpServlet {
                 String existingPhone = findUserPhoneById(conn, userIdByEmail);
                 if (existingPhone != null && !existingPhone.trim().isEmpty()
                         && !existingPhone.equals(phone)) {
-                    response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                    response.sendRedirect(errorRedirectBase
                             + URLEncoder.encode("This email is already registered with another phone.", StandardCharsets.UTF_8));
                     return;
                 }
@@ -403,7 +404,7 @@ public class BookAppointmentServlet extends HttpServlet {
             }
             e.printStackTrace(); // Log the full error to the server console
             String msg = "Booking could not be saved. Please try again or contact us.";
-            response.sendRedirect(redirect + "?bookError=1&bookMessage="
+                response.sendRedirect(errorRedirectBase
                     + URLEncoder.encode(msg, StandardCharsets.UTF_8));
         } finally {
             if (conn != null) {
