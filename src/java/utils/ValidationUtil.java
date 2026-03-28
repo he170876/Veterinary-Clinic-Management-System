@@ -163,8 +163,8 @@ public final class ValidationUtil {
         }
 
         LocalTime slotStart = "morning".equals(normalizedSlot)
-                ? LocalTime.of(8, 0)
-                : LocalTime.of(14, 0);
+                ? LocalTime.of(12, 0)
+                : LocalTime.of(20, 0);
         return LocalDateTime.now().isBefore(LocalDateTime.of(today, slotStart));
     }
 
