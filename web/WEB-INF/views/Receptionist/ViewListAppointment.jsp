@@ -5,6 +5,7 @@
 --%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html class="light" lang="en"><head>
@@ -167,6 +168,16 @@
             let originalVetId = null;
             let currentDetailAppointmentId = null;
             let detailInvoiceAllowMarkPaid = false;
+
+            var RECEPTIONIST_CTX = '<%= request.getContextPath() %>';
+            function resolvePetPhotoUrl(path) {
+                if (path == null || typeof path !== 'string') return '';
+                var p = path.trim();
+                if (!p) return '';
+                if (/^https?:\/\//i.test(p)) return p;
+                if (p.charAt(0) === '/') return RECEPTIONIST_CTX + p;
+                return RECEPTIONIST_CTX + '/' + p;
+            }
             
             function showConfirmPopup(appointmentId, selectElement, newVetId) {
                 currentAppointmentId = appointmentId;
@@ -314,11 +325,19 @@
                 const owner = d.owner || {};
                 const photoEl = document.getElementById('d-pet-photo');
                 const noPhotoEl = document.getElementById('d-pet-no-photo');
-                if (pet.photoUrl) {
-                    photoEl.src = pet.photoUrl;
+                var resolvedPhoto = resolvePetPhotoUrl(pet.photoUrl);
+                if (resolvedPhoto) {
+                    photoEl.onerror = function () {
+                        photoEl.onerror = null;
+                        photoEl.classList.add('hidden');
+                        noPhotoEl.classList.remove('hidden');
+                    };
+                    photoEl.src = resolvedPhoto;
                     photoEl.classList.remove('hidden');
                     noPhotoEl.classList.add('hidden');
                 } else {
+                    photoEl.removeAttribute('src');
+                    photoEl.onerror = null;
                     photoEl.classList.add('hidden');
                     noPhotoEl.classList.remove('hidden');
                 }
@@ -368,6 +387,7 @@
                 if (isPending) {
                     document.getElementById('d-btn-confirm').classList.remove('hidden');
                     document.getElementById('d-btn-reject').classList.remove('hidden');
+                    document.getElementById('d-btn-cancel').classList.remove('hidden');
                 }
                 if (isConfirmed) {
                     document.getElementById('d-btn-checkin').classList.remove('hidden');
@@ -661,6 +681,21 @@ if (isWaiting) {
 
                 searchInput.addEventListener('input', applySearch);
                 applySearch();
+
+                // Deep link: e.g. /Receptionist/ViewListAppointment?appointmentId=123 (billing notification, etc.)
+                try {
+                    var params = new URLSearchParams(window.location.search);
+                    var aid = params.get('appointmentId');
+                    if (aid && /^\d+$/.test(aid) && typeof openDetail === 'function') {
+                        openDetail(parseInt(aid, 10));
+                        if (window.history && window.history.replaceState) {
+                            var u = new URL(window.location.href);
+                            u.searchParams.delete('appointmentId');
+                            var qs = u.searchParams.toString();
+                            window.history.replaceState({}, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+                        }
+                    }
+                } catch (ignore) { /* no-op */ }
             });
         </script>
     </head>
@@ -849,9 +884,32 @@ if (isWaiting) {
                             
                                 <div class="flex items-center gap-2">
                                     <div class="relative flex-shrink-0">
+                                        <c:set var="rawListPetPhoto" value="${appointment.pet.photoURL}"/>
+                                        <c:if test="${empty rawListPetPhoto}"><c:set var="rawListPetPhoto" value="${appointment.pet.photoUrl}"/></c:if>
+                                        <c:set var="listPetPhotoSrc" value=""/>
+                                        <c:if test="${not empty rawListPetPhoto}">
+                                            <c:set var="rawListTrim" value="${fn:trim(rawListPetPhoto)}"/>
+                                            <c:choose>
+                                                <c:when test="${fn:startsWith(fn:toLowerCase(rawListTrim), 'http://') || fn:startsWith(fn:toLowerCase(rawListTrim), 'https://')}">
+                                                    <c:set var="listPetPhotoSrc" value="${rawListTrim}"/>
+                                                </c:when>
+                                                <c:when test="${fn:startsWith(rawListTrim, '/')}">
+                                                    <c:set var="listPetPhotoSrc" value="${pageContext.request.contextPath}${rawListTrim}"/>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <c:set var="listPetPhotoSrc" value="${pageContext.request.contextPath}/${rawListTrim}"/>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </c:if>
                                         <c:choose>
-                                            <c:when test="${not empty appointment.pet.photoURL}">
-                                                <img alt="Pet Profile" class="w-10 h-10 rounded-lg object-cover ring-2 ring-primary/10 ${isCompleted ? 'grayscale' : ''}" src="${appointment.pet.photoURL}"/>
+                                            <c:when test="${not empty listPetPhotoSrc}">
+                                                <div class="relative w-10 h-10">
+                                                    <img alt="Pet Profile" class="w-10 h-10 rounded-lg object-cover ring-2 ring-primary/10 ${isCompleted ? 'grayscale' : ''}" src="${listPetPhotoSrc}"
+                                                         onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');"/>
+                                                    <div class="hidden w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 items-center justify-center absolute inset-0 flex ${isCompleted ? 'grayscale' : ''}">
+                                                        <span class="material-symbols-outlined text-slate-400 text-base">pets</span>
+                                                    </div>
+                                                </div>
                                             </c:when>
                                             <c:otherwise>
                                                 <div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center ${isCompleted ? 'grayscale' : ''}">
@@ -935,10 +993,11 @@ if (isWaiting) {
                                     </c:choose>
                                 </div>
                                 <div class="flex items-center justify-end gap-2 pr-2">
-                                    <%-- Pending: Confirm + Reject --%>
+                                    <%-- Pending: Confirm + Reject + Cancel --%>
                                     <c:if test="${isPending}">
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="confirmAppointment(this.dataset.appointmentId, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="rejectAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="cancelAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">

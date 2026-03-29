@@ -142,7 +142,8 @@ public final class ValidationUtil {
      * Rule:
      * - date in the past: false
      * - future date: true
-     * - today: booking must happen before slot start time
+     * - today: book morning until afternoon block starts (14:00); book afternoon until end-of-day cutoff (18:00).
+     *   (Previously same-day morning was rejected after 08:00, which blocked receptionist same-day booking.)
      */
     public static boolean isBookableDateSlot(LocalDate date, String slot) {
         if (date == null) {
@@ -162,10 +163,13 @@ public final class ValidationUtil {
             return true;
         }
 
-        LocalTime slotStart = "morning".equals(normalizedSlot)
-                ? LocalTime.of(12, 0)
-                : LocalTime.of(20, 0);
-        return LocalDateTime.now().isBefore(LocalDateTime.of(today, slotStart));
+        LocalTime morningEnds = LocalTime.of(14, 0);
+        LocalTime afternoonBookingUntil = LocalTime.of(18, 0);
+        LocalDateTime now = LocalDateTime.now();
+        if ("morning".equals(normalizedSlot)) {
+            return now.isBefore(LocalDateTime.of(today, morningEnds));
+        }
+        return now.isBefore(LocalDateTime.of(today, afternoonBookingUntil));
     }
 
     /** No spaces allowed anywhere in value (reject if contains space). */
