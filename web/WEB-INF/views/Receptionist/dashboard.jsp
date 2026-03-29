@@ -332,10 +332,11 @@
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <div class="flex items-center justify-end gap-2">
-                                                    <%-- Pending: Confirm + Reject --%>
+                                                    <%-- Pending: Confirm + Reject + Cancel --%>
                                                     <c:if test="${isPending}">
                                                         <button onclick="confirmAppointment(${apt.appointmentId}, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                                         <button onclick="rejectAppointment(${apt.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">Reject</button>
+                                                        <button onclick="cancelAppointment(${apt.appointmentId}, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 hover:bg-red-50 transition-all">Cancel</button>
                                                     </c:if>
                                                     <%-- Customer Request: Reschedule Requested --%>
                                                     <c:if test="${isRescheduleRequested}">
@@ -675,6 +676,7 @@
             if (isPending) {
                 document.getElementById('d-btn-confirm').classList.remove('hidden');
                 document.getElementById('d-btn-reject').classList.remove('hidden');
+                document.getElementById('d-btn-cancel').classList.remove('hidden');
             }
             if (isConfirmed) {
                 document.getElementById('d-btn-checkin').classList.remove('hidden');

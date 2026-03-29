@@ -387,6 +387,7 @@
                 if (isPending) {
                     document.getElementById('d-btn-confirm').classList.remove('hidden');
                     document.getElementById('d-btn-reject').classList.remove('hidden');
+                    document.getElementById('d-btn-cancel').classList.remove('hidden');
                 }
                 if (isConfirmed) {
                     document.getElementById('d-btn-checkin').classList.remove('hidden');
@@ -992,10 +993,11 @@ if (isWaiting) {
                                     </c:choose>
                                 </div>
                                 <div class="flex items-center justify-end gap-2 pr-2">
-                                    <%-- Pending: Confirm + Reject --%>
+                                    <%-- Pending: Confirm + Reject + Cancel --%>
                                     <c:if test="${isPending}">
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="confirmAppointment(this.dataset.appointmentId, this)" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all">Confirm</button>
                                         <button data-appointment-id="${appointment.appointmentId}" onclick="rejectAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Reject</button>
+                                        <button data-appointment-id="${appointment.appointmentId}" onclick="cancelAppointment(this.dataset.appointmentId, this)" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">Cancel</button>
                                     </c:if>
                                     <%-- Confirmed: Check-in + Re-Schedule + Cancel --%>
                                     <c:if test="${isConfirmed}">
