@@ -124,6 +124,66 @@ public class ServiceJdbcDAO extends BaseDAO implements ServiceDAO {
     }
 
     @Override
+    public Optional<Service> findDeletedExactMatch(String name, double price, String description) {
+        if (name == null || name.trim().isEmpty()) {
+            return Optional.empty();
+        }
+
+        String normalizedDescription = description == null ? "" : description.trim();
+        String sql = "SELECT TOP 1 service_id, name, category, price, description, is_deleted "
+                + "FROM Services "
+                + "WHERE is_deleted = 1 "
+                + "AND LOWER(LTRIM(RTRIM(name))) = LOWER(LTRIM(RTRIM(?))) "
+                + "AND price = ? "
+                + "AND LOWER(LTRIM(RTRIM(COALESCE(description, '')))) = LOWER(LTRIM(RTRIM(?))) "
+                + "ORDER BY service_id DESC";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, name);
+            ps.setDouble(2, price);
+            ps.setString(3, normalizedDescription);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRowToService(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            System.err.println("[ServiceJdbcDAO] findDeletedExactMatch() error: " + ex.getMessage());
+            System.err.println("SQLState: " + ex.getSQLState());
+            System.err.println("ErrorCode: " + ex.getErrorCode());
+            ex.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean restore(int serviceId) {
+        String sql = "UPDATE Services SET is_deleted = 0 WHERE service_id = ? AND is_deleted = 1";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, serviceId);
+            boolean result = ps.executeUpdate() > 0;
+            if (result) {
+                System.out.println("[ServiceJdbcDAO] Service restored: " + serviceId);
+            }
+            return result;
+
+        } catch (SQLException ex) {
+            System.err.println("[ServiceJdbcDAO] restore() error: " + ex.getMessage());
+            System.err.println("SQLState: " + ex.getSQLState());
+            System.err.println("ErrorCode: " + ex.getErrorCode());
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
     public Service create(Service service) {
         String sql = "INSERT INTO Services (name, category, price, description, is_deleted) "
                 + "OUTPUT INSERTED.service_id "

@@ -2,6 +2,7 @@ package controller.admin;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -124,13 +125,6 @@ public class ServiceServlet extends HttpServlet {
                 return;
             }
 
-            if (serviceService.existsByName(name)) {
-                response.setStatus(HttpServletResponse.SC_CONFLICT);
-                response.setContentType("text/plain;charset=UTF-8");
-                response.getWriter().write("Service name already exists");
-                return;
-            }
-
             double price = 0.0;
             try {
                 if (priceStr != null && !priceStr.trim().isEmpty()) {
@@ -150,10 +144,38 @@ public class ServiceServlet extends HttpServlet {
                 return;
             }
 
+            String normalizedCategory = category != null ? category.trim() : "";
+            String normalizedDescription = description != null ? description.trim() : "";
+
+            if (serviceService.existsByName(name)) {
+                response.setStatus(HttpServletResponse.SC_CONFLICT);
+                response.setContentType("text/plain;charset=UTF-8");
+                response.getWriter().write("Service name already exists");
+                return;
+            }
+
+            Optional<Service> deletedMatch = serviceService.findDeletedExactMatch(name, price, normalizedDescription);
+            if (deletedMatch.isPresent()) {
+                Service restoring = deletedMatch.get();
+                restoring.setName(name);
+                restoring.setCategory(normalizedCategory);
+                restoring.setPrice(price);
+                restoring.setDescription(normalizedDescription);
+
+                boolean restored = serviceService.restoreService(restoring.getServiceId());
+                if (restored) {
+                    serviceService.updateService(restoring);
+                    response.sendRedirect(request.getContextPath() + "/owner/services");
+                } else {
+                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to restore existing service");
+                }
+                return;
+            }
+
             Service service = new Service();
             service.setName(name);
-            service.setCategory(category != null ? category.trim() : "");
-            service.setDescription(description != null ? description.trim() : "");
+            service.setCategory(normalizedCategory);
+            service.setDescription(normalizedDescription);
             service.setPrice(price);
 
             Service created = serviceService.createService(service);

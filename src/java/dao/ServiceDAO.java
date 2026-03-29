@@ -17,6 +17,10 @@ public interface ServiceDAO {
 
     boolean existsByName(String name);
 
+    Optional<Service> findDeletedExactMatch(String name, double price, String description);
+
+    boolean restore(int serviceId);
+
     Service create(Service service);
 
     boolean update(Service service);
