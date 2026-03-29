@@ -48,6 +48,10 @@ public class BookAppointmentServlet extends HttpServlet {
         String redirect = ctx + "/index.jsp";
         String errorRedirectBase = redirect + "?openBooking=1&bookError=1&bookMessage=";
 
+        //các trường đã nhập bị lỗi thì sẽ được giữ lại trong query string để điền lại form
+        String preservedQuery = buildPreservedFormQuery(ownerName, email, phone, petName, petType,
+            appointmentDate, timeSlotRaw, notes, serviceIdValues);
+
         List<String> missingFields = new ArrayList<>();
         if (isBlank(ownerName)) missingFields.add("ownerName");
         if (isBlank(email)) missingFields.add("email");
@@ -58,51 +62,54 @@ public class BookAppointmentServlet extends HttpServlet {
         if (isBlank(timeSlotRaw)) missingFields.add("timeSlot");
 
         if (!missingFields.isEmpty()) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Please fill in all required fields. Missing: " + String.join(", ", missingFields), StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Please fill in all required fields. Missing: " + String.join(", ", missingFields),
+                preservedQuery));
             return;
         }
 
         if (serviceIdValues == null || serviceIdValues.length == 0) {
-            response.sendRedirect(errorRedirectBase
-                + URLEncoder.encode("Please select at least one service.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Please select at least one service.", preservedQuery));
             return;
         }
         if (!ValidationUtil.isValidOwnerOrPetName(ownerName)) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Owner name must be 1-100 letters and spaces only.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Owner name must be 1-100 letters and spaces only.", preservedQuery));
             return;
         }
         if (!ValidationUtil.isValidEmailFormat(email)) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Please enter a valid email address.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Please enter a valid email address.", preservedQuery));
             return;
         }
         if (!ValidationUtil.isValidPhone(phone)) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Phone must be 10 digits starting with 0 (e.g. 0123456789).", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Phone must be 10 digits starting with 0 (e.g. 0123456789).", preservedQuery));
             return;
         }
         if (!ValidationUtil.isValidOwnerOrPetName(petName)) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Pet name must be 1-100 characters using letters (including Vietnamese), spaces, apostrophes, hyphens, or dots.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Pet name must be 1-100 characters using letters (including Vietnamese), spaces, apostrophes, hyphens, or dots.",
+                preservedQuery));
             return;
         }
         if (!ValidationUtil.isDateNotInPast(appointmentDate)) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Preferred date cannot be in the past.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Preferred date cannot be in the past.", preservedQuery));
             return;
         }
         if (notes != null && notes.length() > ValidationUtil.NOTES_MAX_LENGTH) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Notes must be at most " + ValidationUtil.NOTES_MAX_LENGTH + " characters.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Notes must be at most " + ValidationUtil.NOTES_MAX_LENGTH + " characters.",
+                preservedQuery));
             return;
         }
 
         String normalizedTimeSlot = normalizeTimeSlot(timeSlotRaw);
         if (normalizedTimeSlot == null) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Please choose a valid booking slot (Morning or Afternoon).", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                "Please choose a valid booking slot (Morning or Afternoon).", preservedQuery));
             return;
         }
 
@@ -123,14 +130,14 @@ public class BookAppointmentServlet extends HttpServlet {
                 throw new IllegalArgumentException("Invalid service selected.");
             }
         } catch (Exception e) {
-            response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode("Invalid data format for date, slot or service.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                    "Invalid data format for date, slot or service.", preservedQuery));
             return;
         }
 
         if (!ValidationUtil.isBookableDateSlot(preferredDate, normalizedTimeSlot)) {
-            response.sendRedirect(errorRedirectBase
-                + URLEncoder.encode("Selected time slot has passed. Please choose a different slot or date.", StandardCharsets.UTF_8));
+            response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                    "Selected time slot has passed. Please choose a different slot or date.", preservedQuery));
             return;
         }
 
@@ -143,8 +150,8 @@ public class BookAppointmentServlet extends HttpServlet {
             // Only general category services can be booked from guest/customer flows.
             for (Integer sid : serviceIds) {
                 if (sid == null || sid <= 0 || !isGeneralService(conn, sid)) {
-                    response.sendRedirect(errorRedirectBase
-                            + URLEncoder.encode("Only general services are available for booking.", StandardCharsets.UTF_8));
+                    response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                            "Only general services are available for booking.", preservedQuery));
                     return;
                 }
             }
@@ -157,8 +164,8 @@ public class BookAppointmentServlet extends HttpServlet {
             Integer userIdByEmail = findUserIdByEmail(conn, email);
 
             if (userIdByPhone != null && userIdByEmail != null && !userIdByPhone.equals(userIdByEmail)) {
-                response.sendRedirect(errorRedirectBase
-                        + URLEncoder.encode("Phone and email are already linked to different accounts.", StandardCharsets.UTF_8));
+                response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                    "Phone and email are already linked to different accounts.", preservedQuery));
                 return;
             }
 
@@ -166,8 +173,8 @@ public class BookAppointmentServlet extends HttpServlet {
                 String existingEmail = findUserEmailById(conn, userIdByPhone);
                 if (existingEmail != null && !existingEmail.trim().isEmpty()
                         && !existingEmail.equalsIgnoreCase(email)) {
-                    response.sendRedirect(errorRedirectBase
-                            + URLEncoder.encode("This phone is already registered with another email.", StandardCharsets.UTF_8));
+                    response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                        "This phone is already registered with another email.", preservedQuery));
                     return;
                 }
             }
@@ -176,8 +183,8 @@ public class BookAppointmentServlet extends HttpServlet {
                 String existingPhone = findUserPhoneById(conn, userIdByEmail);
                 if (existingPhone != null && !existingPhone.trim().isEmpty()
                         && !existingPhone.equals(phone)) {
-                    response.sendRedirect(errorRedirectBase
-                            + URLEncoder.encode("This email is already registered with another phone.", StandardCharsets.UTF_8));
+                    response.sendRedirect(buildErrorRedirect(errorRedirectBase,
+                        "This email is already registered with another phone.", preservedQuery));
                     return;
                 }
             }
@@ -239,7 +246,6 @@ public class BookAppointmentServlet extends HttpServlet {
 
             // Step 2: Find or Create Pet
             Integer petId = null;
-            // Assuming a 'Pets' table exists
             String sqlFindPet = "SELECT pet_id FROM dbo.Pets WHERE name = ? AND customer_id = ?";
             try (PreparedStatement psFindPet = conn.prepareStatement(sqlFindPet)) {
                 psFindPet.setString(1, petName);
@@ -252,7 +258,6 @@ public class BookAppointmentServlet extends HttpServlet {
             }
 
             if (petId == null) {
-                // Assuming 'Pets' table has columns: name, species, customer_id
                 String sqlCreatePet = "INSERT INTO dbo.Pets (name, species, customer_id) VALUES (?, ?, ?)";
                 try (PreparedStatement psCreatePet = conn.prepareStatement(sqlCreatePet, Statement.RETURN_GENERATED_KEYS)) {
                     psCreatePet.setString(1, petName);
@@ -331,7 +336,7 @@ public class BookAppointmentServlet extends HttpServlet {
                 columnSql.append(", phone");
                 valueSql.append(", ?");
             }
-
+            // step3: tạo appointment
             String sqlCreateAppointment = "INSERT INTO dbo.Appointments (" + columnSql + ") VALUES (" + valueSql + ")";
             Integer appointmentId = null;
             try (PreparedStatement psCreateAppt = conn.prepareStatement(sqlCreateAppointment, Statement.RETURN_GENERATED_KEYS)) {
@@ -404,8 +409,7 @@ public class BookAppointmentServlet extends HttpServlet {
             }
             e.printStackTrace(); // Log the full error to the server console
             String msg = "Booking could not be saved. Please try again or contact us.";
-                response.sendRedirect(errorRedirectBase
-                    + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+                response.sendRedirect(buildErrorRedirect(errorRedirectBase, msg, preservedQuery));
         } finally {
             if (conn != null) {
                 try {
@@ -558,5 +562,43 @@ public class BookAppointmentServlet extends HttpServlet {
                 return category != null && "general".equalsIgnoreCase(category.trim());
             }
         }
+    }
+
+    private String buildErrorRedirect(String errorRedirectBase, String message, String preservedQuery) {
+        return errorRedirectBase
+                + URLEncoder.encode(message, StandardCharsets.UTF_8)
+                + preservedQuery;
+    }
+
+    private String buildPreservedFormQuery(String ownerName, String email, String phone,
+            String petName, String petType, String appointmentDate, String timeSlotRaw,
+            String notes, String[] serviceIdValues) {
+        StringBuilder sb = new StringBuilder();
+        appendQueryParam(sb, "ownerName", ownerName);
+        appendQueryParam(sb, "email", email);
+        appendQueryParam(sb, "phone", phone);
+        appendQueryParam(sb, "petName", petName);
+        appendQueryParam(sb, "petType", petType);
+        appendQueryParam(sb, "appointmentDate", appointmentDate);
+        appendQueryParam(sb, "timeSlot", timeSlotRaw);
+        appendQueryParam(sb, "notes", notes);
+
+        if (serviceIdValues != null) {
+            for (String serviceId : serviceIdValues) {
+                appendQueryParam(sb, "serviceIds", trim(serviceId));
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private void appendQueryParam(StringBuilder sb, String key, String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return;
+        }
+        sb.append('&')
+                .append(key)
+                .append('=')
+                .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 }

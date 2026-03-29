@@ -67,7 +67,7 @@ Anipats landing page - VCMS (Tailwind design)
             case 2: // Veterinarian
             roleDashboardUrl = ctx + "/vet/dashboard";
             break;
-        case 3: // Receptionist
+            case 3: // Receptionist
             roleDashboardUrl = ctx + "/Receptionist/Dashboard";
             break;
             case 4: // LabStaff
@@ -574,16 +574,16 @@ Anipats landing page - VCMS (Tailwind design)
 </footer>
 
 <!-- Book Appointment Modal (no Bootstrap) -->
-<div id="bookAppointmentModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4" aria-modal="true" aria-labelledby="bookAppointmentLabel">
+<div id="bookAppointmentModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-3 sm:p-4" aria-modal="true" aria-labelledby="bookAppointmentLabel">
     <div id="bookModalBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="document.getElementById('bookAppointmentModal').classList.add('hidden'); document.getElementById('bookAppointmentModal').classList.remove('flex');"></div>
-    <div class="relative bg-white dark:bg-[#2d1a1b] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="sticky top-0 bg-white dark:bg-[#2d1a1b] px-6 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between z-10">
+    <div class="relative bg-white dark:bg-[#2d1a1b] rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white dark:bg-[#2d1a1b] px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between z-10">
             <h2 id="bookAppointmentLabel" class="text-xl font-bold text-[#181111] dark:text-white"><%= esc(txt.apply("home.book_modal.title", "Book Appointment")) %></h2>
             <button type="button" class="modal-close p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors" onclick="document.getElementById('bookAppointmentModal').classList.add('hidden'); document.getElementById('bookAppointmentModal').classList.remove('flex');" aria-label="Close">
                 <span class="material-symbols-outlined text-2xl">close</span>
             </button>
         </div>
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
             <jsp:include page="bookForm.jsp" flush="true"/>
         </div>
     </div>

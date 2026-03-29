@@ -153,7 +153,7 @@
                             <c:otherwise>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     <c:forEach var="image" items="${images}">
-                                        <div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark overflow-hidden image-card" data-image-title="${image.title}" data-image-section="${image.section}">
+                                        <div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark overflow-hidden image-card" data-image-id="${image.id}" data-image-title="${image.title}" data-image-section="${image.section}">
                                             <div class="relative w-full h-48 bg-gray-200 dark:bg-gray-700 overflow-hidden group">
                                                 <img src="${pageContext.request.contextPath}${image.url}" alt="${image.altText}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
                                             </div>
@@ -173,7 +173,15 @@
                                                         <span class="text-sm font-bold text-primary">#${image.id}</span>
                                                     </div>
                                                 </div>
-                                                <p class="text-xs text-[#a17145] mt-2">${fn:replace(fn:substring(image.createdAt, 0, 16), 'T', ' ')}</p>
+                                                <div class="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-[#eadbcd] dark:border-gray-700">
+                                                    <p class="text-xs text-[#a17145]">${fn:replace(fn:substring(image.createdAt, 0, 16), 'T', ' ')}</p>
+                                                    <button type="button"
+                                                            onclick="deleteImage(${image.id}, this)"
+                                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/30 transition-colors">
+                                                        <span class="material-symbols-outlined text-base">delete</span>
+                                                        <span>Delete</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </c:forEach>
@@ -333,6 +341,77 @@
                         showToast(errorMessage, 'error');
                         } catch (error) {
                             showToast('Network error: ' + error.message, 'error');
+                        }
+                    }
+
+                    async function deleteImage(imageId, triggerButton) {
+                        if (!imageId) {
+                            showToast('Invalid image id.', 'error');
+                            return;
+                        }
+
+                        const confirmed = window.confirm('Delete this image permanently?');
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        if (triggerButton) {
+                            triggerButton.disabled = true;
+                        }
+
+                        const body = new URLSearchParams({
+                            action: 'delete',
+                            imageId: String(imageId)
+                        });
+
+                        try {
+                            const response = await fetch('${pageContext.request.contextPath}/owner/images', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: body.toString()
+                            });
+
+                            if (!response.ok) {
+                                const errorMessage = await parseErrorMessage(response, 'Failed to delete image.');
+                                showToast(errorMessage, 'error');
+                                if (triggerButton) {
+                                    triggerButton.disabled = false;
+                                }
+                                return;
+                            }
+
+                            const card = triggerButton ? triggerButton.closest('.image-card') : null;
+                            if (card && card.parentNode) {
+                                card.parentNode.removeChild(card);
+                            }
+
+                            const imageCountEl = document.getElementById('imageCount');
+                            if (imageCountEl) {
+                                imageCountEl.textContent = document.querySelectorAll('.image-card').length;
+                            }
+
+                            const remainingCards = document.querySelectorAll('.image-card').length;
+                            const imagesContainer = document.getElementById('imagesContainer');
+                            if (remainingCards === 0 && imagesContainer) {
+                                imagesContainer.innerHTML =
+                                    '<div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark p-12 text-center">'
+                                    + '<div class="flex flex-col items-center gap-3">'
+                                    + '<span class="material-symbols-outlined text-5xl opacity-50 text-[#a17145]">image_not_supported</span>'
+                                    + '<h3 class="font-bold text-lg">No images found</h3>'
+                                    + '<p class="text-sm text-[#a17145]">Upload your first image to get started!</p>'
+                                    + '</div>'
+                                    + '</div>';
+                            }
+
+                            showToast('Image deleted successfully.', 'success');
+                        } catch (error) {
+                            showToast('Network error: ' + error.message, 'error');
+                            if (triggerButton) {
+                                triggerButton.disabled = false;
+                            }
                         }
                     }
                         

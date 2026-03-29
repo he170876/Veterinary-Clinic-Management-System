@@ -88,11 +88,15 @@ public class Pet {
     }
 
     public String getPhotoUrl() {
-        return photoUrl;
+        String raw = (photoUrl != null && !photoUrl.isBlank()) ? photoUrl : PhotoURL;
+        return normalizePhotoPath(raw);
     }
 
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
+        if (photoUrl != null && !photoUrl.isBlank()) {
+            this.PhotoURL = photoUrl;
+        }
     }
 
     public LocalDateTime getCreatedAt() {
@@ -104,11 +108,29 @@ public class Pet {
     }
 
     public String getPhotoURL() {
-        return PhotoURL;
+        String raw = (PhotoURL != null && !PhotoURL.isBlank()) ? PhotoURL : photoUrl;
+        return normalizePhotoPath(raw);
     }
 
     public void setPhotoURL(String PhotoURL) {
         this.PhotoURL = PhotoURL;
+        if (PhotoURL != null && !PhotoURL.isBlank()) {
+            this.photoUrl = PhotoURL;
+        }
+    }
+
+    private String normalizePhotoPath(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+            return trimmed;
+        }
+        return "/" + trimmed;
     }
     
     

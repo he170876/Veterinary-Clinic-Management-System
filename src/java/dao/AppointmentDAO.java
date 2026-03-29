@@ -849,7 +849,8 @@ public class AppointmentDAO extends DBContext {
         Customer cus = new Customer();
         cus.setCustomerId(rs.getInt("customer_id"));
         User customerUser = new User();
-        customerUser.setFullName(rs.getString("customer_name"));
+        String customerName = rs.getString("customer_name");
+        customerUser.setFullName((customerName == null || customerName.isBlank()) ? "Unknown" : customerName);
         customerUser.setPhone(rs.getString("customer_phone"));
         cus.setUser(customerUser);
         ap.setCustomer(cus);
@@ -886,9 +887,11 @@ public class AppointmentDAO extends DBContext {
         Customer cus = new Customer();
         cus.setCustomerId(rs.getInt("customer_id"));
         User customerUser = new User();
-        customerUser.setFullName(rs.getString("customer_name"));
+        String customerName = rs.getString("customer_name");
+        customerUser.setFullName((customerName == null || customerName.isBlank()) ? "Unknown" : customerName);
         customerUser.setPhone(rs.getString("customer_phone"));
         cus.setUser(customerUser);
+        ap.setCustomer(cus);
         ap.setCustomerPhone(rs.getString("customer_phone"));
         String vetName = rs.getString("veterinarian_name");
         if (vetName != null) ap.setVeterinarianName(vetName);
@@ -996,11 +999,11 @@ public class AppointmentDAO extends DBContext {
         String legacySql = """
             SELECT a.appointment_id, a.appointment_time, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
                    p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
-                   c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
+                 c.customer_id, u.full_name AS customer_name, u.phone AS customer_phone, vet_user.full_name AS veterinarian_name
             FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
-            JOIN customers c ON a.customer_id = c.customer_id
-            JOIN users u ON c.user_id = u.user_id
+                 LEFT JOIN customers c ON a.customer_id = c.customer_id
+                 LEFT JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
             LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
@@ -1015,11 +1018,11 @@ public class AppointmentDAO extends DBContext {
         String dateSlotSql = """
             SELECT a.appointment_id, a.appointment_date, a.time_slot, a.status, a.veterinarian_id, aps.service_id, s.name AS service_name,
                    p.pet_id, p.name AS pet_name, p.photoUrl AS pet_photo, p.species, p.breed,
-                   c.customer_id, u.full_name AS customer_name, vet_user.full_name AS veterinarian_name
+                 c.customer_id, u.full_name AS customer_name, u.phone AS customer_phone, vet_user.full_name AS veterinarian_name
             FROM appointments a
             JOIN pets p ON a.pet_id = p.pet_id
-            JOIN customers c ON a.customer_id = c.customer_id
-            JOIN users u ON c.user_id = u.user_id
+                 LEFT JOIN customers c ON a.customer_id = c.customer_id
+                 LEFT JOIN users u ON c.user_id = u.user_id
             LEFT JOIN veterinarians v ON a.veterinarian_id = v.veterinarian_id
             LEFT JOIN users vet_user ON v.user_id = vet_user.user_id
             LEFT JOIN appointment_service aps ON a.appointment_id = aps.appointment_id
