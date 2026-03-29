@@ -426,7 +426,6 @@
                                 <option value="2" ${roleId == 2 ? 'selected' : ''}>Veterinarian</option>
                                 <option value="3" ${roleId == 3 ? 'selected' : ''}>Receptionist</option>
                                 <option value="4" ${roleId == 4 ? 'selected' : ''}>Lab Staff</option>
-                                <option value="5" ${roleId == 5 ? 'selected' : ''}>Admin</option>
                                 <option value="6" ${roleId == 6 ? 'selected' : ''}>Clinic Owner</option>
                             </select>
                             <c:if test="${openCreateModal and errors.roleId != null}">
@@ -756,7 +755,6 @@
                             <option value="2" ${roleId == 2 ? 'selected' : ''}>Veterinarian</option>
                             <option value="3" ${roleId == 3 ? 'selected' : ''}>Receptionist</option>
                             <option value="4" ${roleId == 4 ? 'selected' : ''}>Lab Staff</option>
-                            <option value="5" ${roleId == 5 ? 'selected' : ''}>Admin</option>
                             <option value="6" ${roleId == 6 ? 'selected' : ''}>Clinic Owner</option>
                         </select>
 
