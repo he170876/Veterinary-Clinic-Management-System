@@ -17,7 +17,7 @@ import java.util.Optional;
 
 /**
  * Public lightweight lookup for landing booking form.
- * Returns whether a customer exists by phone and basic profile fields.
+ * Returns only whether a customer exists by phone.
  */
 @WebServlet(name = "LookupCustomerByPhonePublicServlet", urlPatterns = {"/book/lookup-phone"})
 public class LookupCustomerByPhonePublicServlet extends HttpServlet {
@@ -50,18 +50,6 @@ public class LookupCustomerByPhonePublicServlet extends HttpServlet {
             return;
         }
 
-        String fullName = escapeJson(user.getFullName() == null ? "" : user.getFullName());
-        String email = escapeJson(user.getEmail() == null ? "" : user.getEmail());
-        response.getWriter().print("{\"success\":true,\"found\":true,\"customer\":{\"fullName\":\""
-                + fullName + "\",\"email\":\"" + email + "\"}}");
-    }
-
-    private static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        response.getWriter().print("{\"success\":true,\"found\":true}");
     }
 }
