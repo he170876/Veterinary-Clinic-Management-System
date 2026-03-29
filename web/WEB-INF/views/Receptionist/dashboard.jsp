@@ -5,6 +5,7 @@
 --%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -236,12 +237,36 @@
                                         <tr class="hover:bg-slate-50 transition-colors" data-appointment-id="${apt.appointmentId}">
                                             <td class="px-6 py-4 pet-cell">
                                                 <div class="flex items-center gap-3">
+                                                    <%-- photoURL from appointment queries; photoUrl from pet CRUD — both may be set; paths are often relative (e.g. uploads/pets/...) and need contextPath. --%>
+                                                    <c:set var="rawPetPhoto" value="${apt.pet.photoURL}"/>
+                                                    <c:if test="${empty rawPetPhoto}"><c:set var="rawPetPhoto" value="${apt.pet.photoUrl}"/></c:if>
+                                                    <c:set var="petPhotoSrc" value=""/>
+                                                    <c:if test="${not empty rawPetPhoto}">
+                                                        <c:set var="rawTrim" value="${fn:trim(rawPetPhoto)}"/>
+                                                        <c:choose>
+                                                            <c:when test="${fn:startsWith(fn:toLowerCase(rawTrim), 'http://') || fn:startsWith(fn:toLowerCase(rawTrim), 'https://')}">
+                                                                <c:set var="petPhotoSrc" value="${rawTrim}"/>
+                                                            </c:when>
+                                                            <c:when test="${fn:startsWith(rawTrim, '/')}">
+                                                                <c:set var="petPhotoSrc" value="${pageContext.request.contextPath}${rawTrim}"/>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <c:set var="petPhotoSrc" value="${pageContext.request.contextPath}/${rawTrim}"/>
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                    </c:if>
                                                     <c:choose>
-                                                        <c:when test="${not empty apt.pet.photoURL}">
-                                                            <img alt="Pet" class="w-10 h-10 rounded-lg object-cover" src="${apt.pet.photoURL}"/>
+                                                        <c:when test="${not empty petPhotoSrc}">
+                                                            <div class="relative w-10 h-10 shrink-0">
+                                                                <img alt="Pet" class="w-10 h-10 rounded-lg object-cover" src="${petPhotoSrc}"
+                                                                     onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');"/>
+                                                                <div class="hidden w-10 h-10 rounded-lg bg-slate-200 items-center justify-center absolute inset-0 flex">
+                                                                    <span class="material-symbols-outlined text-slate-400">pets</span>
+                                                                </div>
+                                                            </div>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <div class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center">
+                                                            <div class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
                                                                 <span class="material-symbols-outlined text-slate-400">pets</span>
                                                             </div>
                                                         </c:otherwise>
@@ -533,6 +558,16 @@
     </div>
 
     <script>
+        var RECEPTIONIST_CTX = '<%= request.getContextPath() %>';
+        function resolvePetPhotoUrl(path) {
+            if (path == null || typeof path !== 'string') return '';
+            var p = path.trim();
+            if (!p) return '';
+            if (/^https?:\/\//i.test(p)) return p;
+            if (p.charAt(0) === '/') return RECEPTIONIST_CTX + p;
+            return RECEPTIONIST_CTX + '/' + p;
+        }
+
         let currentDetailAppointmentId = null;
         let detailInvoiceAllowMarkPaid = false;
         let currentConfirmAppointmentId = null;
@@ -583,11 +618,19 @@
             
             const photoEl = document.getElementById('d-pet-photo');
             const noPhotoEl = document.getElementById('d-pet-no-photo');
-            if (pet.photoUrl) {
-                photoEl.src = pet.photoUrl;
+            var resolvedPhoto = resolvePetPhotoUrl(pet.photoUrl);
+            if (resolvedPhoto) {
+                photoEl.onerror = function () {
+                    photoEl.onerror = null;
+                    photoEl.classList.add('hidden');
+                    noPhotoEl.classList.remove('hidden');
+                };
+                photoEl.src = resolvedPhoto;
                 photoEl.classList.remove('hidden');
                 noPhotoEl.classList.add('hidden');
             } else {
+                photoEl.removeAttribute('src');
+                photoEl.onerror = null;
                 photoEl.classList.add('hidden');
                 noPhotoEl.classList.remove('hidden');
             }

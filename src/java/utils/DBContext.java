@@ -11,7 +11,7 @@ public class DBContext {
     private static final String DEFAULT_HOST = "localhost";
     private static final String DEFAULT_PORT = "1433";
     private static final String DEFAULT_INSTANCE = "MSSQLSERVER12";
-    private static final String DEFAULT_DB = "VetClinicManagement1";
+    private static final String DEFAULT_DB = "VetClinicManagement";
     private static final String DEFAULT_USER = "sa";
     private static final String DEFAULT_PASS = "123456";
 
