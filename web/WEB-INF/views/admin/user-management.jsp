@@ -194,7 +194,6 @@
                     <option value="2" ${param.filterRoleId=='2'?'selected':''}>Veterinarian</option>
                     <option value="3" ${param.filterRoleId=='3'?'selected':''}>Receptionist</option>
                     <option value="4" ${param.filterRoleId=='4'?'selected':''}>Lab Staff</option>
-                    <option value="5" ${param.filterRoleId=='5'?'selected':''}>Admin</option>
                     <option value="6" ${param.filterRoleId=='6'?'selected':''}>Clinic Owner</option>
                 </select>
 

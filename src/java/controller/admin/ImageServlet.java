@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -63,12 +64,6 @@ public class ImageServlet extends HttpServlet {
         response.sendError(HttpServletResponse.SC_NOT_FOUND, "Not found");
     }
 
-    /**
-     * Xu ly POST:
-     * - Kiem tra dang nhap va quyen truy cap.
-     * - Chi cho phep upload o endpoint goc /owner/images.
-     * - action mac dinh la create de tao anh moi.
-     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -94,14 +89,13 @@ public class ImageServlet extends HttpServlet {
         String action = request.getParameter("action");
         if (action == null || "create".equals(action)) {
             createImage(request, response);
+        } else if ("delete".equals(action)) {
+            deleteImage(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action");
         }
     }
 
-    /**
-     * Lay danh sach anh tu service, dua vao request scope va forward sang trang JSP.
-     */
     private void listImages(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         List<Image> images = imageService.getAllImagesOrderedBySort();
@@ -109,80 +103,94 @@ public class ImageServlet extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/admin/images.jsp").forward(request, response);
     }
 
-    /**
-     * Tao ban ghi anh moi:
-     * - Nhan file tu form multipart.
-     * - Kiem tra file hop le (MIME + phan mo rong).
-     * - Luu file vao o dia.
-     * - Tao doi tuong Image va luu DB.
-     */
     private void createImage(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        // Bao toan bo logic de bat loi runtime/DB/file va tra HTTP 500 thay vi vo servlet.
         try {
-            // Lay part file tu form multipart voi name="imageFile".
             Part filePart = request.getPart("imageFile");
-            // Neu khong co file hoac file rong, tra ve 400 (yeu cau khong hop le).
             if (filePart == null || filePart.getSize() == 0) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "No image file provided");
-                // Dung ham ngay sau khi da tra loi loi.
                 return;
             }
 
-            // Lay ten file goc nguoi dung upload (de check duoi mo rong).
+            // Validate file type
             String fileName = filePart.getSubmittedFileName();
-            // Lay MIME type browser/gui len (de check loai noi dung).
+            // get file content MIME
             String contentType = filePart.getContentType();
-            // Chi cho phep anh jpg/png/gif/webp; neu sai thi tra 400.
             if (!isValidImageType(contentType, fileName)) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid file type. Only JPG, PNG, GIF, WebP allowed");
-                // Ket thuc som neu file khong hop le.
                 return;
             }
 
-            // Luu file xuong o dia, nhan lai duong dan tuong doi de luu DB.
+            // Save file
             String uploadedPath = saveUploadedFile(request, filePart);
-            // Neu khong luu duoc file thi tra loi 500.
             if (uploadedPath == null) {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to save file");
-                // Dung ham vi khong the tiep tuc tao ban ghi anh.
                 return;
             }
 
-            // Tao object Image de map du lieu truoc khi ghi vao database.
             Image image = new Image();
-            // Tieu de anh lay tu input title.
             image.setTitle(request.getParameter("title"));
-            // URL anh su dung duong dan file da upload thanh cong.
             image.setUrl(uploadedPath);
-            // Alt text phuc vu SEO va kha nang truy cap.
             image.setAltText(request.getParameter("altText"));
-            // Section de phan loai anh theo khu vuc/noi dung su dung.
             image.setSection(request.getParameter("section"));
-            // Gia tri sort mac dinh = 0 (co the sap xep lai sau).
             image.setSortOrder(0);
 
-            // Goi service de insert ban ghi Image vao DB.
             Image created = imageService.createImage(image);
-            // Neu tao thanh cong, dieu huong ve trang danh sach anh.
             if (created != null) {
                 response.sendRedirect(request.getContextPath() + "/owner/images");
             } else {
-                // Service tra null => xem nhu that bai luu DB.
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to create image");
             }
         } catch (Exception e) {
-            // Ghi log chi tiet de debug tren server.
             System.err.println("CreateImage ERROR: " + e.getMessage());
             e.printStackTrace();
-            // Tra loi loi 500 kem message hien tai.
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
+    private void deleteImage(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        String idRaw = request.getParameter("imageId");
+        if (idRaw == null || idRaw.trim().isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing image id");
+            return;
+        }
+
+        final long imageId;
+        try {
+            imageId = Long.parseLong(idRaw.trim());
+            if (imageId <= 0) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid image id");
+                return;
+            }
+        } catch (NumberFormatException ex) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid image id");
+            return;
+        }
+
+        Optional<Image> existingOpt = imageService.getImageById(imageId);
+        if (!existingOpt.isPresent()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image not found");
+            return;
+        }
+
+        boolean deleted = imageService.deleteImage(imageId);
+        if (!deleted) {
+            response.sendError(HttpServletResponse.SC_CONFLICT,
+                    "Could not delete image. It may be referenced by other content.");
+            return;
+        }
+
+        // Best-effort cleanup of uploaded file. Keep DB success even if file is already missing.
+        deletePhysicalFile(request, existingOpt.get().getUrl());
+
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("text/plain;charset=UTF-8");
+        response.getWriter().write("Image deleted");
+    }
+
     /**
-     * Kiem tra file anh hop le dua tren content-type va duoi ten file.
-     * Chi chap nhan: jpg/jpeg/png/gif/webp.
+     * Validates if the uploaded file is a valid image type.
      */
     private boolean isValidImageType(String contentType, String fileName) {
         if (contentType == null || fileName == null) return false;
@@ -205,12 +213,13 @@ public class ImageServlet extends HttpServlet {
     }
 
     /**
-     * Luu file upload vao thu muc uploads/images va tra ve duong dan tuong doi
-     * de luu vao DB (dang /uploads/images/<file>). Tra ve null neu that bai.
+     * Saves the uploaded file to disk and returns the relative path.
      */
     private String saveUploadedFile(HttpServletRequest request, Part filePart) {
         try {
+            //tao file ví dụ project/uploads/images/unique-filename.jpg
             String uploadPath = getUploadBaseDir(request) + File.separator + "images";
+            //tạo nếu chưa tồn tại
             Files.createDirectories(Paths.get(uploadPath));
 
             // Generate unique filename
@@ -219,12 +228,14 @@ public class ImageServlet extends HttpServlet {
             String fileExtension = "";
             int dot = originalFileName.lastIndexOf('.');
             if (dot >= 0) {
+                //lấy đuôi file để giữ nguyên định dạng khi lưu
                 fileExtension = originalFileName.substring(dot);
             }
             String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
 
             // Save file
             Path filePath = Paths.get(uploadPath, uniqueFileName);
+            //ghi file xuống disk
             filePart.write(filePath.toString());
 
             // Return relative path for storing in database
@@ -236,13 +247,8 @@ public class ImageServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Xac dinh thu muc goc de luu upload:
-     * - Neu co cau hinh init-param uploadDir thi uu tien dung cau hinh.
-     * - Neu uploadDir la duong dan tuong doi thi doi sang tuyet doi theo project root.
-     * - Neu khong cau hinh thi mac dinh la <project>/uploads.
-     */
     private String getUploadBaseDir(HttpServletRequest request) {
+        // lấy config từ web.xml nếu có
         String configured = request.getServletContext().getInitParameter("uploadDir");
         if (configured != null && !configured.trim().isEmpty()) {
             String path = configured.trim();
@@ -252,13 +258,36 @@ public class ImageServlet extends HttpServlet {
             }
             return path;
         }
+        //mặc định nếu ko có config
         return System.getProperty("user.dir") + File.separator + "uploads";
     }
 
-    /**
-     * Kiem tra nguoi dung co quyen quan ly anh hay khong.
-     * Chap nhan cac role sau (sau khi chuan hoa): admin, clinicowner, owner.
-     */
+    private void deletePhysicalFile(HttpServletRequest request, String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return;
+        }
+        String normalized = imageUrl.trim().replace('\\', '/');
+        if (!normalized.startsWith("/uploads/")) {
+            return;
+        }
+
+        String relative = normalized.substring("/uploads/".length());
+        if (relative.isEmpty()) {
+            return;
+        }
+
+        try {
+            Path uploadRoot = Paths.get(getUploadBaseDir(request)).toAbsolutePath().normalize();
+            Path target = uploadRoot.resolve(relative).normalize();
+            if (!target.startsWith(uploadRoot)) {
+                return;
+            }
+            Files.deleteIfExists(target);
+        } catch (IOException ex) {
+            System.err.println("Delete file WARN: " + ex.getMessage());
+        }
+    }
+
     private boolean hasImageManagementAccess(User user) {
         if (user == null || user.getRole() == null || user.getRole().getRoleName() == null) {
             return false;

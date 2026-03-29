@@ -206,7 +206,8 @@
                         <tr class="hover:bg-[#fcfaf8] transition-colors">
                             <td class="px-6 py-5">
                                 <div class="flex items-center gap-3">
-                                    <img alt="Pet photo" class="w-10 h-10 rounded-full object-cover" src="${appointment.pet.photoUrl != null ? appointment.pet.photoUrl : '/web/anipat-master/img/default-pet.png'}"/>
+                                    <c:url var="petPhotoSrc" value="${not empty appointment.pet.photoUrl ? appointment.pet.photoUrl : '/anipat-master/img/default-pet.png'}"/>
+                                    <img alt="Pet photo" class="w-10 h-10 rounded-full object-cover" src="${petPhotoSrc}"/>
                                     <div>
                                         <p class="text-sm font-bold text-[#1c130d] dark:text-white">${appointment.pet.name}</p>
                                         <p class="text-xs text-[#9e6b47]">${appointment.pet.breed} •
@@ -229,7 +230,7 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-5">
-                                    <span class="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-600 rounded-full">${appointment.service}</span>
+                                    <span class="text-xs font-bold px-3 py-1 bg-blue-50 text-blue-600 rounded-full inline-block max-w-[220px] truncate align-middle" title="${appointment.service}">${appointment.service}</span>
                                 </td>
                                 <td class="px-6 py-5">
                                     <c:choose>
