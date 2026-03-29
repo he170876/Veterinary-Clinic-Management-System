@@ -151,7 +151,7 @@
                                 </div>
                             </c:when>
                             <c:otherwise>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div id="imagesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     <c:forEach var="image" items="${images}">
                                         <div class="soft-shadow rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark overflow-hidden image-card" data-image-id="${image.id}" data-image-title="${image.title}" data-image-section="${image.section}">
                                             <div class="relative w-full h-48 bg-gray-200 dark:bg-gray-700 overflow-hidden group">
@@ -162,16 +162,6 @@
                                                 <div class="flex flex-col gap-1">
                                                     <h3 class="font-bold text-[#1d140c] dark:text-white">${image.title}</h3>
                                                     <p class="text-xs text-[#a17145]">${image.altText}</p>
-                                                </div>
-                                                <div class="flex items-center justify-between pt-2 border-t border-[#eadbcd] dark:border-gray-700">
-                                                    <div class="flex flex-col gap-1">
-                                                        <span class="text-xs font-medium text-[#a17145]">Section</span>
-                                                        <span class="text-sm font-bold text-[#1d140c] dark:text-white">${image.section}</span>
-                                                    </div>
-                                                    <div class="flex flex-col gap-1 items-end">
-                                                        <span class="text-xs font-medium text-[#a17145]">Image ID</span>
-                                                        <span class="text-sm font-bold text-primary">#${image.id}</span>
-                                                    </div>
                                                 </div>
                                                 <div class="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-[#eadbcd] dark:border-gray-700">
                                                     <p class="text-xs text-[#a17145]">${fn:replace(fn:substring(image.createdAt, 0, 16), 'T', ' ')}</p>
@@ -393,6 +383,8 @@
                                 imageCountEl.textContent = document.querySelectorAll('.image-card').length;
                             }
 
+                            updateSectionVisibility();
+
                             const remainingCards = document.querySelectorAll('.image-card').length;
                             const imagesContainer = document.getElementById('imagesContainer');
                             if (remainingCards === 0 && imagesContainer) {
@@ -415,6 +407,81 @@
                         }
                     }
                         
+                        function normalizeSectionName(rawSection) {
+                            const section = (rawSection || '').trim().toLowerCase();
+                            return section || 'general';
+                        }
+
+                        function formatSectionLabel(section) {
+                            if (section === 'general') {
+                                return 'General';
+                            }
+                            return section.charAt(0).toUpperCase() + section.slice(1);
+                        }
+
+                        function updateSectionVisibility() {
+                            document.querySelectorAll('.image-section-group').forEach(group => {
+                                const visibleCards = group.querySelectorAll('.image-card:not([style*="display: none"])').length;
+                                const counter = group.querySelector('.js-section-count');
+                                if (counter) {
+                                    counter.textContent = visibleCards;
+                                }
+                                group.style.display = visibleCards > 0 ? '' : 'none';
+                            });
+                        }
+
+                        function groupImagesBySection() {
+                            const grid = document.getElementById('imagesGrid');
+                            if (!grid) {
+                                return;
+                            }
+
+                            const cards = Array.from(grid.querySelectorAll('.image-card'));
+                            if (cards.length === 0) {
+                                return;
+                            }
+
+                            const groups = new Map();
+                            cards.forEach(card => {
+                                const section = normalizeSectionName(card.dataset.imageSection);
+                                if (!groups.has(section)) {
+                                    groups.set(section, []);
+                                }
+                                groups.get(section).push(card);
+                            });
+
+                            const orderedSections = Array.from(groups.keys()).sort((a, b) => {
+                                if (a === 'general') return -1;
+                                if (b === 'general') return 1;
+                                return a.localeCompare(b);
+                            });
+
+                            grid.className = 'space-y-6';
+                            grid.innerHTML = '';
+
+                            orderedSections.forEach(section => {
+                                const sectionGroup = document.createElement('section');
+                                sectionGroup.className = 'image-section-group rounded-xl border border-[#eadbcd] dark:border-gray-800 bg-background-light dark:bg-background-dark p-4';
+                                sectionGroup.dataset.section = section;
+
+                                const header = document.createElement('div');
+                                header.className = 'flex items-center justify-between mb-4';
+                                header.innerHTML = '<h3 class="text-base font-bold text-[#1d140c] dark:text-white">Section: ' + formatSectionLabel(section) + '</h3>'
+                                    + '<span class="text-xs font-semibold px-2 py-1 rounded-full bg-[#f4ede6] text-[#7a5635] dark:bg-gray-800 dark:text-gray-200"><span class="js-section-count">' + groups.get(section).length + '</span> images</span>';
+
+                                const cardGrid = document.createElement('div');
+                                cardGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+
+                                groups.get(section).forEach(card => {
+                                    cardGrid.appendChild(card);
+                                });
+
+                                sectionGroup.appendChild(header);
+                                sectionGroup.appendChild(cardGrid);
+                                grid.appendChild(sectionGroup);
+                            });
+                        }
+
                         function filterImages() {
                             const searchInput = document.getElementById('searchInput').value.toLowerCase();
                             const cards = document.querySelectorAll('.image-card');
@@ -429,9 +496,12 @@
                                     card.style.display = 'none';
                                 }
                             });
-                                }
+                            updateSectionVisibility();
+                        }
                                 
                                 document.addEventListener('DOMContentLoaded', function() {
+                                    groupImagesBySection();
+
                                     const imageModal = document.getElementById('imageModal');
                                     if (imageModal) {
                                         imageModal.addEventListener('click', function(e) {
@@ -450,6 +520,8 @@
                                     if (imageCountEl) {
                                         imageCountEl.textContent = document.querySelectorAll('.image-card').length;
                                     }
+
+                                    updateSectionVisibility();
                                 });
                             </script>
                         </body>

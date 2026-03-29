@@ -209,10 +209,24 @@
                                         </div>
                                         <div>
                                             <label class="text-xs font-semibold text-[#8f725e]">Choose Image</label>
+                                            <c:set var="expectedSection" value=""/>
+                                            <c:if test="${fn:contains(entry.key, '.about.')}">
+                                                <c:set var="expectedSection" value="about"/>
+                                            </c:if>
+                                            <c:if test="${fn:contains(entry.key, '.team.')}">
+                                                <c:set var="expectedSection" value="team"/>
+                                            </c:if>
+                                            <c:if test="${fn:contains(entry.key, '.hero.')}">
+                                                <c:set var="expectedSection" value="hero"/>
+                                            </c:if>
                                             <select name="imageId" class="w-full rounded-lg border-[#e7d7c8] focus:ring-primary focus:border-primary js-image-select">
                                                 <option value="">-- Select image --</option>
                                                 <c:forEach var="img" items="${images}">
-                                                    <option value="${img.id}" data-url="${fn:escapeXml(img.url)}" data-title="${fn:escapeXml(img.title)}" data-alt="${fn:escapeXml(img.altText)}" ${item != null && item.imageId == img.id ? 'selected' : ''}>#${img.id} - ${fn:escapeXml(img.title)} (${fn:escapeXml(img.section)})</option>
+                                                    <c:set var="isSelected" value="${item != null && item.imageId == img.id}"/>
+                                                    <c:set var="imgSection" value="${fn:toLowerCase(img.section != null ? img.section : '')}"/>
+                                                    <c:if test="${isSelected || empty expectedSection || imgSection == expectedSection}">
+                                                        <option value="${img.id}" data-url="${fn:escapeXml(img.url)}" data-title="${fn:escapeXml(img.title)}" data-alt="${fn:escapeXml(img.altText)}" ${isSelected ? 'selected' : ''}>#${img.id} - ${fn:escapeXml(img.title)} (${fn:escapeXml(img.section)})</option>
+                                                    </c:if>
                                                 </c:forEach>
                                             </select>
                                         </div>
