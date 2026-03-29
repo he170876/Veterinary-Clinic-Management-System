@@ -394,8 +394,6 @@ Booking form fragment - included in index.jsp modal.
     <script>
         (function() {
             var phoneInput = document.getElementById('phone');
-            var ownerInput = document.getElementById('ownerName');
-            var emailInput = document.getElementById('email');
             var statusEl = document.getElementById('phoneLookupStatus');
             var ctx = '<%= ctx %>';
             var timerId;
@@ -406,23 +404,11 @@ Booking form fragment - included in index.jsp modal.
                 statusEl.style.color = color || '#8e7b6a';
             }
             
-            function setIdentityLocked(locked) {
-                if (ownerInput) {
-                    ownerInput.readOnly = !!locked;
-                    ownerInput.classList.toggle('field-locked', !!locked);
-                }
-                if (emailInput) {
-                    emailInput.readOnly = !!locked;
-                    emailInput.classList.toggle('field-locked', !!locked);
-                }
-            }
-            
             function runLookup() {
                 if (!phoneInput) return;
                 var phone = (phoneInput.value || '').trim();
                 
                 if (phone.length < 10) {
-                    setIdentityLocked(false);
                     setStatus('Phone is used to identify existing customer.', '#8e7b6a');
                     return;
                 }
@@ -430,18 +416,13 @@ Booking form fragment - included in index.jsp modal.
                 fetch(ctx + '/book/lookup-phone?phone=' + encodeURIComponent(phone))
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    if (data && data.found && data.customer) {
-                        if (ownerInput && data.customer.fullName) ownerInput.value = data.customer.fullName;
-                        if (emailInput && data.customer.email) emailInput.value = data.customer.email;
-                        setIdentityLocked(true);
-                        setStatus('Existing customer found by phone. Owner Name and Email are locked.', '#1a8f3f');
+                    if (data && data.found) {
+                        setStatus('Detected an existing account registered with this phone number.', '#1a8f3f');
                         } else {
-                            setIdentityLocked(false);
                             setStatus('New phone number. Please continue entering customer info.', '#8e7b6a');
                         }
                     })
                     .catch(function() {
-                        setIdentityLocked(false);
                         setStatus('Could not verify phone right now. You can continue manually.', '#9a572e');
                     });
                 }
