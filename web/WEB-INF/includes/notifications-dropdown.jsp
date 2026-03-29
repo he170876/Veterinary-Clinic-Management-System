@@ -105,6 +105,11 @@
                             || titleLower.contains("visit") || titleLower.contains("complete") || titleLower.contains("done")
                             || titleLower.contains("paid"))) {
                         itemHref = notifCtx + "/customer/appointments/detail?id=" + appointmentId;
+                    } else if (appointmentId > 0
+                            && ("receptionist".equals(notifRoleNormalized) || "frontdesk".equals(notifRoleNormalized))
+                            && titleLower.contains("billing")) {
+                        // Open Schedule with detail panel (Dashboard also honors ?appointmentId=).
+                        itemHref = notifCtx + "/Receptionist/ViewListAppointment?appointmentId=" + appointmentId;
                     }
                 %>
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -215,6 +220,9 @@
                         || rawTitle.indexOf('visit') !== -1 || rawTitle.indexOf('complete') !== -1 || rawTitle.indexOf('done') !== -1
                         || rawTitle.indexOf('paid') !== -1)) {
                         itemHref = base + '/customer/appointments/detail?id=' + encodeURIComponent(appointmentId);
+                    } else if (appointmentId && (role === 'receptionist' || role === 'frontdesk')
+                        && rawTitle.indexOf('billing') !== -1) {
+                        itemHref = base + '/Receptionist/ViewListAppointment?appointmentId=' + encodeURIComponent(appointmentId);
                     }
 
                     html += '<div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">';

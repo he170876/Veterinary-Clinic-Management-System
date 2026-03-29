@@ -160,7 +160,7 @@ public class ReceptionistBookAppointmentServlet extends HttpServlet {
             return;
         }
 
-        // isBookableDateSlot expects the raw user selection (AM/PM) so it can normalize internally.
+        // isBookableDateSlot normalizes AM/PM; same-day morning allowed until 14:00, afternoon until 18:00.
         if (!ValidationUtil.isBookableDateSlot(appointmentDate, timeSlot)) {
             writeJson(response, "{\"success\":false,\"message\":\"Selected time slot has passed. Please choose a different slot or date.\"}");
             return;

@@ -1065,6 +1065,23 @@
                 });
             });
         }
+
+        // Deep link: e.g. notification "Billing confirmation needed" → /Receptionist/Dashboard?appointmentId=123
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                var params = new URLSearchParams(window.location.search);
+                var aid = params.get('appointmentId');
+                if (aid && /^\d+$/.test(aid) && typeof openDetail === 'function') {
+                    openDetail(parseInt(aid, 10));
+                    if (window.history && window.history.replaceState) {
+                        var u = new URL(window.location.href);
+                        u.searchParams.delete('appointmentId');
+                        var qs = u.searchParams.toString();
+                        window.history.replaceState({}, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+                    }
+                }
+            } catch (ignore) { /* no-op */ }
+        });
     </script>
 
     <!-- Confirmation Popup -->
