@@ -39,6 +39,16 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
+    public Optional<Service> findDeletedExactMatch(String name, double price, String description) {
+        return serviceDAO.findDeletedExactMatch(name, price, description);
+    }
+
+    @Override
+    public boolean restoreService(int serviceId) {
+        return serviceDAO.restore(serviceId);
+    }
+
+    @Override
     public Service createService(Service service) {
         return serviceDAO.create(service);
     }

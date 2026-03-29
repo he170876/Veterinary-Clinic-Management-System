@@ -17,6 +17,10 @@ public interface ServiceService {
 
     boolean existsByName(String name);
 
+    Optional<Service> findDeletedExactMatch(String name, double price, String description);
+
+    boolean restoreService(int serviceId);
+
     Service createService(Service service);
 
     boolean updateService(Service service);
